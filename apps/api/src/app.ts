@@ -30,9 +30,6 @@ import auditLogRoutes from './modules/auditLog/auditLog.routes';
 
 const app = express();
 
-// Security
-app.use(helmet());
-
 // Allowed origins setup
 const defaultAllowedOrigins = [
   'http://localhost:3000',
@@ -48,13 +45,11 @@ const allAllowedOrigins = Array.from(
   new Set([...defaultAllowedOrigins, ...(config.corsOrigin || [])])
 );
 
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-
-    // In development/testing or matching allowed domains/wildcards
-    if (
+// 1. Top-Level CORS & OPTIONS Preflight Handling (Runs before helmet and rate-limiters)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    const isAllowed =
       config.isDev ||
       origin.includes('localhost') ||
       origin.includes('127.0.0.1') ||
@@ -62,30 +57,30 @@ const corsOptions: cors.CorsOptions = {
       origin.endsWith('.vercel.app') ||
       allAllowedOrigins.some(
         (allowed) => origin.toLowerCase() === allowed.toLowerCase() || origin.includes(allowed)
-      )
-    ) {
-      return callback(null, true);
+      );
+
+    if (isAllowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
     }
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
 
-    // Refuse CORS without throwing 500 error
-    callback(null, false);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Tenant-Slug',
-    'Accept',
-    'X-Requested-With',
-    'Origin',
-  ],
-  optionsSuccessStatus: 200,
-};
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Tenant-Slug, Accept, X-Requested-With, Origin'
+  );
 
-// CORS Middleware & Explicit OPTIONS handling
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// 2. Security Headers
+app.use(helmet());
 
 // Rate limiting (skips OPTIONS preflight)
 const limiter = rateLimit({

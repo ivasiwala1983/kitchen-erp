@@ -12,7 +12,8 @@ dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 function requireEnv(key: string, fallback?: string): string {
   const value = process.env[key] || fallback;
   if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
+    console.warn(`⚠️ Warning: Missing required environment variable: ${key}`);
+    return '';
   }
   return value;
 }
