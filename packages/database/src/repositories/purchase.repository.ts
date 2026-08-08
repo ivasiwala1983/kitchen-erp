@@ -3,7 +3,7 @@
  * Encapsulates all Purchase data access queries.
  */
 
-import { Prisma, Purchase, PurchaseStatus } from '../generated/client';
+import { Prisma, Purchase, PurchaseStatus } from '@prisma/client';
 import { prisma } from '../client/prisma';
 
 export interface PurchaseItemInput {

@@ -3,7 +3,7 @@
  * Manages connections, connection pools, graceful shutdown, and retry operations.
  */
 
-import { PrismaClient } from '../generated/client';
+import { PrismaClient } from '@prisma/client';
 import { prisma } from './prisma';
 
 export class DatabaseClient {

@@ -3,7 +3,7 @@
  * Prevents connection pool exhaustion in serverless / hot-reloading environments.
  */
 
-import { PrismaClient } from '../generated/client';
+import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
   prismaClientSingleton?: PrismaClient;

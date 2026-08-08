@@ -6,7 +6,6 @@
     "db:generate": {
       "inputs": ["packages/database/prisma/schema.prisma"],
       "outputs": [
-        "packages/database/src/generated/client/**",
         "node_modules/.prisma/client/**",
         "packages/database/node_modules/.prisma/client/**"
       ]

@@ -29,8 +29,8 @@ export * from './repositories/report.repository';
 export * from './services/tenantResolver.service';
 export * from './services/auditLogger.service';
 
-// Re-export Prisma Client types & enums directly from generated client
-export { Role, PurchaseStatus, TenantPlan, Prisma } from './generated/client';
+// Re-export Prisma Client types & enums directly from @prisma/client
+export { Role, PurchaseStatus, TenantPlan, Prisma } from '@prisma/client';
 
 export type {
   Tenant,
@@ -41,4 +41,4 @@ export type {
   Purchase,
   PurchaseItem,
   AuditLog,
-} from './generated/client';
+} from '@prisma/client';

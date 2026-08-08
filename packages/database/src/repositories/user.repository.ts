@@ -3,7 +3,7 @@
  * Encapsulates all User & authentication data access queries.
  */
 
-import { Prisma, User, Role } from '../generated/client';
+import { Prisma, User, Role } from '@prisma/client';
 import { prisma } from '../client/prisma';
 
 export interface CreateUserDto {
