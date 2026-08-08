@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && mkdir -p node_modules/.prisma && cp -r ../../node_modules/.prisma/client node_modules/.prisma/ 2>/dev/null || true && tsc",
+    "build": "pnpm --filter=@kitchen-erp/database build && tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts"
@@ -14,7 +14,6 @@
     "@kitchen-erp/database": "workspace:*",
     "@kitchen-erp/types": "workspace:*",
     "@kitchen-erp/utils": "workspace:*",
-    "@prisma/client": "^5.22.0",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

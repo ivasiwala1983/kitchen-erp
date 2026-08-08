@@ -3,7 +3,7 @@
  * Standardized wrapper for executing atomic Prisma transactions.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/client';
 import { prisma } from '../client/prisma';
 
 export class TransactionService {

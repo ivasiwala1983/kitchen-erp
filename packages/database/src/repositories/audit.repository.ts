@@ -3,7 +3,7 @@
  * Encapsulates all Audit Trail data access queries.
  */
 
-import { Prisma, AuditLog } from '@prisma/client';
+import { Prisma, AuditLog } from '../generated/client';
 import { prisma } from '../client/prisma';
 
 export interface CreateAuditLogDto {

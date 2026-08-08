@@ -3,7 +3,7 @@
  * Shared seed script for local development and initial deployment.
  */
 
-import { PrismaClient, Role, TenantPlan } from '@prisma/client';
+import { PrismaClient, Role, TenantPlan } from '../src/generated/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();

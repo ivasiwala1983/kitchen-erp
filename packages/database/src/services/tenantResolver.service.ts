@@ -3,7 +3,7 @@
  * Resolves tenant records from database by ID, slug, or domain.
  */
 
-import { Tenant } from '@prisma/client';
+import { Tenant } from '../generated/client';
 import { tenantRepository } from '../repositories/tenant.repository';
 
 export class TenantResolverService {

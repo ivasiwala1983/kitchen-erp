@@ -3,7 +3,7 @@
  * Encapsulates analytical reporting queries across Purchases, Products, Vendors, and Tenants.
  */
 
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client';
 import { prisma } from '../client/prisma';
 
 export class ReportRepository {
