@@ -16,6 +16,9 @@ importers:
       '@prisma/client':
         specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
+      '@types/node':
+        specifier: ^22.10.1
+        version: 22.20.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^7.18.0
         version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
@@ -245,6 +248,9 @@ importers:
         specifier: ^1.7.7
         version: 1.19.0
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.1
+        version: 22.20.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -258,12 +264,18 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.1
+        version: 22.20.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
 
   packages/types:
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.1
+        version: 22.20.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -289,6 +301,9 @@ importers:
 
   packages/utils:
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.1
+        version: 22.20.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
