@@ -1,15 +1,12 @@
 /**
- * Category Master Module — Repository, Service, Controller, Routes
+ * Category Master Module — Repository Adapter, Service, Controller, Routes
+ * Consumes enterprise @kitchen-erp/database CategoryRepository.
  */
 
-import prisma from '../../config/database';
+import { categoryRepository as dbCategoryRepository } from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
 import { NotFoundError, ConflictError } from '../../shared/errors';
 import { createCategorySchema, updateCategorySchema } from './category.validation';
-import type {
-  createCategorySchema as CreateCategoryInput,
-  updateCategorySchema as UpdateCategoryInput,
-} from './category.validation';
 import { Router, Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendCreated, sendPaginated } from '../../shared/response';
 import type { AuthenticatedRequest } from '../../shared/types';
@@ -17,50 +14,25 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
 import { Role } from '@kitchen-erp/types';
+import { recordAuditLog } from '../auditLog/auditLog.routes';
 
-// ── Repository ────────────────────────────────────────────────
+// ── Repository Adapter ────────────────────────────────────────
 
 export class CategoryRepository {
   async findAll(
     tenantId: string,
     params: { skip: number; take: number; search?: string; isActive?: boolean }
   ) {
-    const where = {
-      tenantId,
-      deletedAt: null,
-      ...(params.isActive !== undefined && { isActive: params.isActive }),
-      ...(params.search && { name: { contains: params.search, mode: 'insensitive' as const } }),
-    };
-
-    const [items, total] = await Promise.all([
-      prisma.category.findMany({
-        where,
-        skip: params.skip,
-        take: params.take,
-        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-        include: {
-          _count: { select: { vendors: true, products: true } },
-        },
-      }),
-      prisma.category.count({ where }),
-    ]);
-
+    const { items, total } = await dbCategoryRepository.findAll(tenantId, params);
     return { items, total };
   }
 
   async findById(id: string, tenantId: string) {
-    return prisma.category.findFirst({
-      where: { id, tenantId, deletedAt: null },
-      include: {
-        _count: { select: { vendors: true, products: true } },
-      },
-    });
+    return dbCategoryRepository.findById(id, tenantId);
   }
 
   async findByName(name: string, tenantId: string) {
-    return prisma.category.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' }, tenantId, deletedAt: null },
-    });
+    return dbCategoryRepository.findByName(name, tenantId);
   }
 
   async create(data: {
@@ -73,18 +45,14 @@ export class CategoryRepository {
     isActive?: boolean;
     createdBy: string;
   }) {
-    return prisma.category.create({
-      data: {
-        tenantId: data.tenantId,
-        name: data.name,
-        displayOrder: data.displayOrder ?? 0,
-        icon: data.icon,
-        color: data.color,
-        description: data.description,
-        isActive: data.isActive ?? true,
-        createdBy: data.createdBy,
-        updatedBy: data.createdBy,
-      },
+    return dbCategoryRepository.create({
+      tenantId: data.tenantId,
+      name: data.name,
+      displayOrder: data.displayOrder,
+      icon: data.icon || undefined,
+      color: data.color || undefined,
+      description: data.description || undefined,
+      createdBy: data.createdBy,
     });
   }
 
@@ -100,14 +68,11 @@ export class CategoryRepository {
       updatedBy: string;
     }
   ) {
-    return prisma.category.update({ where: { id }, data });
+    return dbCategoryRepository.update(id, '', data);
   }
 
   async softDelete(id: string, deletedBy: string) {
-    await prisma.category.update({
-      where: { id },
-      data: { deletedAt: new Date(), updatedBy: deletedBy },
-    });
+    return dbCategoryRepository.softDelete(id, '', deletedBy);
   }
 }
 
@@ -193,8 +158,6 @@ router.get(
     }
   }
 );
-
-import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 router.post(
   '/',

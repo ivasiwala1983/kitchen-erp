@@ -6,13 +6,12 @@
 
 import bcrypt from 'bcryptjs';
 import { TenantRepository } from './tenant.repository';
+import { userRepository, prisma } from '@kitchen-erp/database';
 import { ConflictError, NotFoundError } from '../../shared/errors';
 import type { CreateTenantInput, UpdateTenantInput } from './tenant.validation';
 import { parsePagination } from '@kitchen-erp/utils';
-import prisma from '../../config/database';
 import { Role } from '@kitchen-erp/types';
 
-// Default standard categories for any new Kitchen ERP tenant
 const DEFAULT_CATEGORIES = [
   { name: 'Vegetable', displayOrder: 1, icon: '🥕', color: '#22c55e' },
   { name: 'Fruit', displayOrder: 2, icon: '🍎', color: '#ef4444' },
@@ -65,15 +64,12 @@ export class TenantService {
   }
 
   async create(dto: CreateTenantInput, createdBy: string) {
-    // Check slug uniqueness
     const existing = await this.repo.findBySlug(dto.slug);
     if (existing) throw new ConflictError(`Tenant slug '${dto.slug}' is already taken`);
 
-    // Check admin email uniqueness
-    const existingEmail = await prisma.user.findUnique({ where: { email: dto.adminEmail } });
+    const existingEmail = await userRepository.findByEmail(dto.adminEmail);
     if (existingEmail) throw new ConflictError(`Email '${dto.adminEmail}' is already registered`);
 
-    // Create tenant
     const tenant = await this.repo.create({
       name: dto.name,
       slug: dto.slug,
@@ -83,23 +79,17 @@ export class TenantService {
       createdBy,
     });
 
-    // Create first tenant admin user
     const passwordHash = await bcrypt.hash(dto.adminPassword, 12);
-    const adminUser = await prisma.user.create({
-      data: {
-        tenantId: tenant.id,
-        email: dto.adminEmail,
-        passwordHash,
-        name: dto.adminName,
-        role: Role.TENANT_ADMIN,
-        isActive: true,
-        isSuperAdminCreated: true, // Super-Admin created first Tenant Admin
-        createdBy,
-        updatedBy: createdBy,
-      },
+    const adminUser = await userRepository.create({
+      tenantId: tenant.id,
+      email: dto.adminEmail,
+      passwordHash,
+      name: dto.adminName,
+      role: Role.TENANT_ADMIN,
+      isSuperAdminCreated: true,
+      createdBy,
     });
 
-    // Automatically seed default Category Master records for this new tenant
     await prisma.category.createMany({
       data: DEFAULT_CATEGORIES.map((cat) => ({
         tenantId: tenant.id,

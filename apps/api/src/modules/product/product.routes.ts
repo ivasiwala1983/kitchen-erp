@@ -1,10 +1,10 @@
 /**
- * Product Module — Complete DDD Implementation
+ * Product Module — Repository Adapter, Service, Controller, Routes
+ * Consumes enterprise @kitchen-erp/database ProductRepository.
  */
 
 import { z } from 'zod';
-import prisma from '../../config/database';
-import { Prisma } from '@prisma/client';
+import { productRepository as dbProductRepository } from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
 import { NotFoundError } from '../../shared/errors';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -14,6 +14,7 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
 import { Role } from '@kitchen-erp/types';
+import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 // ── Validation ────────────────────────────────────────────────
 
@@ -30,37 +31,18 @@ const updateProductSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// ── Repository ────────────────────────────────────────────────
+// ── Repository Adapter ────────────────────────────────────────
 
 class ProductRepository {
   async findAll(
     tenantId: string,
     params: { skip: number; take: number; search?: string; categoryId?: string }
   ) {
-    const where = {
-      tenantId,
-      deletedAt: null,
-      ...(params.categoryId && { categoryId: params.categoryId }),
-      ...(params.search && { name: { contains: params.search, mode: 'insensitive' as const } }),
-    };
-    const [items, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        skip: params.skip,
-        take: params.take,
-        orderBy: { name: 'asc' },
-        include: { category: true },
-      }),
-      prisma.product.count({ where }),
-    ]);
-    return { items, total };
+    return dbProductRepository.findAll(tenantId, params);
   }
 
   async findById(id: string, tenantId: string) {
-    return prisma.product.findFirst({
-      where: { id, tenantId, deletedAt: null },
-      include: { category: true },
-    });
+    return dbProductRepository.findById(id, tenantId);
   }
 
   async create(data: {
@@ -70,21 +52,12 @@ class ProductRepository {
     unit?: string;
     createdBy: string;
   }) {
-    return prisma.product.create({
-      data: {
-        tenantId: data.tenantId,
-        categoryId: data.categoryId,
-        name: data.name,
-        unit: data.unit || 'kg',
-        createdBy: data.createdBy,
-        updatedBy: data.createdBy,
-      } as Prisma.ProductUncheckedCreateInput,
-      include: { category: true },
-    });
+    return dbProductRepository.create(data);
   }
 
   async update(
     id: string,
+    tenantId: string,
     data: {
       categoryId?: string;
       name?: string;
@@ -93,18 +66,11 @@ class ProductRepository {
       updatedBy: string;
     }
   ) {
-    return prisma.product.update({
-      where: { id },
-      data: data as Prisma.ProductUncheckedUpdateInput,
-      include: { category: true },
-    });
+    return dbProductRepository.update(id, tenantId, data);
   }
 
-  async softDelete(id: string, deletedBy: string) {
-    await prisma.product.update({
-      where: { id },
-      data: { deletedAt: new Date(), updatedBy: deletedBy },
-    });
+  async softDelete(id: string, tenantId: string, deletedBy: string) {
+    return dbProductRepository.softDelete(id, tenantId, deletedBy);
   }
 }
 
@@ -160,12 +126,12 @@ class ProductService {
     updatedBy: string
   ) {
     await this.getById(id, tenantId);
-    return this.repo.update(id, { ...dto, updatedBy });
+    return this.repo.update(id, tenantId, { ...dto, updatedBy });
   }
 
   async delete(id: string, tenantId: string, deletedBy: string) {
     await this.getById(id, tenantId);
-    await this.repo.softDelete(id, deletedBy);
+    await this.repo.softDelete(id, tenantId, deletedBy);
   }
 }
 
@@ -209,8 +175,6 @@ router.get(
     }
   }
 );
-
-import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 router.post(
   '/',

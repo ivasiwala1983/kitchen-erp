@@ -1,18 +1,11 @@
 /**
  * Reports Module — Analytics and reporting endpoints.
- *
- * Endpoints (all TENANT_ADMIN only):
- *   GET /api/reports/daily     — Daily purchase totals
- *   GET /api/reports/monthly   — Monthly purchase totals
- *   GET /api/reports/vendor    — By vendor
- *   GET /api/reports/category  — By vendor category
- *   GET /api/reports/product   — By product
- *   GET /api/reports/manager   — By inventory manager
+ * Consumes enterprise @kitchen-erp/database ReportRepository.
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import prisma from '../../config/database';
+import { reportRepository, prisma } from '@kitchen-erp/database';
 import { sendSuccess } from '../../shared/response';
 import type { AuthenticatedRequest } from '../../shared/types';
 import { authenticate } from '../../middleware/auth.middleware';
@@ -100,7 +93,6 @@ router.get(
         }),
       ]);
 
-      // Calculate spend per tenant
       const spendByTenant = await prisma.purchase.groupBy({
         by: ['tenantId'],
         where: { deletedAt: null },
@@ -226,7 +218,6 @@ router.get('/daily', async (req: Request, res: Response, next: NextFunction) => 
       orderBy: { purchaseDate: 'asc' },
     });
 
-    // Group by date
     const grouped: Record<string, { date: string; totalPurchases: number; totalAmount: number }> =
       {};
     for (const p of purchases) {

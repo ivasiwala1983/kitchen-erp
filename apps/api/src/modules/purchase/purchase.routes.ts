@@ -1,12 +1,13 @@
 /**
- * Purchase Module — Complete DDD Implementation
- * Handles the full purchase entry flow:
- *   Vendor → Items (Product, Qty, Rate, Total) → Grand Total → Invoice → Save
+ * Purchase Module — Repository Adapter, Service, Controller, Routes
+ * Consumes enterprise @kitchen-erp/database PurchaseRepository.
  */
 
 import { z } from 'zod';
-import { Decimal } from '@prisma/client/runtime/library';
-import prisma from '../../config/database';
+import {
+  purchaseRepository as dbPurchaseRepository,
+  PurchaseStatus as DbPurchaseStatus,
+} from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
 import { NotFoundError, ForbiddenError } from '../../shared/errors';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -16,6 +17,7 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
 import { Role, PurchaseStatus } from '@kitchen-erp/types';
+import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 // ── Validation ────────────────────────────────────────────────
 
@@ -40,7 +42,7 @@ const updatePurchaseSchema = z.object({
   status: z.nativeEnum(PurchaseStatus).optional(),
 });
 
-// ── Repository ────────────────────────────────────────────────
+// ── Repository Adapter ────────────────────────────────────────
 
 class PurchaseRepository {
   async findAll(
@@ -56,75 +58,34 @@ class PurchaseRepository {
       status?: string;
     }
   ) {
-    const where: any = {
-      tenantId,
-      deletedAt: null,
-      ...(params.vendorId && { vendorId: params.vendorId }),
-      ...(params.userId && { userId: params.userId }),
-      ...(params.status && { status: params.status }),
-      ...(params.startDate || params.endDate
-        ? {
-            purchaseDate: {
-              ...(params.startDate && { gte: new Date(params.startDate) }),
-              ...(params.endDate && { lte: new Date(params.endDate) }),
-            },
-          }
-        : {}),
-    };
-
-    const [items, total] = await Promise.all([
-      prisma.purchase.findMany({
-        where,
-        skip: params.skip,
-        take: params.take,
-        orderBy: { purchaseDate: 'desc' },
-        include: {
-          vendor: { include: { category: true } },
-          user: { select: { id: true, name: true, email: true, role: true } },
-          items: { include: { product: { include: { category: true } } } },
-        },
-      }),
-      prisma.purchase.count({ where }),
-    ]);
-
-    return { items, total };
+    return dbPurchaseRepository.findAll(tenantId, {
+      ...params,
+      status: params.status as DbPurchaseStatus,
+    });
   }
 
   async findById(id: string, tenantId: string) {
-    return prisma.purchase.findFirst({
-      where: { id, tenantId, deletedAt: null },
-      include: {
-        vendor: { include: { category: true } },
-        user: { select: { id: true, name: true, email: true, role: true } },
-        items: { include: { product: { include: { category: true } } } },
-      },
-    });
+    return dbPurchaseRepository.findById(id, tenantId);
   }
 
   async create(data: {
     tenantId: string;
     vendorId: string;
     userId: string;
-    grandTotal: Decimal;
     notes?: string;
     purchaseDate?: Date;
-    status: string;
+    status: PurchaseStatus;
     createdBy: string;
-    items: Array<{ productId: string; qty: Decimal; rate: Decimal; total: Decimal }>;
+    items: Array<{ productId: string; qty: number; rate: number }>;
   }) {
-    const { items, ...purchaseData } = data;
-    return prisma.purchase.create({
-      data: {
-        ...purchaseData,
-        status: purchaseData.status as any,
-        updatedBy: data.createdBy,
-        items: { create: items },
-      },
-      include: {
-        vendor: { include: { category: true } },
-        user: { select: { id: true, name: true, email: true, role: true } },
-        items: { include: { product: { include: { category: true } } } },
-      },
+    return dbPurchaseRepository.create({
+      tenantId: data.tenantId,
+      vendorId: data.vendorId,
+      userId: data.userId,
+      items: data.items,
+      notes: data.notes,
+      purchaseDate: data.purchaseDate,
+      status: data.status as DbPurchaseStatus,
     });
   }
 
@@ -132,38 +93,27 @@ class PurchaseRepository {
     id: string,
     data: {
       vendorId?: string;
-      grandTotal?: Decimal;
       notes?: string;
       status?: string;
       invoiceUrl?: string;
       invoiceFid?: string;
       updatedBy: string;
     },
-    newItems?: Array<{ productId: string; qty: Decimal; rate: Decimal; total: Decimal }>
+    newItems?: Array<{ productId: string; qty: number; rate: number }>
   ) {
-    return prisma.$transaction(async (tx) => {
-      if (newItems) {
-        await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
-        await tx.purchaseItem.createMany({
-          data: newItems.map((item) => ({ purchaseId: id, ...item })),
-        });
-      }
-      return tx.purchase.update({
-        where: { id },
-        data: { ...data, status: data.status as any },
-        include: {
-          vendor: { include: { category: true } },
-          items: { include: { product: { include: { category: true } } } },
-        },
-      });
+    return dbPurchaseRepository.update(id, '', {
+      vendorId: data.vendorId,
+      notes: data.notes,
+      status: data.status as DbPurchaseStatus,
+      invoiceUrl: data.invoiceUrl,
+      invoiceFid: data.invoiceFid,
+      items: newItems,
+      updatedBy: data.updatedBy,
     });
   }
 
   async softDelete(id: string, deletedBy: string) {
-    await prisma.purchase.update({
-      where: { id },
-      data: { deletedAt: new Date(), updatedBy: deletedBy },
-    });
+    return dbPurchaseRepository.softDelete(id, '', deletedBy);
   }
 }
 
@@ -202,25 +152,15 @@ class PurchaseService {
   }
 
   async create(tenantId: string, dto: z.infer<typeof createPurchaseSchema>, userId: string) {
-    const itemsWithTotals = dto.items.map((item) => ({
-      productId: item.productId,
-      qty: new Decimal(item.qty),
-      rate: new Decimal(item.rate),
-      total: new Decimal(item.qty * item.rate).toDecimalPlaces(2),
-    }));
-
-    const grandTotal = itemsWithTotals.reduce((sum, item) => sum.plus(item.total), new Decimal(0));
-
     return this.repo.create({
       tenantId,
       vendorId: dto.vendorId,
       userId,
-      grandTotal,
       notes: dto.notes,
       purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : new Date(),
       status: dto.status || PurchaseStatus.CONFIRMED,
       createdBy: userId,
-      items: itemsWithTotals,
+      items: dto.items,
     });
   }
 
@@ -233,29 +173,15 @@ class PurchaseService {
   ) {
     await this.getById(id, tenantId, userId, userRole);
 
-    let newItems;
-    let grandTotal;
-
-    if (dto.items) {
-      newItems = dto.items.map((item) => ({
-        productId: item.productId,
-        qty: new Decimal(item.qty),
-        rate: new Decimal(item.rate),
-        total: new Decimal(item.qty * item.rate).toDecimalPlaces(2),
-      }));
-      grandTotal = newItems.reduce((sum, item) => sum.plus(item.total), new Decimal(0));
-    }
-
     return this.repo.update(
       id,
       {
         ...(dto.vendorId && { vendorId: dto.vendorId }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
         ...(dto.status && { status: dto.status }),
-        ...(grandTotal && { grandTotal }),
         updatedBy: userId,
       },
-      newItems
+      dto.items
     );
   }
 
@@ -329,8 +255,6 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     next(e);
   }
 });
-
-import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -113,6 +113,9 @@ importers:
       '@kitchen-erp/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@kitchen-erp/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@kitchen-erp/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -282,6 +285,31 @@ importers:
       '@types/node':
         specifier: ^22.10.1
         version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/database:
+    dependencies:
+      '@kitchen-erp/config':
+        specifier: workspace:*
+        version: link:../config
+      '@kitchen-erp/types':
+        specifier: workspace:*
+        version: link:../types
+      '@prisma/client':
+        specifier: ^5.22.0
+        version: 5.22.0(prisma@5.22.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.1
+        version: 22.20.1
+      prisma:
+        specifier: ^5.22.0
+        version: 5.22.0
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.11
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

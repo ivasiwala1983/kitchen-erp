@@ -1,49 +1,25 @@
 /**
- * Users Module — Repository
+ * Users Module — Repository Adapter
+ * Delegates to enterprise @kitchen-erp/database UserRepository.
  */
 
-import prisma from '../../config/database';
-import type { User } from '@prisma/client';
+import { userRepository as dbUserRepository, User, Role } from '@kitchen-erp/database';
 
 export class UsersRepository {
   async findAll(tenantId: string, params: { skip: number; take: number; search?: string }) {
-    const where = {
+    const { items, total } = await dbUserRepository.findAll({
       tenantId,
-      deletedAt: null,
-      ...(params.search && {
-        OR: [
-          { name: { contains: params.search, mode: 'insensitive' as const } },
-          { email: { contains: params.search, mode: 'insensitive' as const } },
-        ],
-      }),
-    };
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        skip: params.skip,
-        take: params.take,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          tenantId: true,
-          email: true,
-          name: true,
-          role: true,
-          isActive: true,
-          isSuperAdminCreated: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      prisma.user.count({ where }),
-    ]);
-    return { users, total };
+      skip: params.skip,
+      take: params.take,
+      search: params.search,
+    });
+    return { users: items, total };
   }
 
   async findById(id: string, tenantId: string): Promise<User | null> {
-    return prisma.user.findFirst({
-      where: { id, tenantId, deletedAt: null },
-    });
+    const user = await dbUserRepository.findById(id);
+    if (!user || (tenantId && user.tenantId !== tenantId)) return null;
+    return user;
   }
 
   async create(data: {
@@ -55,18 +31,14 @@ export class UsersRepository {
     isSuperAdminCreated?: boolean;
     createdBy: string;
   }): Promise<User> {
-    return prisma.user.create({
-      data: {
-        tenantId: data.tenantId,
-        email: data.email,
-        passwordHash: data.passwordHash,
-        name: data.name,
-        role: data.role as any,
-        isActive: true,
-        isSuperAdminCreated: data.isSuperAdminCreated ?? false,
-        createdBy: data.createdBy,
-        updatedBy: data.createdBy,
-      },
+    return dbUserRepository.create({
+      tenantId: data.tenantId,
+      email: data.email,
+      passwordHash: data.passwordHash,
+      name: data.name,
+      role: data.role as Role,
+      isSuperAdminCreated: data.isSuperAdminCreated,
+      createdBy: data.createdBy,
     });
   }
 
@@ -75,16 +47,15 @@ export class UsersRepository {
     tenantId: string,
     data: { name?: string; isActive?: boolean; role?: string; updatedBy: string }
   ): Promise<User> {
-    return prisma.user.update({
-      where: { id },
-      data: { ...data, role: data.role as any },
+    return dbUserRepository.update(id, {
+      ...(data.name && { name: data.name }),
+      ...(data.role && { role: data.role as Role }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+      updatedBy: data.updatedBy,
     });
   }
 
   async softDelete(id: string, tenantId: string, deletedBy: string): Promise<void> {
-    await prisma.user.update({
-      where: { id },
-      data: { deletedAt: new Date(), updatedBy: deletedBy },
-    });
+    await dbUserRepository.softDelete(id, deletedBy);
   }
 }

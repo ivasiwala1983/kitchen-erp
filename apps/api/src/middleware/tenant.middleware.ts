@@ -1,16 +1,10 @@
 /**
  * Tenant Isolation & Resolution Middleware.
- *
- * Resolves tenant context using TenantResolver:
- *  1. User JWT payload (req.user.tenantId / tenantSlug)
- *  2. Configured TenantResolver strategy (Path-based /t/:tenantSlug or Subdomain)
- *  3. Explicit X-Tenant-Slug header
- *
- * Enforces strict multi-tenant data isolation so tenant data never leaks.
+ * Consumes TenantResolver and tenantRepository from @kitchen-erp/database.
  */
 
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../config/database';
+import { tenantRepository } from '@kitchen-erp/database';
 import { config } from '../config/env';
 import { ForbiddenError, NotFoundError, BadRequestError } from '../shared/errors';
 import type { AuthenticatedRequest } from '../shared/types';
@@ -46,22 +40,17 @@ export async function resolveTenant(
     // 1. SUPER_ADMIN Role
     if (user.role === Role.SUPER_ADMIN) {
       if (extractedSlug) {
-        const tenant = await prisma.tenant.findUnique({
-          where: { slug: extractedSlug, deletedAt: null },
-        });
+        const tenant = await tenantRepository.findBySlug(extractedSlug);
         if (tenant) {
           authReq.tenantId = tenant.id;
         } else {
           throw new NotFoundError(`Tenant with slug '${extractedSlug}' not found`);
         }
       } else {
-        // Fallback for SUPER_ADMIN to default active tenant when no slug is supplied
-        const defaultTenant = await prisma.tenant.findFirst({
-          where: { deletedAt: null, isActive: true },
-          orderBy: { createdAt: 'asc' },
-        });
-        if (defaultTenant) {
-          authReq.tenantId = defaultTenant.id;
+        // Fallback for SUPER_ADMIN to first active tenant
+        const publicTenants = await tenantRepository.findActivePublic();
+        if (publicTenants.length > 0) {
+          authReq.tenantId = publicTenants[0].id;
         }
       }
       next();
@@ -74,9 +63,7 @@ export async function resolveTenant(
     }
 
     // Verify user's assigned tenant exists and is active
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: user.tenantId, deletedAt: null },
-    });
+    const tenant = await tenantRepository.findById(user.tenantId);
 
     if (!tenant) {
       throw new NotFoundError('Tenant not found');

@@ -21,6 +21,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@kitchen-erp/database": ["../../packages/database/src/index.ts"],
+      "@kitchen-erp/database/*": ["../../packages/database/src/*"],
       "@kitchen-erp/config": ["../../packages/config/src/index.ts"],
       "@kitchen-erp/config/*": ["../../packages/config/src/*"],
       "@kitchen-erp/types": ["../../packages/types/src/index.ts"],

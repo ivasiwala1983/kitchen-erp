@@ -1,15 +1,6 @@
 /**
  * Kitchen ERP — Database Seed
- *
- * Creates:
- *  - 1 Super Admin user
- *  - 1 Sample Tenant ("Grand Kitchen")
- *  - 1 Tenant Admin created by Super Admin (cannot be deleted by Tenant Admin)
- *  - 1 Tenant Admin created by Tenant Admin (can be deleted by Tenant Admin)
- *  - 1 Inventory Manager for the sample tenant
- *  - Unified Category Master records (Vegetable, Fruit, Dairy, Grocery, Gas, Bakery, Cleaning, Frozen, Beverages)
- *  - Sample Vendors linked to Category Master
- *  - Sample Products linked to Category Master with default units
+ * Shared seed script for local development and initial deployment.
  */
 
 import { PrismaClient, Role, TenantPlan } from '@prisma/client';
@@ -83,7 +74,7 @@ async function main() {
         name: 'Grand Admin (Super Created)',
         role: Role.TENANT_ADMIN,
         isActive: true,
-        isSuperAdminCreated: true, // Cannot be deleted by another Tenant Admin
+        isSuperAdminCreated: true,
         createdBy: superAdmin.id,
         updatedBy: superAdmin.id,
       },
@@ -93,7 +84,7 @@ async function main() {
     console.log(`ℹ️   Primary Tenant Admin already exists: ${primaryAdminEmail}`);
   }
 
-  // ── Secondary Tenant Admin (Created by Primary Tenant Admin) ─
+  // ── Secondary Tenant Admin ────────────────────────────────────
   const secondaryAdminEmail = 'subadmin@demo.kitchenerp.com';
 
   let secondaryAdmin = await prisma.user.findUnique({ where: { email: secondaryAdminEmail } });
@@ -107,7 +98,7 @@ async function main() {
         name: 'Assistant Admin',
         role: Role.TENANT_ADMIN,
         isActive: true,
-        isSuperAdminCreated: false, // CAN be managed/deleted by Tenant Admin
+        isSuperAdminCreated: false,
         createdBy: primaryAdmin.id,
         updatedBy: primaryAdmin.id,
       },
@@ -337,49 +328,32 @@ async function main() {
 
   // ── Sample Products ───────────────────────────────────────────
   const productsList = [
-    // Vegetable
     { name: 'Fresh Tomato', categoryKey: 'Vegetable', unit: 'kg' },
     { name: 'Red Onion', categoryKey: 'Vegetable', unit: 'kg' },
     { name: 'Potato (Special)', categoryKey: 'Vegetable', unit: 'kg' },
     { name: 'Green Chilli', categoryKey: 'Vegetable', unit: 'kg' },
     { name: 'Ginger & Garlic Paste Base', categoryKey: 'Vegetable', unit: 'kg' },
     { name: 'Coriander Leaves', categoryKey: 'Vegetable', unit: 'bunch' },
-
-    // Fruit
     { name: 'Banana (Robusta)', categoryKey: 'Fruit', unit: 'dozen' },
     { name: 'Apple (Kashmir)', categoryKey: 'Fruit', unit: 'kg' },
     { name: 'Orange', categoryKey: 'Fruit', unit: 'kg' },
-
-    // Dairy
     { name: 'Full Cream Milk', categoryKey: 'Dairy', unit: 'litre' },
     { name: 'Pure Cow Ghee', categoryKey: 'Dairy', unit: 'kg' },
     { name: 'Fresh Paneer', categoryKey: 'Dairy', unit: 'kg' },
     { name: 'Butter Block', categoryKey: 'Dairy', unit: 'kg' },
-
-    // Grocery
     { name: 'Basmati Rice (Extra Long)', categoryKey: 'Grocery', unit: 'kg' },
     { name: 'Toor Dal Premium', categoryKey: 'Grocery', unit: 'kg' },
     { name: 'Refined Sunflower Oil', categoryKey: 'Grocery', unit: 'litre' },
     { name: 'Turmeric Powder', categoryKey: 'Grocery', unit: 'kg' },
     { name: 'Red Chilli Powder', categoryKey: 'Grocery', unit: 'kg' },
     { name: 'Iodized Salt', categoryKey: 'Grocery', unit: 'packet' },
-
-    // Gas
     { name: 'Commercial LPG Cylinder 19kg', categoryKey: 'Gas', unit: 'cylinder' },
-
-    // Bakery
     { name: 'White Sandwich Bread', categoryKey: 'Bakery', unit: 'packet' },
     { name: 'Burger Buns', categoryKey: 'Bakery', unit: 'packet' },
-
-    // Cleaning
     { name: 'Dishwashing Liquid Soap', categoryKey: 'Cleaning', unit: 'litre' },
     { name: 'Surface Disinfectant', categoryKey: 'Cleaning', unit: 'can' },
-
-    // Frozen
     { name: 'Frozen Green Peas', categoryKey: 'Frozen', unit: 'packet' },
     { name: 'Frozen French Fries', categoryKey: 'Frozen', unit: 'packet' },
-
-    // Beverages
     { name: 'Soda Water 750ml', categoryKey: 'Beverages', unit: 'bottle' },
     { name: 'Mango Pulp Can 1kg', categoryKey: 'Beverages', unit: 'can' },
   ];
@@ -409,11 +383,6 @@ async function main() {
   }
 
   console.log('\n🎉  Seed completed successfully!\n');
-  console.log('📋  Default Credentials:');
-  console.log(`    Super Admin          → super@kitchenerp.com / SuperAdmin@123`);
-  console.log(`    Tenant Admin (Super) → admin@demo.kitchenerp.com / TenantAdmin@123`);
-  console.log(`    Tenant Admin (Sub)   → subadmin@demo.kitchenerp.com / TenantAdmin@123`);
-  console.log(`    Inv. Manager         → manager@demo.kitchenerp.com / Manager@123`);
 }
 
 main()

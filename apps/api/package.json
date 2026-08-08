@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@kitchen-erp/config": "workspace:*",
+    "@kitchen-erp/database": "workspace:*",
     "@kitchen-erp/types": "workspace:*",
     "@kitchen-erp/utils": "workspace:*",
     "@prisma/client": "^5.22.0",

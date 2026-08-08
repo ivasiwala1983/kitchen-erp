@@ -1,9 +1,6 @@
 /**
  * Invoice Module — File upload/download proxy for SeaweedFS or local filesystem.
- *
- * Endpoints:
- *   POST /api/purchases/:id/invoice — Upload invoice (multipart/form-data)
- *   GET  /api/purchases/:id/invoice — Download/redirect to invoice
+ * Consumes enterprise @kitchen-erp/database repositories.
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
@@ -11,6 +8,7 @@ import path from 'path';
 import fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
+import { purchaseRepository, invoiceRepository } from '@kitchen-erp/database';
 import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
@@ -20,7 +18,6 @@ import { NotFoundError, InternalServerError } from '../../shared/errors';
 import type { AuthenticatedRequest } from '../../shared/types';
 import { config } from '../../config/env';
 import { Role } from '@kitchen-erp/types';
-import prisma from '../../config/database';
 
 const router: Router = Router({ mergeParams: true });
 
@@ -40,9 +37,7 @@ router.post(
         throw new NotFoundError('No file uploaded. Use field name "invoice".');
       }
 
-      const purchase = await prisma.purchase.findFirst({
-        where: { id: purchaseId, tenantId: authReq.tenantId, deletedAt: null },
-      });
+      const purchase = await purchaseRepository.findById(purchaseId, authReq.tenantId);
       if (!purchase) throw new NotFoundError('Purchase not found');
 
       let invoiceUrl: string;
@@ -59,7 +54,6 @@ router.post(
 
         fs.writeFileSync(uploadPath, req.file.buffer);
 
-        // Build absolute URL using backend API host
         const host = req.get('host') || `localhost:${config.port}`;
         const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
         invoiceUrl = `${protocol}://${host}/uploads/${filename}`;
@@ -81,19 +75,18 @@ router.post(
 
           invoiceFid = fid;
           invoiceUrl = `${config.seaweedPublicUrl}/${fid}`;
-        } catch (seaweedErr) {
+        } catch {
           throw new InternalServerError('Failed to upload to SeaweedFS.');
         }
       }
 
-      await prisma.purchase.update({
-        where: { id: purchaseId },
-        data: {
-          invoiceUrl,
-          ...(invoiceFid && { invoiceFid }),
-          updatedBy: authReq.user.sub,
-        },
-      });
+      await invoiceRepository.updateInvoice(
+        purchaseId,
+        authReq.tenantId,
+        invoiceUrl,
+        invoiceFid,
+        authReq.user.sub
+      );
 
       sendSuccess(res, { invoiceUrl }, 'Invoice uploaded successfully');
     } catch (e) {
@@ -111,14 +104,10 @@ router.get(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const purchase = await prisma.purchase.findFirst({
-        where: { id: String(req.params.id), tenantId: authReq.tenantId, deletedAt: null },
-        select: { invoiceUrl: true },
-      });
+      const purchase = await purchaseRepository.findById(String(req.params.id), authReq.tenantId);
       if (!purchase) throw new NotFoundError('Purchase not found');
       if (!purchase.invoiceUrl) throw new NotFoundError('No invoice uploaded for this purchase');
 
-      // Normalize relative URL if stored as /uploads/...
       let redirectUrl = purchase.invoiceUrl;
       if (redirectUrl.startsWith('/')) {
         const host = req.get('host') || `localhost:${config.port}`;

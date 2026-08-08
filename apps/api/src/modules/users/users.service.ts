@@ -1,14 +1,15 @@
 /**
  * Users Module — Service
+ * Business logic for user management using enterprise repositories.
  */
 
 import bcrypt from 'bcryptjs';
 import { UsersRepository } from './users.repository';
+import { userRepository } from '@kitchen-erp/database';
 import { ConflictError, NotFoundError, ForbiddenError } from '../../shared/errors';
 import type { CreateUserInput, UpdateUserInput } from './users.validation';
 import { parsePagination } from '@kitchen-erp/utils';
 import { Role } from '@kitchen-erp/types';
-import prisma from '../../config/database';
 
 export class UsersService {
   private repo = new UsersRepository();
@@ -28,12 +29,11 @@ export class UsersService {
   }
 
   async create(tenantId: string, dto: CreateUserInput, createdBy: string, creatorRole: Role) {
-    // Tenant admins can create TENANT_ADMIN or INVENTORY_MANAGER
     if (creatorRole === Role.TENANT_ADMIN && dto.role === Role.SUPER_ADMIN) {
       throw new ForbiddenError('Tenant admins cannot create super admins');
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: dto.email } });
+    const existing = await userRepository.findByEmail(dto.email);
     if (existing) throw new ConflictError(`Email '${dto.email}' is already registered`);
 
     const passwordHash = await bcrypt.hash(dto.password, 12);

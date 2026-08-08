@@ -1,14 +1,10 @@
 /**
  * Audit Log Module — Read-only audit trail viewer.
- *
- * Endpoints:
- *   GET /api/audit-logs — List audit logs for current tenant
- *
- * Also exports an `auditLog` helper for other modules to record actions.
+ * Consumes enterprise @kitchen-erp/database AuditRepository and AuditLoggerService.
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import prisma from '../../config/database';
+import { auditRepository, AuditLoggerService } from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
 import { sendPaginated } from '../../shared/response';
 import type { AuthenticatedRequest } from '../../shared/types';
@@ -17,13 +13,11 @@ import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant } from '../../middleware/tenant.middleware';
 import { Role } from '@kitchen-erp/types';
 
-// ── Audit Logger Utility ──────────────────────────────────────
-
 export interface AuditLogData {
   tenantId?: string | null;
   userId?: string | null;
-  action: string; // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, etc.
-  entity: string; // Tenant, User, Vendor, Product, Purchase, etc.
+  action: string;
+  entity: string;
   entityId?: string | null;
   oldValues?: Record<string, unknown> | null;
   newValues?: Record<string, unknown> | null;
@@ -32,26 +26,10 @@ export interface AuditLogData {
 }
 
 /**
- * Record an audit log entry. Non-blocking — errors are silently swallowed.
+ * Record an audit log entry. Non-blocking wrapper.
  */
 export async function recordAuditLog(data: AuditLogData): Promise<void> {
-  try {
-    await prisma.auditLog.create({
-      data: {
-        tenantId: data.tenantId || null,
-        userId: data.userId || null,
-        action: data.action,
-        entity: data.entity,
-        entityId: data.entityId || null,
-        oldValues: data.oldValues ? (data.oldValues as any) : undefined,
-        newValues: data.newValues ? (data.newValues as any) : undefined,
-        ip: data.ip || null,
-        userAgent: data.userAgent || null,
-      },
-    });
-  } catch (e) {
-    console.error('[AuditLog] Failed to record:', e);
-  }
+  await AuditLoggerService.log(data);
 }
 
 // ── Routes ────────────────────────────────────────────────────
@@ -68,27 +46,15 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const activeTenantFilter = authReq.tenantId || (tenantId as string) || undefined;
 
-    const where = {
-      ...(activeTenantFilter ? { tenantId: activeTenantFilter } : {}),
-      ...(entity && { entity: entity as string }),
-      ...(userId && { userId: userId as string }),
-    };
+    const { items, total } = await auditRepository.findAll({
+      skip,
+      take: l,
+      tenantId: activeTenantFilter,
+      userId: userId as string,
+      entity: entity as string,
+    });
 
-    const [logs, total] = await Promise.all([
-      prisma.auditLog.findMany({
-        where,
-        skip,
-        take: l,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: { select: { id: true, name: true, email: true, role: true } },
-          tenant: { select: { id: true, name: true, slug: true } },
-        },
-      }),
-      prisma.auditLog.count({ where }),
-    ]);
-
-    sendPaginated(res, logs, total, p, l);
+    sendPaginated(res, items, total, p, l);
   } catch (e) {
     next(e);
   }

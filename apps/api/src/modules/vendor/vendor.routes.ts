@@ -1,9 +1,9 @@
 /**
- * Vendor Module — Repository, Service, Controller, Routes
+ * Vendor Module — Repository Adapter, Service, Controller, Routes
+ * Consumes enterprise @kitchen-erp/database VendorRepository.
  */
 
-import prisma from '../../config/database';
-import { Prisma } from '@prisma/client';
+import { vendorRepository as dbVendorRepository } from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
 import { NotFoundError } from '../../shared/errors';
 import type { CreateVendorInput, UpdateVendorInput } from './vendor.validation';
@@ -15,65 +15,45 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
 import { Role } from '@kitchen-erp/types';
+import { recordAuditLog } from '../auditLog/auditLog.routes';
 
-// ── Repository ────────────────────────────────────────────────
+// ── Repository Adapter ────────────────────────────────────────
 
 class VendorRepository {
   async findAll(
     tenantId: string,
     params: { skip: number; take: number; search?: string; categoryId?: string }
   ) {
-    const where = {
-      tenantId,
-      deletedAt: null,
-      ...(params.categoryId && { categoryId: params.categoryId }),
-      ...(params.search && {
-        OR: [
-          { name: { contains: params.search, mode: 'insensitive' as const } },
-          { phone: { contains: params.search, mode: 'insensitive' as const } },
-        ],
-      }),
-    };
-    const [items, total] = await Promise.all([
-      prisma.vendor.findMany({
-        where,
-        skip: params.skip,
-        take: params.take,
-        orderBy: { name: 'asc' },
-        include: { category: true },
-      }),
-      prisma.vendor.count({ where }),
-    ]);
-    return { items, total };
+    return dbVendorRepository.findAll(tenantId, params);
   }
 
   async findById(id: string, tenantId: string) {
-    return prisma.vendor.findFirst({
-      where: { id, tenantId, deletedAt: null },
-      include: { category: true },
-    });
+    return dbVendorRepository.findById(id, tenantId);
   }
 
   async create(data: CreateVendorInput & { tenantId: string; createdBy: string }) {
-    return prisma.vendor.create({
-      data: { ...data, updatedBy: data.createdBy } as Prisma.VendorUncheckedCreateInput,
-      include: { category: true },
+    return dbVendorRepository.create({
+      tenantId: data.tenantId,
+      categoryId: data.categoryId,
+      name: data.name,
+      phone: data.phone || undefined,
+      email: data.email || undefined,
+      address: data.address || undefined,
+      gst: data.gst || undefined,
+      createdBy: data.createdBy,
     });
   }
 
-  async update(id: string, data: Partial<UpdateVendorInput> & { updatedBy: string }) {
-    return prisma.vendor.update({
-      where: { id },
-      data: data as Prisma.VendorUncheckedUpdateInput,
-      include: { category: true },
-    });
+  async update(
+    id: string,
+    tenantId: string,
+    data: Partial<UpdateVendorInput> & { updatedBy: string }
+  ) {
+    return dbVendorRepository.update(id, tenantId, data);
   }
 
-  async softDelete(id: string, deletedBy: string) {
-    await prisma.vendor.update({
-      where: { id },
-      data: { deletedAt: new Date(), updatedBy: deletedBy },
-    });
+  async softDelete(id: string, tenantId: string, deletedBy: string) {
+    return dbVendorRepository.softDelete(id, tenantId, deletedBy);
   }
 }
 
@@ -111,12 +91,12 @@ class VendorService {
 
   async update(id: string, tenantId: string, dto: UpdateVendorInput, updatedBy: string) {
     await this.getById(id, tenantId);
-    return this.repo.update(id, { ...dto, updatedBy });
+    return this.repo.update(id, tenantId, { ...dto, updatedBy });
   }
 
   async delete(id: string, tenantId: string, deletedBy: string) {
     await this.getById(id, tenantId);
-    await this.repo.softDelete(id, deletedBy);
+    await this.repo.softDelete(id, tenantId, deletedBy);
   }
 }
 
@@ -161,8 +141,6 @@ router.get(
     }
   }
 );
-
-import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 router.post(
   '/',

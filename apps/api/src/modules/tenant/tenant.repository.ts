@@ -1,61 +1,27 @@
 /**
- * Tenant Module — Repository
+ * Tenant Module — Repository Adapter
+ * Delegates to enterprise @kitchen-erp/database TenantRepository.
  */
 
-import prisma from '../../config/database';
-import type { Tenant, TenantPlan } from '@prisma/client';
+import { tenantRepository as dbTenantRepository, Tenant, TenantPlan } from '@kitchen-erp/database';
 import type { CreateTenantInput } from './tenant.validation';
 
 export class TenantRepository {
   async findAll(params: { skip: number; take: number; search?: string }) {
-    const where = {
-      deletedAt: null,
-      ...(params.search && {
-        OR: [
-          { name: { contains: params.search, mode: 'insensitive' as const } },
-          { slug: { contains: params.search, mode: 'insensitive' as const } },
-        ],
-      }),
-    };
-
-    const [tenants, total] = await Promise.all([
-      prisma.tenant.findMany({
-        where,
-        skip: params.skip,
-        take: params.take,
-        orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { users: true, purchases: true } } },
-      }),
-      prisma.tenant.count({ where }),
-    ]);
-
-    return { tenants, total };
+    const { items, total } = await dbTenantRepository.findAll(params);
+    return { tenants: items, total };
   }
 
   async findById(id: string): Promise<Tenant | null> {
-    return prisma.tenant.findFirst({
-      where: { id, deletedAt: null },
-    });
+    return dbTenantRepository.findById(id);
   }
 
   async findBySlug(slug: string): Promise<Tenant | null> {
-    return prisma.tenant.findFirst({
-      where: { slug, deletedAt: null },
-    });
+    return dbTenantRepository.findBySlug(slug);
   }
 
   async findActivePublic() {
-    return prisma.tenant.findMany({
-      where: { deletedAt: null, isActive: true },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        currency: true,
-        plan: true,
-      },
-      orderBy: { name: 'asc' },
-    });
+    return dbTenantRepository.findActivePublic();
   }
 
   async create(
@@ -63,16 +29,13 @@ export class TenantRepository {
       createdBy: string;
     }
   ): Promise<Tenant> {
-    return prisma.tenant.create({
-      data: {
-        name: data.name,
-        slug: data.slug,
-        domain: data.domain,
-        plan: data.plan as TenantPlan,
-        currency: data.currency || 'INR',
-        createdBy: data.createdBy,
-        updatedBy: data.createdBy,
-      },
+    return dbTenantRepository.create({
+      name: data.name,
+      slug: data.slug,
+      domain: data.domain,
+      plan: data.plan as TenantPlan,
+      currency: data.currency || 'INR',
+      createdBy: data.createdBy,
     });
   }
 
@@ -87,16 +50,10 @@ export class TenantRepository {
       updatedBy: string;
     }>
   ): Promise<Tenant> {
-    return prisma.tenant.update({
-      where: { id },
-      data,
-    });
+    return dbTenantRepository.update(id, data);
   }
 
   async softDelete(id: string, deletedBy: string): Promise<void> {
-    await prisma.tenant.update({
-      where: { id },
-      data: { deletedAt: new Date(), updatedBy: deletedBy },
-    });
+    await dbTenantRepository.softDelete(id, deletedBy);
   }
 }

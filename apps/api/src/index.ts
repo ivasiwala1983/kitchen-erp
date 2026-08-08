@@ -1,10 +1,11 @@
 /**
  * Kitchen ERP API — Server Entry Point
+ * Consumes enterprise @kitchen-erp/database and centralized @kitchen-erp/config.
  */
 
 import app from './app';
 import { config, getMissingEnvVars } from './config/env';
-import prisma from './config/database';
+import { db } from '@kitchen-erp/database';
 
 async function start() {
   console.log('[LOG] Application Started');
@@ -17,9 +18,10 @@ async function start() {
   }
 
   try {
-    // Verify database connection
+    // Verify database connection via enterprise DatabaseClient
+    console.log('[LOG] Connecting to Database...');
+    await db.connect();
     console.log('[LOG] Prisma Connected');
-    await prisma.$connect();
     console.log('[LOG] Database Connected');
 
     app.listen(config.port, () => {
@@ -37,13 +39,13 @@ async function start() {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
-  await prisma.$disconnect();
+  await db.disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully...');
-  await prisma.$disconnect();
+  await db.disconnect();
   process.exit(0);
 });
 
