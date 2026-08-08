@@ -20,7 +20,17 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@kitchen-erp/config": ["../../packages/config/src/index.ts"],
+      "@kitchen-erp/config/*": ["../../packages/config/src/*"],
+      "@kitchen-erp/types": ["../../packages/types/src/index.ts"],
+      "@kitchen-erp/types/*": ["../../packages/types/src/*"],
+      "@kitchen-erp/utils": ["../../packages/utils/src/index.ts"],
+      "@kitchen-erp/utils/*": ["../../packages/utils/src/*"],
+      "@kitchen-erp/api-client": ["../../packages/api-client/src/index.ts"],
+      "@kitchen-erp/api-client/*": ["../../packages/api-client/src/*"],
+      "@kitchen-erp/ui": ["../../packages/ui/src/index.tsx"],
+      "@kitchen-erp/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
