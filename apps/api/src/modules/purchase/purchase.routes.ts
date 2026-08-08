@@ -160,7 +160,11 @@ class PurchaseService {
       purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : new Date(),
       status: dto.status || PurchaseStatus.CONFIRMED,
       createdBy: userId,
-      items: dto.items,
+      items: dto.items.map((item) => ({
+        productId: item.productId,
+        qty: item.qty,
+        rate: item.rate,
+      })),
     });
   }
 
@@ -182,6 +186,12 @@ class PurchaseService {
         updatedBy: userId,
       },
       dto.items
+        ? dto.items.map((item) => ({
+            productId: item.productId,
+            qty: item.qty,
+            rate: item.rate,
+          }))
+        : undefined
     );
   }
 
