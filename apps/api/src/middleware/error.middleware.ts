@@ -1,12 +1,23 @@
 /**
  * Centralized error handling middleware.
  * Must be the last middleware registered in app.ts.
+ * Preserves CORS headers on all error responses.
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { AppError } from '../shared/errors';
 import { config } from '../config/env';
+
+function ensureCorsHeaders(req: Request, res: Response): void {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
 
 export function errorHandler(
   error: unknown,
@@ -15,6 +26,8 @@ export function errorHandler(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ): void {
+  ensureCorsHeaders(req, res);
+
   // ── Zod Validation Errors ────────────────────────────────
   if (error instanceof ZodError) {
     const errors: Record<string, string[]> = {};
@@ -76,6 +89,7 @@ export function errorHandler(
 
 /** 404 handler for unmatched routes */
 export function notFoundHandler(req: Request, res: Response): void {
+  ensureCorsHeaders(req, res);
   res.status(404).json({
     success: false,
     message: `Route ${req.method} ${req.path} not found`,
