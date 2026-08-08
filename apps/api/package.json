@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && tsc",
+    "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && mkdir -p node_modules/.prisma && cp -r ../../node_modules/.prisma/client node_modules/.prisma/ 2>/dev/null || true && tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts"
