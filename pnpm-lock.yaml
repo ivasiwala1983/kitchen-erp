@@ -256,6 +256,9 @@ importers:
       '@kitchen-erp/types':
         specifier: workspace:*
         version: link:../types
+      '@kitchen-erp/utils':
+        specifier: workspace:*
+        version: link:../utils
       axios:
         specifier: ^1.7.7
         version: 1.19.0

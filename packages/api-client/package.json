@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@kitchen-erp/types": "workspace:*",
+    "@kitchen-erp/utils": "workspace:*",
     "axios": "^1.7.7"
   },
   "devDependencies": {
