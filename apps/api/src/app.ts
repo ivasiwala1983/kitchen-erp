@@ -50,19 +50,7 @@ const allAllowedOrigins = Array.from(
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) {
-    const isAllowed =
-      config.isDev ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1') ||
-      origin.includes('lvh.me') ||
-      origin.endsWith('.vercel.app') ||
-      allAllowedOrigins.some(
-        (allowed) => origin.toLowerCase() === allowed.toLowerCase() || origin.includes(allowed)
-      );
-
-    if (isAllowed) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
