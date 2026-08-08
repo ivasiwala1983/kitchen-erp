@@ -4,6 +4,7 @@
  */
 
 import multer from 'multer';
+import { RequestHandler } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { config } from '../config/env';
@@ -34,7 +35,7 @@ const fileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
   }
 };
 
-export const uploadInvoice = multer({
+export const uploadInvoice: RequestHandler = multer({
   storage,
   fileFilter,
   limits: { fileSize: MAX_FILE_SIZE },
