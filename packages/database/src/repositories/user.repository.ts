@@ -3,7 +3,7 @@
  * Encapsulates all User & authentication data access queries.
  */
 
-import { Prisma, User, Role } from '../generated/client';
+import { Prisma, User, Role } from '@prisma/client';
 import { prisma } from '../client/prisma';
 
 export interface CreateUserDto {
@@ -27,7 +27,14 @@ export interface UpdateUserDto {
 export class UserRepository {
   async findById(id: string): Promise<
     | (User & {
-        tenant?: { id: string; name: string; slug: string; plan: string; currency: string } | null;
+        tenant?: {
+          id: string;
+          name: string;
+          slug: string;
+          plan: string;
+          currency: string;
+          isActive: boolean;
+        } | null;
       })
     | null
   > {
@@ -41,6 +48,7 @@ export class UserRepository {
             slug: true,
             plan: true,
             currency: true,
+            isActive: true,
           },
         },
       },
@@ -49,7 +57,14 @@ export class UserRepository {
 
   async findByEmail(email: string): Promise<
     | (User & {
-        tenant?: { id: string; name: string; slug: string; plan: string; currency: string } | null;
+        tenant?: {
+          id: string;
+          name: string;
+          slug: string;
+          plan: string;
+          currency: string;
+          isActive: boolean;
+        } | null;
       })
     | null
   > {
@@ -63,6 +78,7 @@ export class UserRepository {
             slug: true,
             plan: true,
             currency: true,
+            isActive: true,
           },
         },
       },

@@ -3,7 +3,7 @@
  * Encapsulates all Category Master data access queries.
  */
 
-import { Prisma, Category } from '../generated/client';
+import { Prisma, Category } from '@prisma/client';
 import { prisma } from '../client/prisma';
 
 export interface CreateCategoryDto {
