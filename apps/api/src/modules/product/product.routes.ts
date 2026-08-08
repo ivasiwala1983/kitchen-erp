@@ -67,11 +67,18 @@ class ProductRepository {
     tenantId: string;
     categoryId: string;
     name: string;
-    unit: string;
+    unit?: string;
     createdBy: string;
   }) {
     return prisma.product.create({
-      data: { ...data, updatedBy: data.createdBy } as Prisma.ProductUncheckedCreateInput,
+      data: {
+        tenantId: data.tenantId,
+        categoryId: data.categoryId,
+        name: data.name,
+        unit: data.unit || 'kg',
+        createdBy: data.createdBy,
+        updatedBy: data.createdBy,
+      } as Prisma.ProductUncheckedCreateInput,
       include: { category: true },
     });
   }
@@ -131,10 +138,19 @@ class ProductService {
 
   async create(
     tenantId: string,
-    dto: { categoryId: string; name: string; unit: string },
+    dto: { categoryId?: string; name?: string; unit?: string },
     createdBy: string
   ) {
-    return this.repo.create({ ...dto, tenantId, createdBy });
+    if (!dto.categoryId || !dto.name) {
+      throw new Error('Category ID and Name are required');
+    }
+    return this.repo.create({
+      tenantId,
+      categoryId: dto.categoryId,
+      name: dto.name,
+      unit: dto.unit || 'kg',
+      createdBy,
+    });
   }
 
   async update(
