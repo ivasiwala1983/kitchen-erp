@@ -40,6 +40,8 @@ export interface TenantPublic {
   isActive: boolean;
   plan: TenantPlan;
   currency: string;
+  logoUrl?: string | null;
+  theme?: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

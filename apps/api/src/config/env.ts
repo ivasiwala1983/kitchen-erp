@@ -56,6 +56,12 @@ export const config = {
   seaweedFallbackLocal: process.env.SEAWEEDFS_FALLBACK_LOCAL === 'true',
   uploadsDir: process.env.UPLOADS_DIR || './uploads',
 
+  // Multi-Tenant Configuration
+  tenantMode: (process.env.TENANT_MODE || 'path') as 'path' | 'subdomain',
+  pwaBaseUrl: process.env.PWA_BASE_URL || 'http://localhost:3002',
+  adminBaseUrl: process.env.ADMIN_BASE_URL || 'http://localhost:3001',
+  apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:4000',
+
   // API
   apiPrefix: '/api',
 };

@@ -44,6 +44,20 @@ export class TenantRepository {
     });
   }
 
+  async findActivePublic() {
+    return prisma.tenant.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        currency: true,
+        plan: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async create(
     data: Omit<CreateTenantInput, 'adminEmail' | 'adminName' | 'adminPassword'> & {
       createdBy: string;

@@ -30,6 +30,33 @@ export async function getTenant(req: Request, res: Response, next: NextFunction)
   }
 }
 
+export async function getTenantBySlug(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const slug = String(req.params.slug);
+    const tenant = await service.getBySlug(slug);
+    sendSuccess(res, tenant);
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function listPublicTenants(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const tenants = await service.getPublicList();
+    sendSuccess(res, tenants);
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function createTenant(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const authReq = req as AuthenticatedRequest;

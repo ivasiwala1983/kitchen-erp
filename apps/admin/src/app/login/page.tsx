@@ -1,16 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../lib/api';
+import type { TenantPublic } from '@kitchen-erp/types';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedTenantSlug, setSelectedTenantSlug] = useState<string>('');
+  const [tenants, setTenants] = useState<TenantPublic[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Load public active tenants list for the login dropdown
+    api.tenants
+      .listPublic()
+      .then((res) => {
+        if (res.data && Array.isArray(res.data)) {
+          setTenants(res.data);
+          // Pre-select stored tenant slug or default to first tenant if available
+          const stored =
+            typeof window !== 'undefined' ? localStorage.getItem('kitchen_erp_tenant_slug') : null;
+          if (stored && res.data.some((t) => t.slug === stored)) {
+            setSelectedTenantSlug(stored);
+          } else if (res.data.length > 0) {
+            setSelectedTenantSlug(res.data[0].slug);
+          }
+        }
+      })
+      .catch(() => null);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,15 +42,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      // Retrieve stored user after login call
-      const token = localStorage.getItem('kitchen_erp_access_token');
+      await login(email, password, selectedTenantSlug || undefined);
+      const token =
+        typeof window !== 'undefined' ? localStorage.getItem('kitchen_erp_access_token') : null;
       if (token) {
         router.replace('/dashboard');
       }
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } } };
-      setError(errorObj?.response?.data?.message || 'Login failed. Check email and password.');
+      setError(
+        errorObj?.response?.data?.message ||
+          'Login failed. Check email, password, or tenant selection.'
+      );
     } finally {
       setLoading(false);
     }
@@ -62,6 +89,45 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="login-form">
+          {/* Dynamic Tenant Dropdown */}
+          <div className="form-group">
+            <label
+              className="form-label"
+              style={{ fontWeight: 600, color: 'var(--color-brand-light)' }}
+            >
+              Select Kitchen / Organization
+            </label>
+            <select
+              id="tenant-select"
+              className="input"
+              value={selectedTenantSlug}
+              onChange={(e) => setSelectedTenantSlug(e.target.value)}
+              style={{
+                fontWeight: 600,
+                background: 'var(--color-bg-tertiary)',
+                borderColor: 'var(--color-brand)',
+                color: 'var(--color-text-primary)',
+                cursor: 'pointer',
+              }}
+            >
+              <option
+                value=""
+                style={{ color: 'var(--color-text-primary)', background: 'var(--color-bg-card)' }}
+              >
+                👑 Global Super Admin (All Tenants)
+              </option>
+              {tenants.map((t) => (
+                <option
+                  key={t.id}
+                  value={t.slug}
+                  style={{ color: 'var(--color-text-primary)', background: 'var(--color-bg-card)' }}
+                >
+                  🍳 {t.name} ({t.slug})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="form-group">
             <label className="form-label">Email address</label>
             <input
@@ -103,7 +169,7 @@ export default function LoginPage() {
                 Signing in...
               </>
             ) : (
-              'Sign in'
+              'Sign in →'
             )}
           </button>
         </form>
@@ -119,13 +185,16 @@ export default function LoginPage() {
           }}
         >
           <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-            Default Admin Credentials:
+            Default Credentials:
           </div>
           <div>
             Super Admin: <code>super@kitchenerp.com</code> / <code>SuperAdmin@123</code>
           </div>
           <div>
-            Tenant Admin: <code>admin@demo.kitchenerp.com</code> / <code>TenantAdmin@123</code>
+            Test Tenant Admin: <code>admin@test.com</code> / <code>TenantAdmin@123</code>
+          </div>
+          <div>
+            Demo Tenant Admin: <code>admin@demo.kitchenerp.com</code> / <code>TenantAdmin@123</code>
           </div>
         </div>
       </div>

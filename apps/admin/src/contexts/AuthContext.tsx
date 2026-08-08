@@ -7,7 +7,7 @@ import { setTokens, clearTokens } from '@kitchen-erp/api-client';
 interface AuthContextType {
   user: UserPublic | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, tenantSlug?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -35,10 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const res = await api.auth.login({ email, password });
+  const login = async (email: string, password: string, tenantSlug?: string) => {
+    const res = await api.auth.login({ email, password, tenantSlug });
     if (res.data) {
       setTokens(res.data.tokens);
+      if (typeof window !== 'undefined' && tenantSlug) {
+        localStorage.setItem('kitchen_erp_tenant_slug', tenantSlug);
+      }
       setUser(res.data.user);
     }
   };

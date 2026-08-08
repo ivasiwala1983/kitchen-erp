@@ -1,54 +1,50 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { KitchenErpApi, setTokens } from '@kitchen-erp/api-client';
+import { KitchenErpApi } from '@kitchen-erp/api-client';
+import type { TenantPublic } from '@kitchen-erp/types';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
 
-const api = new KitchenErpApi({
-  baseURL: API_URL,
-  onUnauthorized: () => (window.location.href = '/'),
-});
-
-export default function LoginPage() {
+export default function RootPwaPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [tenantSlug, setTenantSlug] = useState('');
+  const [tenantsList, setTenantsList] = useState<TenantPublic[]>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const api = new KitchenErpApi({ baseURL: API_URL });
+    api.tenants
+      .listPublic()
+      .then((res) => {
+        if (res.data && Array.isArray(res.data)) {
+          setTenantsList(res.data);
+          const stored =
+            typeof window !== 'undefined' ? localStorage.getItem('kitchen_erp_tenant_slug') : null;
+          if (stored && res.data.some((t) => t.slug === stored)) {
+            setTenantSlug(stored);
+          } else if (res.data.length > 0) {
+            setTenantSlug(res.data[0].slug);
+          }
+        }
+      })
+      .catch(() => null);
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const res = await api.auth.login({ email, password });
-      if (res.data) {
-        setTokens(res.data.tokens);
-        router.replace('/purchase');
+    const slug = tenantSlug.toLowerCase().trim();
+    if (slug) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('kitchen_erp_tenant_slug', slug);
       }
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message || 'Login failed. Check email and password.');
-    } finally {
-      setLoading(false);
+      router.push(`/t/${slug}`);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1.5rem',
-        background: 'var(--bg-page)',
-      }}
-    >
+    <div className="app-shell" style={{ justifyContent: 'center', padding: '1.5rem 1rem' }}>
       {/* Brand Header */}
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <div
@@ -87,103 +83,72 @@ export default function LoginPage() {
           Kitchen ERP
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
-          Mobile Purchase Portal
+          Mobile Kitchen Portal
         </p>
       </div>
 
-      {/* Login Card */}
+      {/* Tenant Selector Card */}
       <div className="pwa-card" style={{ width: '100%', maxWidth: 380, padding: '1.75rem' }}>
         <h2
           style={{
             fontSize: '1.125rem',
             fontWeight: 800,
             color: 'var(--text-main)',
-            marginBottom: '1.25rem',
+            marginBottom: '0.5rem',
           }}
         >
-          Sign in
+          Select Kitchen / Branch
         </h2>
-
-        {error && <div className="pwa-alert pwa-alert-error">{error}</div>}
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+          Choose your kitchen from the list or enter custom tenant slug below
+        </p>
 
         <form onSubmit={handleSubmit}>
+          {tenantsList.length > 0 && (
+            <div className="pwa-field">
+              <label
+                className="pwa-label"
+                style={{ fontWeight: 700, color: 'var(--forest-green)' }}
+              >
+                Available Kitchens
+              </label>
+              <select
+                className="pwa-input"
+                value={tenantSlug}
+                onChange={(e) => setTenantSlug(e.target.value)}
+                style={{
+                  fontWeight: 700,
+                  borderColor: 'var(--forest-green)',
+                  cursor: 'pointer',
+                }}
+              >
+                {tenantsList.map((t) => (
+                  <option key={t.id} value={t.slug}>
+                    🍳 {t.name} ({t.slug})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="pwa-field">
-            <label className="pwa-label">Email Address</label>
+            <label className="pwa-label">Or Custom Kitchen Identifier</label>
             <input
-              id="pwa-email"
-              type="email"
+              id="tenant-slug-input"
+              type="text"
               className="pwa-input"
-              placeholder="manager@demo.kitchenerp.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. demo, test, badri"
+              value={tenantSlug}
+              onChange={(e) => setTenantSlug(e.target.value)}
               required
-              autoComplete="email"
             />
           </div>
 
-          <div className="pwa-field">
-            <label className="pwa-label">Password</label>
-            <input
-              id="pwa-password"
-              type="password"
-              className="pwa-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button
-            id="pwa-login-btn"
-            type="submit"
-            className="pwa-btn pwa-btn-primary"
-            style={{ marginTop: '0.5rem' }}
-            disabled={loading}
-          >
-            {loading ? <span className="pwa-spinner" /> : 'Sign in →'}
+          <button type="submit" className="pwa-btn pwa-btn-primary" style={{ marginTop: '0.5rem' }}>
+            Continue to Kitchen →
           </button>
         </form>
-
-        <div
-          style={{
-            marginTop: '1.25rem',
-            background: '#f8fafc',
-            padding: '0.75rem',
-            borderRadius: 10,
-            fontSize: '0.75rem',
-          }}
-        >
-          <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: 2 }}>
-            Manager Login Credentials:
-          </div>
-          <div>
-            Email: <code>manager@demo.kitchenerp.com</code>
-          </div>
-          <div>
-            Password: <code>Manager@123</code>
-          </div>
-        </div>
       </div>
-
-      <p
-        style={{
-          marginTop: '1.5rem',
-          color: 'var(--text-muted)',
-          fontSize: '0.8125rem',
-          textAlign: 'center',
-          fontWeight: 600,
-        }}
-      >
-        Admins →{' '}
-        <a
-          href={process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3000'}
-          style={{ color: 'var(--forest-green)', fontWeight: 700, textDecoration: 'underline' }}
-        >
-          Admin Portal
-        </a>
-      </p>
     </div>
   );
 }

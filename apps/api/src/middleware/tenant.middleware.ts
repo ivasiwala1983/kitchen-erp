@@ -1,102 +1,35 @@
 /**
  * Tenant Isolation & Resolution Middleware.
  *
- * Resolves tenant context from:
- *  1. User JWT payload (req.user.tenantId) for TENANT_ADMIN and INVENTORY_MANAGER
- *  2. Subdomain / Host header (e.g. badri.localhost:3000 -> slug 'badri')
- *  3. X-Tenant-Slug header (e.g. 'badri')
- *  4. Fallback for SUPER_ADMIN to default active tenant if no tenant slug is provided.
+ * Resolves tenant context using TenantResolver:
+ *  1. User JWT payload (req.user.tenantId / tenantSlug)
+ *  2. Configured TenantResolver strategy (Path-based /t/:tenantSlug or Subdomain)
+ *  3. Explicit X-Tenant-Slug header
  *
- * Enforces strict multi-tenant data isolation so tenant data never leaks across subdomains.
+ * Enforces strict multi-tenant data isolation so tenant data never leaks.
  */
 
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
+import { config } from '../config/env';
 import { ForbiddenError, NotFoundError, BadRequestError } from '../shared/errors';
 import type { AuthenticatedRequest } from '../shared/types';
 import { Role } from '@kitchen-erp/types';
-
-const NON_TENANT_PREFIXES = [
-  'localhost',
-  'lvh',
-  'www',
-  '127',
-  '0',
-  'vercel',
-  'kitchen-erp-admin',
-  'kitchen-erp-pwa',
-  'kitchen-erp-api',
-];
-
-function extractSlugFromHostname(hostname: string): string | undefined {
-  if (!hostname) return undefined;
-  const lowerHost = hostname.toLowerCase();
-
-  if (lowerHost.endsWith('.vercel.app')) {
-    const parts = lowerHost.split('.');
-    if (NON_TENANT_PREFIXES.includes(parts[0]) || parts[0].startsWith('kitchen-erp')) {
-      return undefined;
-    }
-  }
-
-  const parts = lowerHost.split('.');
-  if (
-    parts.length > 1 &&
-    !NON_TENANT_PREFIXES.includes(parts[0]) &&
-    !parts[0].startsWith('kitchen-erp')
-  ) {
-    return parts[0];
-  }
-  return undefined;
-}
+import { TenantResolver } from '@kitchen-erp/utils';
 
 /**
- * Helper to extract tenant slug from request headers or subdomain host.
- * Supports: badri.localhost, badri.lvh.me, badri.kitchenerp.com, or X-Tenant-Slug header.
+ * Helper to extract tenant slug from request using TenantResolver.
  */
 export function extractTenantSlug(req: Request): string | undefined {
-  // 1. Explicit X-Tenant-Slug header
-  const headerSlug = req.headers['x-tenant-slug'] as string | undefined;
-  if (headerSlug && headerSlug.trim()) {
-    const slug = headerSlug.trim().toLowerCase();
-    if (!NON_TENANT_PREFIXES.includes(slug) && !slug.startsWith('kitchen-erp')) {
-      return slug;
-    }
-  }
-
-  // 2. Extract from Origin header (e.g. http://badri.localhost:3000)
-  const origin = req.headers['origin'] as string | undefined;
-  if (origin) {
-    try {
-      const url = new URL(origin);
-      const slug = extractSlugFromHostname(url.hostname);
-      if (slug) return slug;
-    } catch {
-      // ignore URL parse error
-    }
-  }
-
-  // 3. Extract from Referer header (e.g. http://badri.localhost:3000/dashboard)
-  const referer = req.headers['referer'] as string | undefined;
-  if (referer) {
-    try {
-      const url = new URL(referer);
-      const slug = extractSlugFromHostname(url.hostname);
-      if (slug) return slug;
-    } catch {
-      // ignore URL parse error
-    }
-  }
-
-  // 4. Extract from Host header (e.g. badri.localhost:4000)
-  const hostHeader = req.headers['host'] as string | undefined;
-  if (hostHeader) {
-    const hostname = hostHeader.split(':')[0];
-    const slug = extractSlugFromHostname(hostname);
-    if (slug) return slug;
-  }
-
-  return undefined;
+  const authReq = req as AuthenticatedRequest;
+  return TenantResolver.resolveTenantSlug({
+    path: req.originalUrl || req.url || req.path,
+    host: req.headers['host'],
+    originOrReferer: (req.headers['origin'] || req.headers['referer']) as string,
+    headerSlug: req.headers['x-tenant-slug'] as string,
+    mode: config.tenantMode,
+    jwtTenantSlug: authReq.user?.tenantSlug || undefined,
+  });
 }
 
 export async function resolveTenant(
@@ -122,7 +55,7 @@ export async function resolveTenant(
           throw new NotFoundError(`Tenant with slug '${extractedSlug}' not found`);
         }
       } else {
-        // Fallback for SUPER_ADMIN to default active tenant when no slug header is supplied
+        // Fallback for SUPER_ADMIN to default active tenant when no slug is supplied
         const defaultTenant = await prisma.tenant.findFirst({
           where: { deletedAt: null, isActive: true },
           orderBy: { createdAt: 'asc' },
@@ -153,7 +86,7 @@ export async function resolveTenant(
       throw new ForbiddenError('Tenant is deactivated. Contact support.');
     }
 
-    // If subdomain specifies a different tenant, enforce cross-tenant protection!
+    // If request specifies a different tenant slug, enforce cross-tenant protection!
     if (extractedSlug && tenant.slug !== extractedSlug) {
       throw new ForbiddenError(
         `Access denied: Your account belongs to '${tenant.slug}', not '${extractedSlug}'.`
@@ -175,7 +108,7 @@ export function requireTenant(req: Request, res: Response, next: NextFunction): 
   if (!authReq.tenantId) {
     next(
       new BadRequestError(
-        'Tenant context required for this operation. Specify tenant subdomain or X-Tenant-Slug header.'
+        'Tenant context required for this operation. Specify tenant URL path (/t/slug) or X-Tenant-Slug header.'
       )
     );
     return;

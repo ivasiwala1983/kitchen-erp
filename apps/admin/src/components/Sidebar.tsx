@@ -312,10 +312,39 @@ export default function Sidebar({ user }: { user: UserPublic }) {
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
               {user.email}
             </div>
-            <div style={{ marginTop: '0.25rem' }}>
+            <div
+              style={{ marginTop: '0.25rem', display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}
+            >
               <span className="badge badge-purple">{getRoleLabel(user.role)}</span>
+              {user.tenant && <span className="badge badge-green">🍳 {user.tenant.name}</span>}
             </div>
           </div>
+          <button
+            onClick={() => {
+              logout();
+            }}
+            className="nav-item"
+            style={{
+              width: '100%',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              color: '#6366f1',
+              fontWeight: 600,
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            Switch Kitchen / Tenant
+          </button>
           <button
             onClick={logout}
             className="nav-item"

@@ -93,6 +93,8 @@ const NON_TENANT_PREFIXES = [
   'kitchen-erp-api',
 ];
 
+import { TenantResolver } from '@kitchen-erp/utils';
+
 export function createApiClient(config: ApiClientConfig): AxiosInstance {
   let normalizedBase = (config.baseURL || 'http://localhost:4000/api').trim().replace(/\/+$/, '');
   if (normalizedBase && !normalizedBase.endsWith('/api')) {
@@ -115,20 +117,19 @@ export function createApiClient(config: ApiClientConfig): AxiosInstance {
       req.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (config.tenantSlug) {
-      req.headers['X-Tenant-Slug'] = config.tenantSlug;
-    } else if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname.toLowerCase();
-      if (!hostname.endsWith('.vercel.app')) {
-        const parts = hostname.split('.');
-        if (
-          parts.length > 1 &&
-          !NON_TENANT_PREFIXES.includes(parts[0]) &&
-          !parts[0].startsWith('kitchen-erp')
-        ) {
-          req.headers['X-Tenant-Slug'] = parts[0];
-        }
-      }
+    let tenantSlug = config.tenantSlug;
+
+    if (!tenantSlug && typeof window !== 'undefined') {
+      const storedSlug = localStorage.getItem('kitchen_erp_tenant_slug');
+      tenantSlug = TenantResolver.resolveTenantSlug({
+        path: window.location.pathname,
+        host: window.location.host,
+        headerSlug: storedSlug || undefined,
+      });
+    }
+
+    if (tenantSlug) {
+      req.headers['X-Tenant-Slug'] = tenantSlug;
     }
     return req;
   });
@@ -216,6 +217,12 @@ export class KitchenErpApi {
 
     get: (id: string) =>
       this.client.get<ApiResponse<TenantPublic>>(`/tenants/${id}`).then((r) => r.data),
+
+    getBySlug: (slug: string) =>
+      this.client.get<ApiResponse<TenantPublic>>(`/tenant/by-slug/${slug}`).then((r) => r.data),
+
+    listPublic: () =>
+      this.client.get<ApiResponse<TenantPublic[]>>('/tenant/public-list').then((r) => r.data),
 
     create: (dto: CreateTenantDto) =>
       this.client.post<ApiResponse<TenantPublic>>('/tenants', dto).then((r) => r.data),

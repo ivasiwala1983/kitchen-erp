@@ -48,7 +48,9 @@ export class AuthService {
 
     const tokenPayload = {
       sub: user.id,
+      userId: user.id,
       tenantId: user.tenantId,
+      tenantSlug: user.tenant?.slug || null,
       role: user.role as Role,
       email: user.email,
     };
@@ -107,7 +109,9 @@ export class AuthService {
 
     const tokenPayload = {
       sub: user.id,
+      userId: user.id,
       tenantId: user.tenantId,
+      tenantSlug: user.tenant?.slug || null,
       role: user.role as Role,
       email: user.email,
     };

@@ -40,6 +40,30 @@ export class TenantService {
     return tenant;
   }
 
+  async getBySlug(slug: string) {
+    const tenant = await this.repo.findBySlug(slug.toLowerCase().trim());
+    if (!tenant || !tenant.isActive) {
+      throw new NotFoundError(`Tenant with slug '${slug}' not found`);
+    }
+    return {
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+      domain: tenant.domain,
+      isActive: tenant.isActive,
+      plan: tenant.plan,
+      currency: tenant.currency,
+      logoUrl: (tenant as any).logoUrl || null,
+      theme: (tenant as any).theme || null,
+      createdAt: tenant.createdAt,
+      updatedAt: tenant.updatedAt,
+    };
+  }
+
+  async getPublicList() {
+    return this.repo.findActivePublic();
+  }
+
   async create(dto: CreateTenantInput, createdBy: string) {
     // Check slug uniqueness
     const existing = await this.repo.findBySlug(dto.slug);

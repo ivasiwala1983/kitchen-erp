@@ -6,6 +6,10 @@ export const RootEnvSchema = z.object({
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters long'),
   APP_DOMAIN: z.string().default('localhost'),
   SEAWEED_URL: z.string().url('SEAWEED_URL must be a valid URL').optional().or(z.literal('')),
+  TENANT_MODE: z.enum(['path', 'subdomain']).default('path'),
+  PWA_BASE_URL: z.string().default('http://localhost:3002'),
+  ADMIN_BASE_URL: z.string().default('http://localhost:3001'),
+  API_BASE_URL: z.string().default('http://localhost:4000'),
 });
 
 export const ApiEnvSchema = z.object({

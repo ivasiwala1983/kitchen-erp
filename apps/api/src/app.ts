@@ -122,7 +122,8 @@ mountRoute('/health', healthRoutes);
 // Auth (mixed: login is public, others protected)
 mountRoute('/auth', authLimiter, authRoutes);
 
-// Tenant management (SUPER_ADMIN only)
+// Tenant management (Public lookup + SUPER_ADMIN CRUD)
+mountRoute('/tenant', tenantRoutes);
 mountRoute('/tenants', tenantRoutes);
 
 // User management (SUPER_ADMIN + TENANT_ADMIN)

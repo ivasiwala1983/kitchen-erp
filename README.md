@@ -60,6 +60,37 @@ kitchen-erp/
 
 ---
 
+## 🌐 Multi-Tenant Routing Architecture
+
+The platform supports both **Path-Based Tenant Routing** (`/t/{tenantSlug}`) and **Subdomain-Based Tenant Routing** (`{tenantSlug}.kitchenerp.com`) via a single centralized `TenantResolver` helper in `@kitchen-erp/utils`.
+
+### URL Structure
+
+| Environment    | Admin Portal                                 | API Base URL                         | PWA Mobile Portal                            |
+| :------------- | :------------------------------------------- | :----------------------------------- | :------------------------------------------- |
+| **Localhost**  | `http://localhost:3001/login`                | `http://localhost:4000`              | `http://localhost:3002/t/badri`              |
+| **Production** | `https://kitchen-erp-admin.vercel.app/login` | `https://kitchen-erp-api.vercel.app` | `https://kitchen-erp-pwa.vercel.app/t/badri` |
+
+### Dynamic PWA Screens
+
+All mobile tenant screens reside under `/t/[tenantSlug]`:
+
+- Login: `/t/[tenantSlug]/login`
+- Dashboard: `/t/[tenantSlug]`
+- Purchases: `/t/[tenantSlug]/purchase`
+- History: `/t/[tenantSlug]/history`
+- Profile: `/t/[tenantSlug]/profile`
+- Settings: `/t/[tenantSlug]/settings`
+
+### 🔮 Future Wildcard Subdomain Migration Plan
+
+When switching to wildcard subdomains (`badri.kitchenerp.com`):
+
+1. Change **one environment variable**: `TENANT_MODE=subdomain` in `.env`.
+2. No authentication or route logic changes are required anywhere in the codebase. The central `TenantResolver` automatically handles hostname extraction.
+
+---
+
 ## ⚡ How to Install
 
 ### Prerequisites
