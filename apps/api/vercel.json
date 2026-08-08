@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "../../packages/database/src/generated/client/**"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
