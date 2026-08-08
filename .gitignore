@@ -18,6 +18,7 @@ out/
 
 # ── Prisma Generated Artifacts ──────────────────────────────
 prisma/generated/
+packages/database/src/generated/client/
 
 # ── Uploads & Local File Attachments ────────────────────────
 uploads/

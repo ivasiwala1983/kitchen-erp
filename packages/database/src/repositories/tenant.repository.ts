@@ -3,7 +3,7 @@
  * Encapsulates all tenant data access queries.
  */
 
-import { Prisma, Tenant, TenantPlan } from '@prisma/client';
+import { Prisma, Tenant, TenantPlan } from '../generated/client';
 import { prisma } from '../client/prisma';
 
 export interface CreateTenantDto {

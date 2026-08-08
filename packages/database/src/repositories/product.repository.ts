@@ -3,7 +3,7 @@
  * Encapsulates all Product Master data access queries.
  */
 
-import { Prisma, Product } from '@prisma/client';
+import { Prisma, Product } from '../generated/client';
 import { prisma } from '../client/prisma';
 
 export interface CreateProductDto {

@@ -3,7 +3,7 @@
  * Handles invoice attachments for purchases.
  */
 
-import { Purchase } from '@prisma/client';
+import { Purchase } from '../generated/client';
 import { prisma } from '../client/prisma';
 
 export class InvoiceRepository {

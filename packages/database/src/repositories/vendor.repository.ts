@@ -3,7 +3,7 @@
  * Encapsulates all Vendor data access queries.
  */
 
-import { Prisma, Vendor } from '@prisma/client';
+import { Prisma, Vendor } from '../generated/client';
 import { prisma } from '../client/prisma';
 
 export interface CreateVendorDto {
