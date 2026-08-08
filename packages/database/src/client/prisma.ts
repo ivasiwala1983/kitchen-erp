@@ -10,7 +10,18 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 export function createPrismaClient(): PrismaClient {
+  let dbUrl = process.env.DATABASE_URL;
+
+  // When connecting via PgBouncer / Supabase pooler, prepared statements cause
+  // Postgres error 42P05 ("prepared statement 's2' already exists").
+  // Appending pgbouncer=true disables statement caching in Prisma Client.
+  if (dbUrl && !dbUrl.includes('pgbouncer=true')) {
+    const separator = dbUrl.includes('?') ? '&' : '?';
+    dbUrl = `${dbUrl}${separator}pgbouncer=true`;
+  }
+
   return new PrismaClient({
+    datasources: dbUrl ? { db: { url: dbUrl } } : undefined,
     log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
   });
 }
