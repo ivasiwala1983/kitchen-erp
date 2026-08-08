@@ -12,7 +12,7 @@ import { Router } from 'express';
 import { login, refreshToken, getMe, changePassword, logout } from './auth.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 
-const router = Router();
+const router: Router = Router();
 
 // Public routes
 router.post('/login', login);

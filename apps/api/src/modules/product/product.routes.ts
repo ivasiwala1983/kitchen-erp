@@ -151,7 +151,7 @@ class ProductService {
 // ── Controller + Routes ────────────────────────────────────────
 
 const service = new ProductService();
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate, resolveTenant, requireTenant);
 

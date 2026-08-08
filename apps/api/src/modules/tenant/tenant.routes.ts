@@ -17,7 +17,7 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { Role } from '@kitchen-erp/types';
 
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate, authorize(Role.SUPER_ADMIN));
 

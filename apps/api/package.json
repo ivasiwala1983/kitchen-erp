@@ -33,6 +33,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/express-serve-static-core": "^5.0.0",
     "@types/form-data": "^2.5.2",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/morgan": "^1.9.9",

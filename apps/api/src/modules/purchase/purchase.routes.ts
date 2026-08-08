@@ -283,7 +283,7 @@ class PurchaseService {
 // ── Controller + Routes ────────────────────────────────────────
 
 const service = new PurchaseService();
-const router = Router();
+const router: Router = Router();
 
 router.use(
   authenticate,

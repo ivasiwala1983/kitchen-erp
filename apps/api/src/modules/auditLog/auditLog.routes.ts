@@ -56,7 +56,7 @@ export async function recordAuditLog(data: AuditLogData): Promise<void> {
 
 // ── Routes ────────────────────────────────────────────────────
 
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate, authorize(Role.SUPER_ADMIN, Role.TENANT_ADMIN), resolveTenant);
 

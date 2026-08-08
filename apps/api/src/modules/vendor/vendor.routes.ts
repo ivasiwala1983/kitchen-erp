@@ -118,7 +118,7 @@ class VendorService {
 // ── Controller + Routes ────────────────────────────────────────
 
 const service = new VendorService();
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate, resolveTenant, requireTenant);
 

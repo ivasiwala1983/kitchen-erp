@@ -22,7 +22,7 @@ import { config } from '../../config/env';
 import { Role } from '@kitchen-erp/types';
 import prisma from '../../config/database';
 
-const router = Router({ mergeParams: true });
+const router: Router = Router({ mergeParams: true });
 
 router.post(
   '/invoice',

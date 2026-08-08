@@ -10,7 +10,7 @@ import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
 import { Role } from '@kitchen-erp/types';
 
-const router = Router();
+const router: Router = Router();
 
 router.use(
   authenticate,

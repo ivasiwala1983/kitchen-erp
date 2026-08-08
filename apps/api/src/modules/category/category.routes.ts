@@ -154,7 +154,7 @@ export class CategoryService {
 // ── Controller + Routes ────────────────────────────────────────
 
 const service = new CategoryService();
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate, resolveTenant, requireTenant);
 
