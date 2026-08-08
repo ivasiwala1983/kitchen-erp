@@ -61,7 +61,7 @@ router.post(
 
         // Build absolute URL using backend API host
         const host = req.get('host') || `localhost:${config.port}`;
-        const protocol = req.protocol || 'http';
+        const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
         invoiceUrl = `${protocol}://${host}/uploads/${filename}`;
       } else {
         try {
@@ -122,7 +122,7 @@ router.get(
       let redirectUrl = purchase.invoiceUrl;
       if (redirectUrl.startsWith('/')) {
         const host = req.get('host') || `localhost:${config.port}`;
-        const protocol = req.protocol || 'http';
+        const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
         redirectUrl = `${protocol}://${host}${redirectUrl}`;
       }
 

@@ -16,6 +16,40 @@ import { ForbiddenError, NotFoundError, BadRequestError } from '../shared/errors
 import type { AuthenticatedRequest } from '../shared/types';
 import { Role } from '@kitchen-erp/types';
 
+const NON_TENANT_PREFIXES = [
+  'localhost',
+  'lvh',
+  'www',
+  '127',
+  '0',
+  'vercel',
+  'kitchen-erp-admin',
+  'kitchen-erp-pwa',
+  'kitchen-erp-api',
+];
+
+function extractSlugFromHostname(hostname: string): string | undefined {
+  if (!hostname) return undefined;
+  const lowerHost = hostname.toLowerCase();
+
+  if (lowerHost.endsWith('.vercel.app')) {
+    const parts = lowerHost.split('.');
+    if (NON_TENANT_PREFIXES.includes(parts[0]) || parts[0].startsWith('kitchen-erp')) {
+      return undefined;
+    }
+  }
+
+  const parts = lowerHost.split('.');
+  if (
+    parts.length > 1 &&
+    !NON_TENANT_PREFIXES.includes(parts[0]) &&
+    !parts[0].startsWith('kitchen-erp')
+  ) {
+    return parts[0];
+  }
+  return undefined;
+}
+
 /**
  * Helper to extract tenant slug from request headers or subdomain host.
  * Supports: badri.localhost, badri.lvh.me, badri.kitchenerp.com, or X-Tenant-Slug header.
@@ -24,7 +58,10 @@ export function extractTenantSlug(req: Request): string | undefined {
   // 1. Explicit X-Tenant-Slug header
   const headerSlug = req.headers['x-tenant-slug'] as string | undefined;
   if (headerSlug && headerSlug.trim()) {
-    return headerSlug.trim().toLowerCase();
+    const slug = headerSlug.trim().toLowerCase();
+    if (!NON_TENANT_PREFIXES.includes(slug) && !slug.startsWith('kitchen-erp')) {
+      return slug;
+    }
   }
 
   // 2. Extract from Origin header (e.g. http://badri.localhost:3000)
@@ -32,10 +69,8 @@ export function extractTenantSlug(req: Request): string | undefined {
   if (origin) {
     try {
       const url = new URL(origin);
-      const parts = url.hostname.split('.');
-      if (parts.length > 1 && !['localhost', 'lvh', 'www', '127', '0'].includes(parts[0])) {
-        return parts[0].toLowerCase();
-      }
+      const slug = extractSlugFromHostname(url.hostname);
+      if (slug) return slug;
     } catch {
       // ignore URL parse error
     }
@@ -46,10 +81,8 @@ export function extractTenantSlug(req: Request): string | undefined {
   if (referer) {
     try {
       const url = new URL(referer);
-      const parts = url.hostname.split('.');
-      if (parts.length > 1 && !['localhost', 'lvh', 'www', '127', '0'].includes(parts[0])) {
-        return parts[0].toLowerCase();
-      }
+      const slug = extractSlugFromHostname(url.hostname);
+      if (slug) return slug;
     } catch {
       // ignore URL parse error
     }
@@ -59,10 +92,8 @@ export function extractTenantSlug(req: Request): string | undefined {
   const hostHeader = req.headers['host'] as string | undefined;
   if (hostHeader) {
     const hostname = hostHeader.split(':')[0];
-    const parts = hostname.split('.');
-    if (parts.length > 1 && !['localhost', 'lvh', 'www', '127', '0'].includes(parts[0])) {
-      return parts[0].toLowerCase();
-    }
+    const slug = extractSlugFromHostname(hostname);
+    if (slug) return slug;
   }
 
   return undefined;

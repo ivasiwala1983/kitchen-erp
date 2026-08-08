@@ -2,6 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@kitchen-erp/types', '@kitchen-erp/utils', '@kitchen-erp/api-client'],
+  images: {
+    remotePatterns: [
+      { protocol: 'http', hostname: '**' },
+      { protocol: 'https', hostname: '**' },
+    ],
+  },
   async headers() {
     return [
       {

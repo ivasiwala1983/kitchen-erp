@@ -81,9 +81,26 @@ export interface ApiClientConfig {
   onUnauthorized?: () => void;
 }
 
+const NON_TENANT_PREFIXES = [
+  'localhost',
+  'lvh',
+  'www',
+  '127',
+  '0',
+  'vercel',
+  'kitchen-erp-admin',
+  'kitchen-erp-pwa',
+  'kitchen-erp-api',
+];
+
 export function createApiClient(config: ApiClientConfig): AxiosInstance {
+  let normalizedBase = (config.baseURL || 'http://localhost:4000/api').trim().replace(/\/+$/, '');
+  if (normalizedBase && !normalizedBase.endsWith('/api')) {
+    normalizedBase = `${normalizedBase}/api`;
+  }
+
   const client = axios.create({
-    baseURL: config.baseURL,
+    baseURL: normalizedBase,
     headers: {
       'Content-Type': 'application/json',
     },
@@ -101,9 +118,16 @@ export function createApiClient(config: ApiClientConfig): AxiosInstance {
     if (config.tenantSlug) {
       req.headers['X-Tenant-Slug'] = config.tenantSlug;
     } else if (typeof window !== 'undefined') {
-      const parts = window.location.hostname.split('.');
-      if (parts.length > 1 && !['localhost', 'lvh', 'www', '127', '0'].includes(parts[0])) {
-        req.headers['X-Tenant-Slug'] = parts[0].toLowerCase();
+      const hostname = window.location.hostname.toLowerCase();
+      if (!hostname.endsWith('.vercel.app')) {
+        const parts = hostname.split('.');
+        if (
+          parts.length > 1 &&
+          !NON_TENANT_PREFIXES.includes(parts[0]) &&
+          !parts[0].startsWith('kitchen-erp')
+        ) {
+          req.headers['X-Tenant-Slug'] = parts[0];
+        }
       }
     }
     return req;

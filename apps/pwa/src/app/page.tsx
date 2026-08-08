@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { KitchenErpApi, setTokens } from '@kitchen-erp/api-client';
 
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_URL = rawApiUrl.replace(/\/+$/, '');
+
 const api = new KitchenErpApi({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api',
+  baseURL: API_URL,
   onUnauthorized: () => (window.location.href = '/'),
 });
 
@@ -175,7 +178,7 @@ export default function LoginPage() {
       >
         Admins →{' '}
         <a
-          href="http://localhost:3000"
+          href={process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3000'}
           style={{ color: 'var(--forest-green)', fontWeight: 700, textDecoration: 'underline' }}
         >
           Admin Portal

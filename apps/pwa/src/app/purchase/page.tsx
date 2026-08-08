@@ -7,7 +7,8 @@ import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatCurrency, getCurrencySymbol } from '@kitchen-erp/utils';
 import type { Category, Vendor, Product } from '@kitchen-erp/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_URL = rawApiUrl.replace(/\/+$/, '');
 
 export default function PurchaseMobilePage() {
   const router = useRouter();

@@ -33,44 +33,75 @@ const app = express();
 // Security
 app.use(helmet());
 
-// CORS with Subdomain Support
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, Postman)
-      if (!origin) return callback(null, true);
+// Allowed origins setup
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:4000',
+  'https://kitchen-erp-admin.vercel.app',
+  'https://kitchen-erp-pwa.vercel.app',
+  'https://kitchen-erp-api.vercel.app',
+];
 
-      // In development or testing: allow any localhost port or wildcard subdomains (*.localhost, *.lvh.me)
-      if (
-        config.isDev ||
-        origin.includes('localhost') ||
-        origin.includes('lvh.me') ||
-        config.corsOrigin.some((allowed) => origin.includes(allowed))
-      ) {
-        return callback(null, true);
-      }
-
-      callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Slug'],
-  })
+const allAllowedOrigins = Array.from(
+  new Set([...defaultAllowedOrigins, ...(config.corsOrigin || [])])
 );
 
-// Rate limiting
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    // In development/testing or matching allowed domains/wildcards
+    if (
+      config.isDev ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.includes('lvh.me') ||
+      origin.endsWith('.vercel.app') ||
+      allAllowedOrigins.some(
+        (allowed) => origin.toLowerCase() === allowed.toLowerCase() || origin.includes(allowed)
+      )
+    ) {
+      return callback(null, true);
+    }
+
+    // Refuse CORS without throwing 500 error
+    callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Tenant-Slug',
+    'Accept',
+    'X-Requested-With',
+    'Origin',
+  ],
+  optionsSuccessStatus: 200,
+};
+
+// CORS Middleware & Explicit OPTIONS handling
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Rate limiting (skips OPTIONS preflight)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 200,
   message: { success: false, message: 'Too many requests, please try again later.' },
+  skip: (req) => req.method === 'OPTIONS',
 });
 app.use(limiter);
 
-// Stricter rate limit on auth endpoints
+// Stricter rate limit on auth endpoints (skips OPTIONS preflight)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 30,
   message: { success: false, message: 'Too many login attempts.' },
+  skip: (req) => req.method === 'OPTIONS',
 });
 
 // Body parsing
@@ -94,39 +125,49 @@ if (config.seaweedFallbackLocal) {
 const api = config.apiPrefix;
 
 // Health check (public)
-app.get('/health', (_req, res) => {
+const healthHandler = (_req: express.Request, res: express.Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
-});
+};
+app.get('/health', healthHandler);
+app.get(`${api}/health`, healthHandler);
+
+// Helper to mount routes under both /api/path and /path
+const mountRoute = (routePath: string, ...handlers: any[]) => {
+  if (routePath.startsWith('/')) {
+    app.use(routePath, ...handlers);
+  }
+  app.use(`${api}${routePath.startsWith('/') ? '' : '/'}${routePath}`, ...handlers);
+};
 
 // Auth (mixed: login is public, others protected)
-app.use(`${api}/auth`, authLimiter, authRoutes);
+mountRoute('/auth', authLimiter, authRoutes);
 
 // Tenant management (SUPER_ADMIN only)
-app.use(`${api}/tenants`, tenantRoutes);
+mountRoute('/tenants', tenantRoutes);
 
 // User management (SUPER_ADMIN + TENANT_ADMIN)
-app.use(`${api}/users`, usersRoutes);
+mountRoute('/users', usersRoutes);
 
 // Category Master (TENANT_ADMIN + INVENTORY_MANAGER read)
-app.use(`${api}/categories`, categoryRoutes);
+mountRoute('/categories', categoryRoutes);
 
 // Vendors (TENANT_ADMIN + read for INVENTORY_MANAGER)
-app.use(`${api}/vendors`, vendorRoutes);
+mountRoute('/vendors', vendorRoutes);
 
 // Products (TENANT_ADMIN + read for INVENTORY_MANAGER)
-app.use(`${api}/products`, productRoutes);
+mountRoute('/products', productRoutes);
 
 // Purchases (all roles)
-app.use(`${api}/purchases`, purchaseRoutes);
+mountRoute('/purchases', purchaseRoutes);
 
 // Invoice upload/download (nested under purchases)
-app.use(`${api}/purchases/:id`, invoiceRoutes);
+mountRoute('/purchases/:id', invoiceRoutes);
 
 // Reports (TENANT_ADMIN)
-app.use(`${api}/reports`, reportsRoutes);
+mountRoute('/reports', reportsRoutes);
 
 // Audit Logs (TENANT_ADMIN)
-app.use(`${api}/audit-logs`, auditLogRoutes);
+mountRoute('/audit-logs', auditLogRoutes);
 
 // ── Error Handling ────────────────────────────────────────────
 

@@ -108,6 +108,7 @@ npm run dev --workspace=@kitchen-erp/pwa
 ```
 
 Or start all apps concurrently:
+
 ```bash
 npm run dev
 ```
@@ -137,7 +138,7 @@ npm run dev
 1. Log out or switch to Tenant Admin (`admin@demo.kitchenerp.com` / `TenantAdmin@123`).
 2. Navigate to **Users** (`http://localhost:3000/dashboard/users`).
 3. Click **+ New User**, select Role **Tenant Admin**, enter details, and save.
-4. *Note: Tenant Admins created by Super Admin cannot be deleted by another Tenant Admin.*
+4. _Note: Tenant Admins created by Super Admin cannot be deleted by another Tenant Admin._
 
 ---
 

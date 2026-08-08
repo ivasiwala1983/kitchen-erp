@@ -3,22 +3,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --bg-page: #f2f5ed;          /* Soft warm light-mint off-white background */
-  --bg-card: #ffffff;          /* Clean white cards */
-  --bg-input: #e9ece0;         /* Soft warm gray-green input fills */
+  --bg-page: #f2f5ed; /* Soft warm light-mint off-white background */
+  --bg-card: #ffffff; /* Clean white cards */
+  --bg-input: #e9ece0; /* Soft warm gray-green input fills */
   --bg-pill: #e6e9de;
   --border: #dbe0d2;
-  
-  --forest-green: #1f4e38;     /* Dark forest green primary accent */
-  --forest-green-hover: #173d2b;
-  --mint-light: #d8f3dc;       /* Light mint status pill fill */
-  --mint-dark: #166534;        /* Light mint text */
 
-  --text-main: #232d25;        /* Dark charcoal green text */
-  --text-muted: #6b7a6d;       /* Muted gray-green text */
+  --forest-green: #1f4e38; /* Dark forest green primary accent */
+  --forest-green-hover: #173d2b;
+  --mint-light: #d8f3dc; /* Light mint status pill fill */
+  --mint-dark: #166534; /* Light mint text */
+
+  --text-main: #232d25; /* Dark charcoal green text */
+  --text-muted: #6b7a6d; /* Muted gray-green text */
   --text-light: #8e9e90;
 
-  --red-accent: #d9381e;       /* Total amount red text/badge */
+  --red-accent: #d9381e; /* Total amount red text/badge */
   --amber-accent: #d97706;
 
   /* Aliases & Fallbacks */
@@ -37,19 +37,26 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   background: var(--bg-page);
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
@@ -194,7 +201,9 @@ body {
   touch-action: pan-x;
 }
 
-.category-chips-row::-webkit-scrollbar { display: none; }
+.category-chips-row::-webkit-scrollbar {
+  display: none;
+}
 
 .chip-btn {
   padding: 0.5rem 1.125rem;
@@ -462,7 +471,7 @@ body {
 
 /* Sawtooth receipt jagged edge on top */
 .ticket-container::before {
-  content: "";
+  content: '';
   position: absolute;
   top: -8px;
   left: 0;
@@ -579,7 +588,9 @@ body {
   font-weight: 600;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
   -webkit-appearance: none;
 }
 
@@ -645,7 +656,7 @@ body {
 .pwa-spinner {
   width: 20px;
   height: 20px;
-  border: 2.5px solid rgba(255,255,255,0.3);
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
   border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -653,7 +664,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Header Component */

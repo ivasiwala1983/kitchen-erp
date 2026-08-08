@@ -14,8 +14,6 @@ export const prisma =
     log: config.isDev ? ['query', 'warn', 'error'] : ['warn', 'error'],
   });
 
-if (config.isDev) {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;
 
 export default prisma;

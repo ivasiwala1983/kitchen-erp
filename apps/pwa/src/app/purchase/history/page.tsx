@@ -6,8 +6,11 @@ import { useRouter } from 'next/navigation';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatDate, formatCurrency } from '@kitchen-erp/utils';
 
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_URL = rawApiUrl.replace(/\/+$/, '');
+
 const api = new KitchenErpApi({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api',
+  baseURL: API_URL,
   onUnauthorized: () => {
     clearTokens();
     window.location.href = '/';

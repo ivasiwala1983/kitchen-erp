@@ -5,7 +5,8 @@
 
 import { KitchenErpApi } from '@kitchen-erp/api-client';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_URL = rawApiUrl.replace(/\/+$/, '');
 
 export const api = new KitchenErpApi({
   baseURL: API_URL,

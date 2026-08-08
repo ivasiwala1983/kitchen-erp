@@ -8,7 +8,10 @@ const nextConfig = {
     '@kitchen-erp/ui',
   ],
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      { protocol: 'http', hostname: '**' },
+      { protocol: 'https', hostname: '**' },
+    ],
   },
 };
 
