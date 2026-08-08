@@ -24,13 +24,15 @@ export default function AuditLogsPage() {
         page,
         limit: LIMIT,
         ...(entityFilter && { entity: entityFilter }),
-      })) as any;
-      const items = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      const count = typeof res.total === 'number' ? res.total : res.data?.total || items.length;
-      setLogs(items);
+      })) as { data?: unknown; total?: number };
+      const resObj = res as { data?: unknown[]; total?: number };
+      const items = Array.isArray(res.data) ? res.data : (resObj.data as unknown[]) || [];
+      const count = typeof res.total === 'number' ? res.total : resObj.total || items.length;
+      setLogs(items as AuditLog[]);
       setTotal(count);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load audit logs');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to load audit logs');
     } finally {
       setLoading(false);
     }
@@ -123,8 +125,11 @@ export default function AuditLogsPage() {
                 <tbody>
                   {safeLogs.map((log) => {
                     const isExpanded = expandedId === log.id;
-                    const tenantInfo = (log as any).tenant;
-                    const userInfo = (log as any).user;
+                    const logObj = log as unknown as Record<string, unknown>;
+                    const tenantInfo = logObj.tenant as
+                      { name?: string; slug?: string } | undefined;
+                    const userInfo = logObj.user as
+                      { name?: string; email?: string; role?: string } | undefined;
                     const hasPayload = log.newValues || log.oldValues;
 
                     return (

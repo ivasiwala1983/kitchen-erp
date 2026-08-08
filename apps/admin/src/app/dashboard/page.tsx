@@ -16,8 +16,8 @@ interface Stats {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [recentPurchases, setRecentPurchases] = useState<any[]>([]);
-  const [platformData, setPlatformData] = useState<any | null>(null);
+  const [recentPurchases, setRecentPurchases] = useState<Record<string, unknown>[]>([]);
+  const [platformData, setPlatformData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function DashboardPage() {
 
   async function loadPlatformDashboard() {
     try {
-      const res = (await api.reports.platform()) as any;
+      const res = (await api.reports.platform()) as { data?: Record<string, unknown> };
       if (res?.data) {
         setPlatformData(res.data);
       }
@@ -50,22 +50,48 @@ export default function DashboardPage() {
         api.users.list({ limit: 1 }),
       ]);
 
-      const pData: any = purchasesRes.status === 'fulfilled' ? purchasesRes.value : null;
-      const vData: any = vendorsRes.status === 'fulfilled' ? vendorsRes.value : null;
-      const prData: any = productsRes.status === 'fulfilled' ? productsRes.value : null;
-      const uData: any = usersRes.status === 'fulfilled' ? usersRes.value : null;
+      const pData = (purchasesRes.status === 'fulfilled' ? purchasesRes.value : null) as {
+        data?: unknown;
+        total?: number;
+      } | null;
+      const vData = (vendorsRes.status === 'fulfilled' ? vendorsRes.value : null) as {
+        data?: unknown;
+        total?: number;
+      } | null;
+      const prData = (productsRes.status === 'fulfilled' ? productsRes.value : null) as {
+        data?: unknown;
+        total?: number;
+      } | null;
+      const uData = ((uRes) => (uRes.status === 'fulfilled' ? uRes.value : null))(usersRes) as {
+        data?: unknown;
+        total?: number;
+      } | null;
 
-      const pItems = Array.isArray(pData?.data) ? pData.data : pData?.data?.data || [];
+      const pItems = Array.isArray(pData?.data)
+        ? (pData.data as Record<string, unknown>[])
+        : (pData as { data?: { data?: Record<string, unknown>[] } })?.data?.data || [];
       const pTotal =
-        typeof pData?.total === 'number' ? pData.total : pData?.data?.total || pItems.length;
+        typeof pData?.total === 'number'
+          ? pData.total
+          : (pData as { data?: { total?: number } })?.data?.total || pItems.length;
 
-      const vTotal = typeof vData?.total === 'number' ? vData.total : vData?.data?.total || 0;
-      const prTotal = typeof prData?.total === 'number' ? prData.total : prData?.data?.total || 0;
-      const uTotal = typeof uData?.total === 'number' ? uData.total : uData?.data?.total || 0;
+      const vTotal =
+        typeof vData?.total === 'number'
+          ? vData.total
+          : (vData as { data?: { total?: number } })?.data?.total || 0;
+      const prTotal =
+        typeof prData?.total === 'number'
+          ? prData.total
+          : (prData as { data?: { total?: number } })?.data?.total || 0;
+      const uTotal =
+        typeof uData?.total === 'number'
+          ? uData.total
+          : (uData as { data?: { total?: number } })?.data?.total || 0;
 
       setRecentPurchases(pItems);
       const totalAmount = pItems.reduce(
-        (sum: number, p: any) => sum + parseFloat(p.grandTotal || 0),
+        (sum: number, p: Record<string, unknown>) =>
+          sum + parseFloat((p.grandTotal as string) || '0'),
         0
       );
       setStats({
@@ -92,7 +118,7 @@ export default function DashboardPage() {
 
   // ── SUPER ADMIN DASHBOARD VIEW ─────────────────────────────────────────────
   if (user?.role === 'SUPER_ADMIN') {
-    const p = platformData || {};
+    const p = (platformData || {}) as Record<string, any>;
     const tenants = p.tenantsBreakdown || [];
 
     return (
@@ -232,8 +258,8 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {tenants.map((t: any) => (
-                      <tr key={t.id}>
+                    {tenants.map((t: Record<string, any>) => (
+                      <tr key={t.id as string}>
                         <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                           {t.name}
                         </td>
@@ -420,26 +446,35 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {safePurchases.map((purchase: any) => (
-                    <tr key={purchase.id}>
-                      <td>{formatDate(purchase.purchaseDate)}</td>
-                      <td style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
-                        {purchase.vendor?.name || '—'}
-                      </td>
-                      <td>{purchase.items?.length || 0} items</td>
-                      <td style={{ fontWeight: 600, color: 'var(--color-accent-green)' }}>
-                        {formatCurrency(purchase.grandTotal, user?.tenant?.currency || 'INR')}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge badge-${purchase.status === 'CONFIRMED' ? 'green' : purchase.status === 'DRAFT' ? 'amber' : 'red'}`}
-                        >
-                          {purchase.status}
-                        </span>
-                      </td>
-                      <td>{purchase.user?.name || '—'}</td>
-                    </tr>
-                  ))}
+                  {safePurchases.map((purchase: Record<string, any>) => {
+                    const vendorInfo = purchase.vendor as { name?: string } | undefined;
+                    const userInfo = purchase.user as { name?: string } | undefined;
+                    const itemsArr = purchase.items as unknown[] | undefined;
+                    const statusStr = purchase.status as string;
+                    return (
+                      <tr key={purchase.id as string}>
+                        <td>{formatDate(purchase.purchaseDate as string)}</td>
+                        <td style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                          {vendorInfo?.name || '—'}
+                        </td>
+                        <td>{itemsArr?.length || 0} items</td>
+                        <td style={{ fontWeight: 600, color: 'var(--color-accent-green)' }}>
+                          {formatCurrency(
+                            purchase.grandTotal as number,
+                            user?.tenant?.currency || 'INR'
+                          )}
+                        </td>
+                        <td>
+                          <span
+                            className={`badge badge-${statusStr === 'CONFIRMED' ? 'green' : statusStr === 'DRAFT' ? 'amber' : 'red'}`}
+                          >
+                            {statusStr}
+                          </span>
+                        </td>
+                        <td>{userInfo?.name || '—'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

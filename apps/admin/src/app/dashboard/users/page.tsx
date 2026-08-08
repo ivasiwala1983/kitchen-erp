@@ -33,11 +33,13 @@ export default function UsersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = (await api.users.list({ limit: 50 })) as any;
-      const items = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      setUsers(items);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load users');
+      const res = (await api.users.list({ limit: 50 })) as { data?: unknown };
+      const resObj = res as { data?: unknown[] };
+      const items = Array.isArray(res.data) ? res.data : resObj.data || [];
+      setUsers(items as UserPublic[]);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -56,8 +58,9 @@ export default function UsersPage() {
       setShowModal(false);
       setForm({ email: '', password: '', name: '', role: 'INVENTORY_MANAGER' });
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to create user');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to create user');
     } finally {
       setSubmitting(false);
     }
@@ -67,8 +70,9 @@ export default function UsersPage() {
     try {
       await api.users.update(user.id, { isActive: !user.isActive });
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to update user');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to update user');
     }
   };
 

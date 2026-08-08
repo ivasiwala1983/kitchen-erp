@@ -8,7 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 export default function ReportsPage() {
   const { user } = useAuth();
-  const [platformData, setPlatformData] = useState<any | null>(null);
+  const [platformData, setPlatformData] = useState<Record<string, unknown> | null>(null);
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -20,7 +20,7 @@ export default function ReportsPage() {
   const [filterVendorId, setFilterVendorId] = useState('');
 
   const [tab, setTab] = useState<'daily' | 'vendor' | 'category' | 'product' | 'manager'>('daily');
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,12 +34,13 @@ export default function ReportsPage() {
         ...(filterTenantId ? { tenantId: filterTenantId } : {}),
         ...(filterVendorId ? { vendorId: filterVendorId } : {}),
       };
-      const res = (await api.reports.platform(filters)) as any;
+      const res = (await api.reports.platform(filters)) as { data?: Record<string, unknown> };
       if (res?.data) {
         setPlatformData(res.data);
       }
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load platform report');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to load platform report');
     } finally {
       setLoading(false);
     }
@@ -56,9 +57,11 @@ export default function ReportsPage() {
       else if (tab === 'category') res = await api.reports.byCategory(filters);
       else if (tab === 'product') res = await api.reports.byProduct(filters);
       else res = await api.reports.byManager(filters);
-      if (res.data) setData(res.data as any[]);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load report');
+      const resObj = res as { data?: Record<string, unknown>[] };
+      if (resObj?.data) setData(resObj.data);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to load report');
     } finally {
       setLoading(false);
     }
@@ -73,7 +76,7 @@ export default function ReportsPage() {
   }, [user?.role, loadPlatform, loadTenantReport]);
 
   const downloadCSV = () => {
-    const invoices = platformData?.invoices || [];
+    const invoices = (platformData?.invoices as Record<string, unknown>[]) || [];
     if (invoices.length === 0) return;
 
     const headers = [
@@ -89,13 +92,13 @@ export default function ReportsPage() {
       'Currency',
       'Status',
     ];
-    const rows = invoices.map((inv: any) => [
+    const rows = invoices.map((inv) => [
       inv.id,
-      formatDate(inv.purchaseDate),
-      `"${inv.tenantName.replace(/"/g, '""')}"`,
-      `"${inv.vendorName.replace(/"/g, '""')}"`,
-      `"${inv.categoryName.replace(/"/g, '""')}"`,
-      `"${inv.userName.replace(/"/g, '""')}"`,
+      formatDate(inv.purchaseDate as string),
+      `"${String(inv.tenantName).replace(/"/g, '""')}"`,
+      `"${String(inv.vendorName).replace(/"/g, '""')}"`,
+      `"${String(inv.categoryName).replace(/"/g, '""')}"`,
+      `"${String(inv.userName).replace(/"/g, '""')}"`,
       inv.userEmail,
       inv.itemCount,
       inv.grandTotal,
@@ -103,7 +106,7 @@ export default function ReportsPage() {
       inv.status,
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -127,7 +130,7 @@ export default function ReportsPage() {
 
   // ── SUPER ADMIN REPORTING VIEW ─────────────────────────────────────────────
   if (user?.role === 'SUPER_ADMIN') {
-    const p = platformData || {};
+    const p = (platformData || {}) as Record<string, any>;
     const tenants = p.tenantsBreakdown || [];
     const tenantsList = p.tenantsList || [];
     const vendorsList = p.vendorsList || [];
@@ -217,9 +220,9 @@ export default function ReportsPage() {
                   onChange={(e) => setFilterTenantId(e.target.value)}
                 >
                   <option value="">All Tenants ({tenantsList.length})</option>
-                  {tenantsList.map((t: any) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.slug})
+                  {tenantsList.map((t: Record<string, unknown>) => (
+                    <option key={t.id as string} value={t.id as string}>
+                      {t.name as string} ({t.slug as string})
                     </option>
                   ))}
                 </select>
@@ -234,9 +237,9 @@ export default function ReportsPage() {
                   onChange={(e) => setFilterVendorId(e.target.value)}
                 >
                   <option value="">All Vendors ({vendorsList.length})</option>
-                  {vendorsList.map((v: any) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} {v.categoryName ? `(${v.categoryName})` : ''}
+                  {vendorsList.map((v: Record<string, unknown>) => (
+                    <option key={v.id as string} value={v.id as string}>
+                      {v.name as string} {v.categoryName ? `(${v.categoryName as string})` : ''}
                     </option>
                   ))}
                 </select>
@@ -372,8 +375,8 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {invoices.map((inv: any) => (
-                      <tr key={inv.id}>
+                    {invoices.map((inv: Record<string, any>) => (
+                      <tr key={inv.id as string}>
                         <td style={{ whiteSpace: 'nowrap' }}>{formatDate(inv.purchaseDate)}</td>
                         <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                           {inv.tenantName}
@@ -458,8 +461,8 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {tenants.map((t: any) => (
-                      <tr key={t.id}>
+                    {tenants.map((t: Record<string, any>) => (
+                      <tr key={t.id as string}>
                         <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                           {t.name}
                         </td>
@@ -503,8 +506,14 @@ export default function ReportsPage() {
     );
   }
 
-  const totalAmount = data.reduce((s, d) => s + (d.totalAmount || 0), 0);
-  const totalPurchases = data.reduce((s, d) => s + (d.totalPurchases || 0), 0);
+  const totalAmount = data.reduce(
+    (s: number, d: Record<string, any>) => s + (Number(d.totalAmount) || 0),
+    0
+  );
+  const totalPurchases = data.reduce(
+    (s: number, d: Record<string, any>) => s + (Number(d.totalPurchases) || 0),
+    0
+  );
 
   return (
     <>
@@ -622,7 +631,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map((row, i) => (
+                  {data.map((row: Record<string, any>, i) => (
                     <tr key={i}>
                       <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                         {row.date ||

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
-import { Role } from '@kitchen-erp/types';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -25,8 +24,9 @@ export default function LoginPage() {
       if (token) {
         router.replace('/dashboard');
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Login failed. Check email and password.');
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } } };
+      setError(errorObj?.response?.data?.message || 'Login failed. Check email and password.');
     } finally {
       setLoading(false);
     }

@@ -125,21 +125,24 @@ export default function PurchaseMobilePage() {
       try {
         const [meRes, cRes] = await Promise.all([
           api.auth.me().catch(() => null),
-          api.categories.list({ isActive: true, limit: 100 }) as any,
+          api.categories.list({ isActive: true, limit: 100 }) as Promise<{ data?: unknown }>,
         ]);
 
         if (meRes?.data?.tenant?.currency) {
           setTenantCurrency(meRes.data.tenant.currency);
         }
 
-        const cList: Category[] = Array.isArray(cRes?.data) ? cRes.data : cRes?.data?.data || [];
+        const cObj = cRes as { data?: Category[] };
+        const cList: Category[] = Array.isArray(cRes?.data)
+          ? (cRes.data as Category[])
+          : cObj?.data || [];
         const sortedCats = [...cList].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
         setCategories(sortedCats);
 
         if (sortedCats.length > 0) {
           setActiveCategoryId(sortedCats[0].id);
         }
-      } catch (e: any) {
+      } catch {
         setError('Failed to load categories');
       } finally {
         setLoading(false);
@@ -154,12 +157,26 @@ export default function PurchaseMobilePage() {
     (async () => {
       try {
         const [vRes, pRes] = await Promise.all([
-          api.vendors.list({ categoryId: activeCategoryId, isActive: true, limit: 100 }) as any,
-          api.products.list({ categoryId: activeCategoryId, isActive: true, limit: 200 }) as any,
+          api.vendors.list({
+            categoryId: activeCategoryId,
+            isActive: true,
+            limit: 100,
+          }) as Promise<{ data?: unknown }>,
+          api.products.list({
+            categoryId: activeCategoryId,
+            isActive: true,
+            limit: 200,
+          }) as Promise<{ data?: unknown }>,
         ]);
 
-        const vList: Vendor[] = Array.isArray(vRes.data) ? vRes.data : vRes.data?.data || [];
-        const pList: Product[] = Array.isArray(pRes.data) ? pRes.data : pRes.data?.data || [];
+        const vObj = vRes as { data?: Vendor[] };
+        const pObj = pRes as { data?: Product[] };
+        const vList: Vendor[] = Array.isArray(vRes.data)
+          ? (vRes.data as Vendor[])
+          : vObj?.data || [];
+        const pList: Product[] = Array.isArray(pRes.data)
+          ? (pRes.data as Product[])
+          : pObj?.data || [];
 
         setVendors(vList);
         setProducts(pList);
@@ -257,8 +274,9 @@ export default function PurchaseMobilePage() {
       setAddedItems([]);
       setInvoiceFile(null);
       setTimeout(() => setSuccess(''), 4000);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to save purchase');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to save purchase');
     } finally {
       setSaving(false);
     }
@@ -285,7 +303,7 @@ export default function PurchaseMobilePage() {
             Role: <strong>Inventory Manager</strong>
           </span>
           <span className="pill-status-gray">
-            <span className="dot-indicator" /> Online
+            <span className="dot-indicator" /> {loading ? 'Syncing...' : 'Online'}
           </span>
         </div>
 

@@ -26,8 +26,9 @@ export default function LoginPage() {
         setTokens(res.data.tokens);
         router.replace('/purchase');
       }
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Login failed. Check email and password.');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Login failed. Check email and password.');
     } finally {
       setLoading(false);
     }

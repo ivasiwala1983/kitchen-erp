@@ -34,13 +34,16 @@ export default function VendorsPage() {
     setLoading(true);
     try {
       const [vRes, cRes] = await Promise.all([
-        api.vendors.list({ limit: 100 }) as any,
-        api.categories.list({ limit: 100 }) as any,
+        api.vendors.list({ limit: 100 }) as Promise<{ data?: unknown }>,
+        api.categories.list({ limit: 100 }) as Promise<{ data?: unknown }>,
       ]);
-      setVendors(Array.isArray(vRes.data) ? vRes.data : vRes.data?.data || []);
-      setCategories(Array.isArray(cRes.data) ? cRes.data : cRes.data?.data || []);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load vendors');
+      const vObj = vRes as { data?: unknown[] };
+      const cObj = cRes as { data?: unknown[] };
+      setVendors((Array.isArray(vRes.data) ? vRes.data : vObj.data || []) as Vendor[]);
+      setCategories((Array.isArray(cRes.data) ? cRes.data : cObj.data || []) as Category[]);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to load vendors');
     } finally {
       setLoading(false);
     }
@@ -59,8 +62,9 @@ export default function VendorsPage() {
       setShowModal(false);
       setForm({ categoryId: '', name: '', phone: '', email: '', address: '', gst: '' });
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to create vendor');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to create vendor');
     } finally {
       setSubmitting(false);
     }
@@ -89,8 +93,9 @@ export default function VendorsPage() {
       await api.vendors.update(editingVendor.id, editForm);
       setEditingVendor(null);
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to update vendor');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to update vendor');
     } finally {
       setSubmitting(false);
     }
@@ -100,8 +105,9 @@ export default function VendorsPage() {
     try {
       await api.vendors.update(v.id, { isActive: !v.isActive });
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to update status');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to update status');
     }
   };
 

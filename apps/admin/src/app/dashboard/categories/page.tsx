@@ -26,12 +26,14 @@ export default function CategoryMasterPage() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res: any = await api.categories.list({ search, limit: 100 });
-      const items = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      setCategories(items);
+      const res = (await api.categories.list({ search, limit: 100 })) as { data?: unknown };
+      const resObj = res as { data?: unknown[] };
+      const items = Array.isArray(res.data) ? res.data : resObj.data || [];
+      setCategories(items as Category[]);
       setError(null);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to load categories');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setError(e?.response?.data?.message || 'Failed to load categories');
     } finally {
       setLoading(false);
     }
@@ -80,8 +82,9 @@ export default function CategoryMasterPage() {
       setIsModalOpen(false);
       fetchCategories();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Action failed');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setError(e?.response?.data?.message || 'Action failed');
     }
   };
 
@@ -92,8 +95,9 @@ export default function CategoryMasterPage() {
       setSuccess('Category deleted successfully');
       fetchCategories();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to delete category');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setError(e?.response?.data?.message || 'Failed to delete category');
     }
   };
 

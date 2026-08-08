@@ -18,7 +18,7 @@ type FilterType = 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_3_MONTHS' | 'ALL' | 'CUSTO
 
 export default function HistoryPage() {
   const router = useRouter();
-  const [purchases, setPurchases] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -74,9 +74,10 @@ export default function HistoryPage() {
   useEffect(() => {
     api.auth
       .me()
-      .then((res: any) => {
-        if (res.data?.tenant?.currency) {
-          setTenantCurrency(res.data.tenant.currency);
+      .then((res) => {
+        const resObj = res as { data?: { tenant?: { currency?: string } } };
+        if (resObj?.data?.tenant?.currency) {
+          setTenantCurrency(resObj.data.tenant.currency);
         }
       })
       .catch(() => {});
@@ -85,7 +86,7 @@ export default function HistoryPage() {
   // Fetch Purchases from API whenever filter or page changes
   useEffect(() => {
     setLoading(true);
-    const queryParams: any = {
+    const queryParams: Record<string, unknown> = {
       page,
       limit: LIMIT,
       ...(dateParams.startDate ? { startDate: dateParams.startDate } : {}),
@@ -94,9 +95,10 @@ export default function HistoryPage() {
 
     api.purchases
       .list(queryParams)
-      .then((res: any) => {
-        const items = Array.isArray(res.data) ? res.data : res.data?.data || [];
-        const count = typeof res.total === 'number' ? res.total : res.data?.total || items.length;
+      .then((res) => {
+        const resObj = res as { data?: unknown[]; total?: number };
+        const items = Array.isArray(resObj.data) ? (resObj.data as Record<string, unknown>[]) : [];
+        const count = typeof resObj.total === 'number' ? resObj.total : items.length;
         setPurchases(items);
         setTotal(count);
       })
@@ -111,8 +113,8 @@ export default function HistoryPage() {
   const sortedPurchases = useMemo(() => {
     const list = Array.isArray(purchases) ? [...purchases] : [];
     return list.sort((a, b) => {
-      const dateA = new Date(a.purchaseDate || a.createdAt).getTime();
-      const dateB = new Date(b.purchaseDate || b.createdAt).getTime();
+      const dateA = new Date((a.purchaseDate as string) || (a.createdAt as string)).getTime();
+      const dateB = new Date((b.purchaseDate as string) || (b.createdAt as string)).getTime();
       return dateB - dateA; // Latest first
     });
   }, [purchases]);
@@ -384,14 +386,22 @@ export default function HistoryPage() {
           </div>
         ) : (
           <>
-            {sortedPurchases.map((p) => {
-              const isExpanded = expandedId === p.id;
-              const itemCount = p.items?.length || 0;
-              const invoiceLink = getInvoiceUrl(p.invoiceUrl);
+            {sortedPurchases.map((pRecord) => {
+              const p = pRecord as Record<string, unknown>;
+              const pId = p.id as string;
+              const isExpanded = expandedId === pId;
+              const itemsArray = p.items as Record<string, unknown>[] | undefined;
+              const itemCount = itemsArray?.length || 0;
+              const invoiceLink = getInvoiceUrl(p.invoiceUrl as string);
+              const vendorObj = p.vendor as
+                { name?: string; category?: { name?: string } } | undefined;
+              const statusStr = p.status as string;
+              const purchaseDateStr = p.purchaseDate as string;
+              const grandTotalVal = p.grandTotal as number;
 
               return (
                 <div
-                  key={p.id}
+                  key={pId}
                   className="pwa-card"
                   style={{ padding: '1rem', marginBottom: '0.875rem' }}
                 >
@@ -415,7 +425,7 @@ export default function HistoryPage() {
                           gap: '0.375rem',
                         }}
                       >
-                        <span>🏢</span> {p.vendor?.name || 'Unknown Vendor'}
+                        <span>🏢</span> {vendorObj?.name || 'Unknown Vendor'}
                       </div>
                       <div
                         style={{
@@ -425,16 +435,16 @@ export default function HistoryPage() {
                           marginTop: '2px',
                         }}
                       >
-                        {p.vendor?.category?.name ? `📁 ${p.vendor.category.name} · ` : ''}
-                        {formatDate(p.purchaseDate)}
+                        {vendorObj?.category?.name ? `📁 ${vendorObj.category.name} · ` : ''}
+                        {formatDate(purchaseDateStr)}
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
                       <span
-                        className={`pwa-badge pwa-badge-${p.status === 'CONFIRMED' ? 'green' : 'amber'}`}
+                        className={`pwa-badge pwa-badge-${statusStr === 'CONFIRMED' ? 'green' : 'amber'}`}
                       >
-                        {p.status}
+                        {statusStr}
                       </span>
                     </div>
                   </div>
@@ -469,7 +479,7 @@ export default function HistoryPage() {
                           color: 'var(--forest-green)',
                         }}
                       >
-                        {formatCurrency(p.grandTotal, tenantCurrency)}
+                        {formatCurrency(grandTotalVal, tenantCurrency)}
                       </span>
                     </div>
 
@@ -494,7 +504,7 @@ export default function HistoryPage() {
                       {itemCount > 0 && (
                         <button
                           type="button"
-                          onClick={() => toggleExpand(p.id)}
+                          onClick={() => toggleExpand(pId)}
                           className="pwa-btn pwa-btn-secondary pwa-btn-sm"
                           style={{
                             background: '#ffffff',
@@ -510,7 +520,7 @@ export default function HistoryPage() {
                   </div>
 
                   {/* Expandable Items Breakdown */}
-                  {isExpanded && p.items && p.items.length > 0 && (
+                  {isExpanded && itemsArray && itemsArray.length > 0 && (
                     <div
                       style={{
                         marginTop: '0.75rem',
@@ -530,40 +540,47 @@ export default function HistoryPage() {
                         Purchase Items Breakdown
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                        {p.items.map((item: any, idx: number) => (
-                          <div
-                            key={item.id || idx}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              fontSize: '0.8125rem',
-                              padding: '0.375rem 0.625rem',
-                              background: '#ffffff',
-                              borderRadius: 8,
-                              border: '1px solid var(--border)',
-                            }}
-                          >
-                            <div>
-                              <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                                {item.product?.name || item.name || `Item #${idx + 1}`}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: '0.75rem',
-                                  color: 'var(--text-muted)',
-                                  marginLeft: '0.375rem',
-                                }}
-                              >
-                                ({item.qty} {item.product?.unit || item.unit || 'units'} @{' '}
-                                {formatCurrency(item.rate, tenantCurrency)})
+                        {((p.items as Record<string, unknown>[]) || []).map((item, idx: number) => {
+                          const prodObj = item.product as
+                            { name?: string; unit?: string } | undefined;
+                          const qty = item.qty as number;
+                          const rate = item.rate as number;
+                          const totalVal = (item.total as number) || qty * rate;
+                          return (
+                            <div
+                              key={(item.id as string) || idx}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                fontSize: '0.8125rem',
+                                padding: '0.375rem 0.625rem',
+                                background: '#ffffff',
+                                borderRadius: 8,
+                                border: '1px solid var(--border)',
+                              }}
+                            >
+                              <div>
+                                <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                                  {prodObj?.name || (item.name as string) || `Item #${idx + 1}`}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--text-muted)',
+                                    marginLeft: '0.375rem',
+                                  }}
+                                >
+                                  ({qty} {prodObj?.unit || (item.unit as string) || 'units'} @{' '}
+                                  {formatCurrency(rate, tenantCurrency)})
+                                </span>
+                              </div>
+                              <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
+                                {formatCurrency(totalVal, tenantCurrency)}
                               </span>
                             </div>
-                            <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
-                              {formatCurrency(item.total || item.qty * item.rate, tenantCurrency)}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

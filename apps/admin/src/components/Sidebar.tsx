@@ -13,7 +13,7 @@ interface NavItem {
   roles: Role[];
 }
 
-const navGroups = [
+const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: 'Main',
     items: [

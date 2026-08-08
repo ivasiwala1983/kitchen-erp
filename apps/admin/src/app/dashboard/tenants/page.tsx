@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../../../lib/api';
 import { formatDate } from '@kitchen-erp/utils';
-import type { Tenant } from '@kitchen-erp/types';
+import type { Tenant, TenantPlan } from '@kitchen-erp/types';
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -39,13 +39,18 @@ export default function TenantsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = (await api.tenants.list({ page, limit: LIMIT })) as any;
-      const items = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      const count = typeof res.total === 'number' ? res.total : res.data?.total || items.length;
-      setTenants(items);
+      const res = (await api.tenants.list({ page, limit: LIMIT })) as {
+        data?: unknown;
+        total?: number;
+      };
+      const resObj = res as { data?: unknown[]; total?: number };
+      const items = Array.isArray(res.data) ? res.data : resObj.data || [];
+      const count = typeof res.total === 'number' ? res.total : resObj.total || items.length;
+      setTenants(items as Tenant[]);
       setTotal(count);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load tenants');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to load tenants');
     } finally {
       setLoading(false);
     }
@@ -55,9 +60,13 @@ export default function TenantsPage() {
     load();
   }, [load]);
 
-  function formatApiError(e: any): string {
-    const data = e?.response?.data;
-    if (!data) return e?.message || 'Request failed';
+  function formatApiError(e: unknown): string {
+    const err = e as {
+      message?: string;
+      response?: { data?: { message?: string; errors?: Record<string, string[]> } };
+    };
+    const data = err?.response?.data;
+    if (!data) return err?.message || 'Request failed';
     if (data.errors && typeof data.errors === 'object') {
       const messages = Object.entries(data.errors)
         .map(([field, errs]) => `${field}: ${(errs as string[]).join(', ')}`)
@@ -73,7 +82,7 @@ export default function TenantsPage() {
     setError('');
     setSuccessMsg('');
     try {
-      await api.tenants.create({ ...createForm, plan: createForm.plan as any });
+      await api.tenants.create({ ...createForm, plan: createForm.plan as TenantPlan });
       setShowCreateModal(false);
       setCreateForm({
         name: '',
@@ -86,7 +95,7 @@ export default function TenantsPage() {
       });
       setSuccessMsg('Tenant created successfully!');
       load();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(formatApiError(e));
     } finally {
       setSubmitting(false);
@@ -103,14 +112,15 @@ export default function TenantsPage() {
       await api.tenants.update(editingTenant.id, {
         name: editForm.name,
         domain: editForm.domain || undefined,
-        plan: editForm.plan as any,
+        plan: editForm.plan as TenantPlan,
         currency: editForm.currency,
       });
       setEditingTenant(null);
       setSuccessMsg('Tenant updated successfully!');
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to update tenant');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to update tenant');
     } finally {
       setSubmitting(false);
     }
@@ -126,8 +136,9 @@ export default function TenantsPage() {
       setDeletingTenant(null);
       setSuccessMsg(`Tenant '${deletingTenant.name}' deleted successfully!`);
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to delete tenant');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to delete tenant');
     } finally {
       setSubmitting(false);
     }
@@ -145,8 +156,9 @@ export default function TenantsPage() {
         setSuccessMsg(`Tenant '${tenant.name}' activated`);
       }
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to update tenant status');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to update tenant status');
     }
   };
 
@@ -154,9 +166,9 @@ export default function TenantsPage() {
     setEditingTenant(tenant);
     setEditForm({
       name: tenant.name,
-      domain: (tenant as any).domain || '',
+      domain: ((tenant as unknown as Record<string, unknown>).domain as string) || '',
       plan: tenant.plan || 'BASIC',
-      currency: (tenant as any).currency || 'INR',
+      currency: ((tenant as unknown as Record<string, unknown>).currency as string) || 'INR',
     });
   };
 
@@ -270,12 +282,18 @@ export default function TenantsPage() {
                         {t.slug}
                       </code>
                     </td>
-                    <td>{(t as any).domain || <span className="text-muted">—</span>}</td>
+                    <td>
+                      {((t as unknown as Record<string, unknown>).domain as string) || (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
                     <td>
                       <span className="badge badge-purple">{t.plan}</span>
                     </td>
                     <td>
-                      <span className="badge badge-blue">{(t as any).currency || 'INR'}</span>
+                      <span className="badge badge-blue">
+                        {((t as unknown as Record<string, unknown>).currency as string) || 'INR'}
+                      </span>
                     </td>
                     <td>
                       <span className={`badge badge-${t.isActive ? 'green' : 'red'}`}>

@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import prisma from '../../config/database';
+import { Prisma } from '@prisma/client';
 import { parsePagination } from '@kitchen-erp/utils';
 import { NotFoundError } from '../../shared/errors';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -70,7 +71,7 @@ class ProductRepository {
     createdBy: string;
   }) {
     return prisma.product.create({
-      data: { ...data, updatedBy: data.createdBy },
+      data: { ...data, updatedBy: data.createdBy } as Prisma.ProductUncheckedCreateInput,
       include: { category: true },
     });
   }
@@ -85,7 +86,11 @@ class ProductRepository {
       updatedBy: string;
     }
   ) {
-    return prisma.product.update({ where: { id }, data, include: { category: true } });
+    return prisma.product.update({
+      where: { id },
+      data: data as Prisma.ProductUncheckedUpdateInput,
+      include: { category: true },
+    });
   }
 
   async softDelete(id: string, deletedBy: string) {

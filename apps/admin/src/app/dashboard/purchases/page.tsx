@@ -17,13 +17,18 @@ export default function PurchasesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = (await api.purchases.list({ page, limit: LIMIT })) as any;
-      const items = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      const count = typeof res.total === 'number' ? res.total : res.data?.total || items.length;
-      setPurchases(items);
+      const res = (await api.purchases.list({ page, limit: LIMIT })) as {
+        data?: unknown;
+        total?: number;
+      };
+      const resObj = res as { data?: unknown[]; total?: number };
+      const items = Array.isArray(res.data) ? res.data : resObj.data || [];
+      const count = typeof res.total === 'number' ? res.total : resObj.total || items.length;
+      setPurchases(items as Purchase[]);
       setTotal(count);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load purchases');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to load purchases');
     } finally {
       setLoading(false);
     }
@@ -87,55 +92,69 @@ export default function PurchasesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {safePurchases.map((p: any) => (
-                    <tr key={p.id} style={{ cursor: 'pointer' }} onClick={() => setSelected(p)}>
-                      <td>{formatDate(p.purchaseDate)}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                        {p.vendor?.name}
-                      </td>
-                      <td>{p.vendor?.category?.name || '—'}</td>
-                      <td>
-                        <span className="badge badge-purple">{p.items?.length || 0} items</span>
-                      </td>
-                      <td style={{ fontWeight: 700, color: 'var(--color-accent-green)' }}>
-                        {formatCurrency(p.grandTotal)}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge badge-${p.status === 'CONFIRMED' ? 'green' : p.status === 'DRAFT' ? 'amber' : 'red'}`}
-                        >
-                          {p.status}
-                        </span>
-                      </td>
-                      <td>{p.user?.name || '—'}</td>
-                      <td>
-                        <div
-                          style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end' }}
-                        >
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelected(p);
-                            }}
+                  {safePurchases.map((pRecord) => {
+                    const p = pRecord as unknown as Record<string, unknown>;
+                    const vendorObj = p.vendor as
+                      { name?: string; category?: { name?: string } } | undefined;
+                    const userObj = p.user as { name?: string } | undefined;
+                    const itemsList = p.items as unknown[] | undefined;
+                    const statusStr = p.status as string;
+                    return (
+                      <tr
+                        key={p.id as string}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setSelected(p as unknown as Purchase)}
+                      >
+                        <td>{formatDate(p.purchaseDate as string)}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          {vendorObj?.name || '—'}
+                        </td>
+                        <td>
+                          <span className="badge badge-purple">
+                            {vendorObj?.category?.name || '—'}
+                          </span>
+                        </td>
+                        <td>{itemsList?.length || 0} items</td>
+                        <td style={{ fontWeight: 700, color: 'var(--color-accent-green)' }}>
+                          {formatCurrency(p.grandTotal as number)}
+                        </td>
+                        <td>
+                          <span
+                            className={`badge badge-${statusStr === 'CONFIRMED' ? 'green' : statusStr === 'DRAFT' ? 'amber' : 'red'}`}
                           >
-                            View Order
-                          </button>
-                          {getInvoiceUrl(p.invoiceUrl) && (
-                            <a
-                              href={getInvoiceUrl(p.invoiceUrl)!}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-sm btn-secondary"
-                              onClick={(e) => e.stopPropagation()}
+                            {statusStr}
+                          </span>
+                        </td>
+                        <td>{userObj?.name || '—'}</td>
+                        <td>
+                          <div
+                            style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end' }}
+                          >
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelected(p as unknown as Purchase);
+                              }}
                             >
-                              Invoice
-                            </a>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                              View Order
+                            </button>
+                            {getInvoiceUrl(p.invoiceUrl as string) && (
+                              <a
+                                href={getInvoiceUrl(p.invoiceUrl as string)!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-sm btn-secondary"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Invoice
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -191,9 +210,9 @@ export default function PurchasesPage() {
                 >
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Purchase Order Details</h2>
                   <span
-                    className={`badge badge-${(selected as any).status === 'CONFIRMED' ? 'green' : 'amber'}`}
+                    className={`badge badge-${(selected as unknown as Record<string, unknown>).status === 'CONFIRMED' ? 'green' : 'amber'}`}
                   >
-                    {(selected as any).status}
+                    {String((selected as unknown as Record<string, unknown>).status)}
                   </span>
                 </div>
                 <p className="text-muted" style={{ fontSize: '0.8125rem' }}>
@@ -230,7 +249,10 @@ export default function PurchasesPage() {
                     color: 'var(--color-text-primary)',
                   }}
                 >
-                  {(selected as any).vendor?.name}
+                  {
+                    ((selected as unknown as Record<string, unknown>).vendor as { name?: string })
+                      ?.name
+                  }
                 </div>
                 <div
                   style={{
@@ -239,9 +261,15 @@ export default function PurchasesPage() {
                     marginTop: '0.25rem',
                   }}
                 >
-                  Category: {(selected as any).vendor?.category?.name || '—'}
-                  {(selected as any).vendor?.phone &&
-                    ` · Phone: ${(selected as any).vendor?.phone}`}
+                  Category:{' '}
+                  {(
+                    (selected as unknown as Record<string, unknown>).vendor as {
+                      category?: { name?: string };
+                    }
+                  )?.category?.name || '—'}
+                  {((selected as unknown as Record<string, unknown>).vendor as { phone?: string })
+                    ?.phone &&
+                    ` · Phone: ${((selected as unknown as Record<string, unknown>).vendor as { phone?: string })?.phone}`}
                 </div>
               </div>
 
@@ -268,7 +296,10 @@ export default function PurchasesPage() {
                     color: 'var(--color-text-primary)',
                   }}
                 >
-                  Date: {formatDate((selected as any).purchaseDate)}
+                  Date:{' '}
+                  {formatDate(
+                    (selected as unknown as Record<string, unknown>).purchaseDate as string
+                  )}
                 </div>
                 <div
                   style={{
@@ -277,8 +308,13 @@ export default function PurchasesPage() {
                     marginTop: '0.25rem',
                   }}
                 >
-                  Entered By: {(selected as any).user?.name || 'Manager'} (
-                  {(selected as any).user?.role || 'INVENTORY_MANAGER'})
+                  Entered By:{' '}
+                  {((selected as unknown as Record<string, unknown>).user as { name?: string })
+                    ?.name || 'Manager'}{' '}
+                  (
+                  {((selected as unknown as Record<string, unknown>).user as { role?: string })
+                    ?.role || 'INVENTORY_MANAGER'}
+                  )
                 </div>
               </div>
             </div>
@@ -300,28 +336,38 @@ export default function PurchasesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {((selected as any).items || []).map((item: any, idx: number) => (
-                    <tr key={item.id || idx}>
-                      <td>{idx + 1}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                        {item.product?.name}
-                      </td>
-                      <td>
-                        <span className="badge badge-purple">{item.product?.unit || 'kg'}</span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>{item.qty}</td>
-                      <td style={{ textAlign: 'right' }}>{formatCurrency(item.rate)}</td>
-                      <td
-                        style={{
-                          textAlign: 'right',
-                          fontWeight: 700,
-                          color: 'var(--color-accent-green)',
-                        }}
-                      >
-                        {formatCurrency(item.total)}
-                      </td>
-                    </tr>
-                  ))}
+                  {(
+                    ((selected as unknown as Record<string, unknown>).items as Record<
+                      string,
+                      unknown
+                    >[]) || []
+                  ).map((item, idx: number) => {
+                    const prodObj = item.product as { name?: string; unit?: string } | undefined;
+                    return (
+                      <tr key={(item.id as string) || idx}>
+                        <td>{idx + 1}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          {prodObj?.name}
+                        </td>
+                        <td>
+                          <span className="badge badge-purple">{prodObj?.unit || 'kg'}</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{item.qty as number}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          {formatCurrency(item.rate as number)}
+                        </td>
+                        <td
+                          style={{
+                            textAlign: 'right',
+                            fontWeight: 700,
+                            color: 'var(--color-accent-green)',
+                          }}
+                        >
+                          {formatCurrency(item.total as number)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -344,18 +390,24 @@ export default function PurchasesPage() {
                   TOTAL ORDER VALUE
                 </div>
                 <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-                  {((selected as any).items || []).length} items
+                  {
+                    (((selected as unknown as Record<string, unknown>).items as unknown[]) || [])
+                      .length
+                  }{' '}
+                  items
                 </div>
               </div>
               <span
                 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-accent-green)' }}
               >
-                {formatCurrency((selected as any).grandTotal)}
+                {formatCurrency(
+                  (selected as unknown as Record<string, unknown>).grandTotal as number
+                )}
               </span>
             </div>
 
             {/* Notes */}
-            {(selected as any).notes && (
+            {Boolean((selected as unknown as Record<string, unknown>).notes) && (
               <div
                 style={{
                   marginBottom: '1.25rem',
@@ -375,7 +427,7 @@ export default function PurchasesPage() {
                   Remarks / Notes:
                 </span>
                 <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
-                  {(selected as any).notes}
+                  {String((selected as unknown as Record<string, unknown>).notes)}
                 </span>
               </div>
             )}
@@ -390,9 +442,13 @@ export default function PurchasesPage() {
                 borderTop: '1px solid var(--color-border)',
               }}
             >
-              {getInvoiceUrl((selected as any).invoiceUrl) && (
+              {getInvoiceUrl(
+                (selected as unknown as Record<string, unknown>).invoiceUrl as string
+              ) && (
                 <a
-                  href={getInvoiceUrl((selected as any).invoiceUrl)!}
+                  href={getInvoiceUrl(
+                    (selected as unknown as Record<string, unknown>).invoiceUrl as string
+                  )!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-primary"

@@ -3,6 +3,7 @@
  */
 
 import prisma from '../../config/database';
+import { Prisma } from '@prisma/client';
 import { parsePagination } from '@kitchen-erp/utils';
 import { NotFoundError } from '../../shared/errors';
 import type { CreateVendorInput, UpdateVendorInput } from './vendor.validation';
@@ -55,13 +56,17 @@ class VendorRepository {
 
   async create(data: CreateVendorInput & { tenantId: string; createdBy: string }) {
     return prisma.vendor.create({
-      data: { ...data, updatedBy: data.createdBy },
+      data: { ...data, updatedBy: data.createdBy } as Prisma.VendorUncheckedCreateInput,
       include: { category: true },
     });
   }
 
   async update(id: string, data: Partial<UpdateVendorInput> & { updatedBy: string }) {
-    return prisma.vendor.update({ where: { id }, data, include: { category: true } });
+    return prisma.vendor.update({
+      where: { id },
+      data: data as Prisma.VendorUncheckedUpdateInput,
+      include: { category: true },
+    });
   }
 
   async softDelete(id: string, deletedBy: string) {

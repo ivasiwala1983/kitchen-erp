@@ -39,13 +39,16 @@ export default function ProductsPage() {
     setLoading(true);
     try {
       const [pRes, cRes] = await Promise.all([
-        api.products.list({ limit: 200 }) as any,
-        api.categories.list({ limit: 100 }) as any,
+        api.products.list({ limit: 200 }) as Promise<{ data?: unknown }>,
+        api.categories.list({ limit: 100 }) as Promise<{ data?: unknown }>,
       ]);
-      setProducts(Array.isArray(pRes.data) ? pRes.data : pRes.data?.data || []);
-      setCategories(Array.isArray(cRes.data) ? cRes.data : cRes.data?.data || []);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load products');
+      const pObj = pRes as { data?: unknown[] };
+      const cObj = cRes as { data?: unknown[] };
+      setProducts((Array.isArray(pRes.data) ? pRes.data : pObj.data || []) as Product[]);
+      setCategories((Array.isArray(cRes.data) ? cRes.data : cObj.data || []) as Category[]);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -64,8 +67,9 @@ export default function ProductsPage() {
       setShowModal(false);
       setForm({ categoryId: '', name: '', unit: 'kg' });
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to create product');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to create product');
     } finally {
       setSubmitting(false);
     }
@@ -91,8 +95,9 @@ export default function ProductsPage() {
       await api.products.update(editingProduct.id, editForm);
       setEditingProduct(null);
       load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to update product');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message || 'Failed to update product');
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +107,7 @@ export default function ProductsPage() {
     try {
       await api.products.update(p.id, { isActive: !p.isActive });
       load();
-    } catch (e: any) {
+    } catch {
       setError('Failed to update product status');
     }
   };
