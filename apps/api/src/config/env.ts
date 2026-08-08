@@ -18,6 +18,18 @@ function requireEnv(key: string, fallback?: string): string {
   return value;
 }
 
+export const REQUIRED_ENV_VARS = [
+  'DATABASE_URL',
+  'DIRECT_URL',
+  'JWT_SECRET',
+  'APP_DOMAIN',
+  'NODE_ENV',
+] as const;
+
+export function getMissingEnvVars(): string[] {
+  return REQUIRED_ENV_VARS.filter((key) => !process.env[key] || process.env[key]?.trim() === '');
+}
+
 export const config = {
   // Server
   port: parseInt(process.env.PORT || process.env.API_PORT || '4000', 10),
@@ -26,8 +38,10 @@ export const config = {
 
   // Database
   databaseUrl: requireEnv('DATABASE_URL'),
+  directUrl: process.env.DIRECT_URL || '',
 
-  // JWT
+  // Domain & Auth
+  appDomain: process.env.APP_DOMAIN || 'localhost',
   jwtSecret: requireEnv('JWT_SECRET', 'dev-secret-change-in-production'),
   jwtRefreshSecret: requireEnv('JWT_REFRESH_SECRET', 'dev-refresh-secret-change-in-production'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',

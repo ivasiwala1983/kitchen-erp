@@ -3,14 +3,24 @@
  */
 
 import app from './app';
-import { config } from './config/env';
+import { config, getMissingEnvVars } from './config/env';
 import prisma from './config/database';
 
 async function start() {
+  console.log('[LOG] Application Started');
+
+  const missingEnv = getMissingEnvVars();
+  if (missingEnv.length > 0) {
+    console.warn(`[LOG] Environment Validation - Missing variables: ${missingEnv.join(', ')}`);
+  } else {
+    console.log('[LOG] Environment Validation - All required environment variables present');
+  }
+
   try {
     // Verify database connection
+    console.log('[LOG] Prisma Connected');
     await prisma.$connect();
-    console.log('✅  Database connected');
+    console.log('[LOG] Database Connected');
 
     app.listen(config.port, () => {
       console.log(`\n🚀  Kitchen ERP API is running`);

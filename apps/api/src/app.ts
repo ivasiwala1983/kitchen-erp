@@ -15,6 +15,7 @@ import { config } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 
 // ── Route Modules ─────────────────────────────────────────────
+import healthRoutes from './modules/health/health.routes';
 import authRoutes from './modules/auth/auth.routes';
 import tenantRoutes from './modules/tenant/tenant.routes';
 import usersRoutes from './modules/users/users.routes';
@@ -82,12 +83,12 @@ app.use((req, res, next) => {
 // 2. Security Headers
 app.use(helmet());
 
-// Rate limiting (skips OPTIONS preflight)
+// Rate limiting (skips OPTIONS preflight and /health checks)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 200,
   message: { success: false, message: 'Too many requests, please try again later.' },
-  skip: (req) => req.method === 'OPTIONS',
+  skip: (req) => req.method === 'OPTIONS' || req.path === '/health' || req.path === '/api/health',
 });
 app.use(limiter);
 
@@ -119,13 +120,6 @@ if (config.seaweedFallbackLocal) {
 
 const api = config.apiPrefix;
 
-// Health check (public)
-const healthHandler = (_req: express.Request, res: express.Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
-};
-app.get('/health', healthHandler);
-app.get(`${api}/health`, healthHandler);
-
 // Helper to mount routes under both /api/path and /path
 const mountRoute = (routePath: string, ...handlers: any[]) => {
   if (routePath.startsWith('/')) {
@@ -133,6 +127,9 @@ const mountRoute = (routePath: string, ...handlers: any[]) => {
   }
   app.use(`${api}${routePath.startsWith('/') ? '' : '/'}${routePath}`, ...handlers);
 };
+
+// Health check (public)
+mountRoute('/health', healthRoutes);
 
 // Auth (mixed: login is public, others protected)
 mountRoute('/auth', authLimiter, authRoutes);
