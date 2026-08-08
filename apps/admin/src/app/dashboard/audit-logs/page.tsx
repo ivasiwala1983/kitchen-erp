@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../../../lib/api';
 import { formatDate } from '@kitchen-erp/utils';
 import type { AuditLog } from '@kitchen-erp/types';
@@ -128,8 +128,8 @@ export default function AuditLogsPage() {
                     const hasPayload = log.newValues || log.oldValues;
 
                     return (
-                      <>
-                        <tr key={log.id}>
+                      <React.Fragment key={log.id}>
+                        <tr>
                           <td style={{ whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>
                             {formatDate(log.createdAt)}
                           </td>
@@ -224,7 +224,7 @@ export default function AuditLogsPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

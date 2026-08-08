@@ -3,59 +3,58 @@ node_modules/
 .pnp
 .pnp.js
 
-# ── Environment ──────────────────────────────────────────────
+# ── Environment & Local Credentials ─────────────────────────
 .env
 .env.*
 !.env.example
 
-# ── Build Outputs ────────────────────────────────────────────
+# ── Build & Compilation Outputs ─────────────────────────────
 dist/
 build/
 .next/
 out/
 .turbo/
+*.tsbuildinfo
 
-# ── Prisma ───────────────────────────────────────────────────
+# ── Prisma Generated Artifacts ──────────────────────────────
 prisma/generated/
 
-# ── Uploads (local fallback) ─────────────────────────────────
+# ── Uploads & Local File Attachments ────────────────────────
 uploads/
 
-# ── Logs ─────────────────────────────────────────────────────
+# ── Logs & Debugging ─────────────────────────────────────────
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 lerna-debug.log*
 
-# ── OS ───────────────────────────────────────────────────────
+# ── Operating System ─────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# ── IDE ───────────────────────────────────────────────────────
+# ── IDE & Editor Caches ──────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# ── Testing ──────────────────────────────────────────────────
+# ── Testing & Coverage ───────────────────────────────────────
 coverage/
 .nyc_output/
 
-# ── Database & Local Data ─────────────────────────────────────
+# ── Database & Local Data Caches ────────────────────────────
 .pgdata/
 .redisdata/
 *.sqlite
 *.sqlite-journal
 *.db
 
-# ── Caches & Temp Files ───────────────────────────────────────
+# ── Caches & Temporary Directories ─────────────────────────
 .cache/
 .temp/
 .tmp/
 .eslintcache
 .stylelintcache
-
-# ── TypeScript ───────────────────────────────────────────────
-*.tsbuildinfo
-

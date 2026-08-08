@@ -12,32 +12,24 @@ import type {
   LoginResponse,
   RefreshTokenDto,
   ChangePasswordDto,
-  Tenant,
+  TenantPublic,
   CreateTenantDto,
   UpdateTenantDto,
   UserPublic,
   CreateUserDto,
   UpdateUserDto,
-  Category,
+  CategoryPublic,
   CreateCategoryDto,
   UpdateCategoryDto,
-  Vendor,
+  VendorPublic,
   CreateVendorDto,
   UpdateVendorDto,
-  Product,
+  ProductPublic,
   CreateProductDto,
   UpdateProductDto,
-  Purchase,
+  PurchasePublic,
   CreatePurchaseDto,
   UpdatePurchaseDto,
-  DailyReportItem,
-  MonthlyReportItem,
-  VendorReportItem,
-  CategoryReportItem,
-  ProductReportItem,
-  ManagerReportItem,
-  ReportFilters,
-  AuditLog,
   PaginationParams,
   TokenPair,
 } from '@kitchen-erp/types';
@@ -85,7 +77,7 @@ export function loadTokensFromStorage() {
 
 export interface ApiClientConfig {
   baseURL: string;
-  tenantSlug?: string; // X-Tenant-Slug header for dev
+  tenantSlug?: string;
   onUnauthorized?: () => void;
 }
 
@@ -123,7 +115,6 @@ export function createApiClient(config: ApiClientConfig): AxiosInstance {
     async (error) => {
       const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-      // Avoid infinite loop if auth endpoints fail
       if (
         originalRequest.url?.includes('/auth/login') ||
         originalRequest.url?.includes('/auth/refresh')
@@ -168,7 +159,7 @@ export function createApiClient(config: ApiClientConfig): AxiosInstance {
   return client;
 }
 
-// ── API Modules ────────────────────────────────────────────────
+// ── API Modules Class ──────────────────────────────────────────
 
 export class KitchenErpApi {
   private client: AxiosInstance;
@@ -177,8 +168,6 @@ export class KitchenErpApi {
     loadTokensFromStorage();
     this.client = createApiClient(config);
   }
-
-  // ── Auth ──────────────────────────────────────────────────
 
   auth = {
     login: (dto: LoginDto) =>
@@ -195,33 +184,30 @@ export class KitchenErpApi {
     logout: () => this.client.post<ApiResponse<void>>('/auth/logout').then((r) => r.data),
   };
 
-  // ── Tenants ───────────────────────────────────────────────
-
   tenants = {
     list: (params?: PaginationParams) =>
       this.client
-        .get<ApiResponse<PaginatedResponse<Tenant>>>('/tenants', { params })
+        .get<ApiResponse<PaginatedResponse<TenantPublic>>>('/tenants', { params })
         .then((r) => r.data),
 
-    get: (id: string) => this.client.get<ApiResponse<Tenant>>(`/tenants/${id}`).then((r) => r.data),
+    get: (id: string) =>
+      this.client.get<ApiResponse<TenantPublic>>(`/tenants/${id}`).then((r) => r.data),
 
     create: (dto: CreateTenantDto) =>
-      this.client.post<ApiResponse<Tenant>>('/tenants', dto).then((r) => r.data),
+      this.client.post<ApiResponse<TenantPublic>>('/tenants', dto).then((r) => r.data),
 
     update: (id: string, dto: UpdateTenantDto) =>
-      this.client.patch<ApiResponse<Tenant>>(`/tenants/${id}`, dto).then((r) => r.data),
+      this.client.patch<ApiResponse<TenantPublic>>(`/tenants/${id}`, dto).then((r) => r.data),
 
     activate: (id: string) =>
-      this.client.patch<ApiResponse<Tenant>>(`/tenants/${id}/activate`).then((r) => r.data),
+      this.client.patch<ApiResponse<TenantPublic>>(`/tenants/${id}/activate`).then((r) => r.data),
 
     deactivate: (id: string) =>
-      this.client.patch<ApiResponse<Tenant>>(`/tenants/${id}/deactivate`).then((r) => r.data),
+      this.client.patch<ApiResponse<TenantPublic>>(`/tenants/${id}/deactivate`).then((r) => r.data),
 
     delete: (id: string) =>
       this.client.delete<ApiResponse<void>>(`/tenants/${id}`).then((r) => r.data),
   };
-
-  // ── Users ─────────────────────────────────────────────────
 
   users = {
     list: (params?: PaginationParams) =>
@@ -242,69 +228,62 @@ export class KitchenErpApi {
       this.client.delete<ApiResponse<void>>(`/users/${id}`).then((r) => r.data),
   };
 
-  // ── Category Master ───────────────────────────────────────
-
   categories = {
     list: (params?: PaginationParams & { isActive?: boolean }) =>
       this.client
-        .get<ApiResponse<PaginatedResponse<Category>>>('/categories', { params })
+        .get<ApiResponse<PaginatedResponse<CategoryPublic>>>('/categories', { params })
         .then((r) => r.data),
 
     get: (id: string) =>
-      this.client.get<ApiResponse<Category>>(`/categories/${id}`).then((r) => r.data),
+      this.client.get<ApiResponse<CategoryPublic>>(`/categories/${id}`).then((r) => r.data),
 
     create: (dto: CreateCategoryDto) =>
-      this.client.post<ApiResponse<Category>>('/categories', dto).then((r) => r.data),
+      this.client.post<ApiResponse<CategoryPublic>>('/categories', dto).then((r) => r.data),
 
     update: (id: string, dto: UpdateCategoryDto) =>
-      this.client.patch<ApiResponse<Category>>(`/categories/${id}`, dto).then((r) => r.data),
+      this.client.patch<ApiResponse<CategoryPublic>>(`/categories/${id}`, dto).then((r) => r.data),
 
     delete: (id: string) =>
       this.client.delete<ApiResponse<void>>(`/categories/${id}`).then((r) => r.data),
   };
 
-  // ── Vendors ───────────────────────────────────────────────
-
   vendors = {
     list: (params?: PaginationParams & { categoryId?: string; isActive?: boolean }) =>
       this.client
-        .get<ApiResponse<PaginatedResponse<Vendor>>>('/vendors', { params })
+        .get<ApiResponse<PaginatedResponse<VendorPublic>>>('/vendors', { params })
         .then((r) => r.data),
 
-    get: (id: string) => this.client.get<ApiResponse<Vendor>>(`/vendors/${id}`).then((r) => r.data),
+    get: (id: string) =>
+      this.client.get<ApiResponse<VendorPublic>>(`/vendors/${id}`).then((r) => r.data),
 
     create: (dto: CreateVendorDto) =>
-      this.client.post<ApiResponse<Vendor>>('/vendors', dto).then((r) => r.data),
+      this.client.post<ApiResponse<VendorPublic>>('/vendors', dto).then((r) => r.data),
 
     update: (id: string, dto: UpdateVendorDto) =>
-      this.client.patch<ApiResponse<Vendor>>(`/vendors/${id}`, dto).then((r) => r.data),
+      this.client.patch<ApiResponse<VendorPublic>>(`/vendors/${id}`, dto).then((r) => r.data),
 
     delete: (id: string) =>
       this.client.delete<ApiResponse<void>>(`/vendors/${id}`).then((r) => r.data),
   };
 
-  // ── Products ──────────────────────────────────────────────
-
   products = {
     list: (params?: PaginationParams & { categoryId?: string; isActive?: boolean }) =>
       this.client
-        .get<ApiResponse<PaginatedResponse<Product>>>('/products', { params })
+        .get<ApiResponse<PaginatedResponse<ProductPublic>>>('/products', { params })
         .then((r) => r.data),
 
     get: (id: string) =>
-      this.client.get<ApiResponse<Product>>(`/products/${id}`).then((r) => r.data),
+      this.client.get<ApiResponse<ProductPublic>>(`/products/${id}`).then((r) => r.data),
 
     create: (dto: CreateProductDto) =>
-      this.client.post<ApiResponse<Product>>('/products', dto).then((r) => r.data),
+      this.client.post<ApiResponse<ProductPublic>>('/products', dto).then((r) => r.data),
 
     update: (id: string, dto: UpdateProductDto) =>
-      this.client.patch<ApiResponse<Product>>(`/products/${id}`, dto).then((r) => r.data),
+      this.client.patch<ApiResponse<ProductPublic>>(`/products/${id}`, dto).then((r) => r.data),
 
     delete: (id: string) =>
       this.client.delete<ApiResponse<void>>(`/products/${id}`).then((r) => r.data),
   };
-
-  // ── Purchases ─────────────────────────────────────────────
 
   purchases = {
     list: (
@@ -316,17 +295,17 @@ export class KitchenErpApi {
       }
     ) =>
       this.client
-        .get<ApiResponse<PaginatedResponse<Purchase>>>('/purchases', { params })
+        .get<ApiResponse<PaginatedResponse<PurchasePublic>>>('/purchases', { params })
         .then((r) => r.data),
 
     get: (id: string) =>
-      this.client.get<ApiResponse<Purchase>>(`/purchases/${id}`).then((r) => r.data),
+      this.client.get<ApiResponse<PurchasePublic>>(`/purchases/${id}`).then((r) => r.data),
 
     create: (dto: CreatePurchaseDto) =>
-      this.client.post<ApiResponse<Purchase>>('/purchases', dto).then((r) => r.data),
+      this.client.post<ApiResponse<PurchasePublic>>('/purchases', dto).then((r) => r.data),
 
     update: (id: string, dto: UpdatePurchaseDto) =>
-      this.client.patch<ApiResponse<Purchase>>(`/purchases/${id}`, dto).then((r) => r.data),
+      this.client.patch<ApiResponse<PurchasePublic>>(`/purchases/${id}`, dto).then((r) => r.data),
 
     delete: (id: string) =>
       this.client.delete<ApiResponse<void>>(`/purchases/${id}`).then((r) => r.data),
@@ -342,60 +321,45 @@ export class KitchenErpApi {
     },
   };
 
-  // ── Reports ───────────────────────────────────────────────
-
   reports = {
-    daily: (filters?: ReportFilters) =>
+    daily: (filters?: any) =>
+      this.client.get<ApiResponse<any>>('/reports/daily', { params: filters }).then((r) => r.data),
+
+    monthly: (filters?: any) =>
       this.client
-        .get<ApiResponse<DailyReportItem[]>>('/reports/daily', { params: filters })
+        .get<ApiResponse<any>>('/reports/monthly', { params: filters })
         .then((r) => r.data),
 
-    monthly: (filters?: ReportFilters) =>
+    byVendor: (filters?: any) =>
+      this.client.get<ApiResponse<any>>('/reports/vendor', { params: filters }).then((r) => r.data),
+
+    byCategory: (filters?: any) =>
       this.client
-        .get<ApiResponse<MonthlyReportItem[]>>('/reports/monthly', { params: filters })
+        .get<ApiResponse<any>>('/reports/category', { params: filters })
         .then((r) => r.data),
 
-    byVendor: (filters?: ReportFilters) =>
+    byProduct: (filters?: any) =>
       this.client
-        .get<ApiResponse<VendorReportItem[]>>('/reports/vendor', { params: filters })
+        .get<ApiResponse<any>>('/reports/product', { params: filters })
         .then((r) => r.data),
 
-    byCategory: (filters?: ReportFilters) =>
+    byManager: (filters?: any) =>
       this.client
-        .get<ApiResponse<CategoryReportItem[]>>('/reports/category', { params: filters })
+        .get<ApiResponse<any>>('/reports/manager', { params: filters })
         .then((r) => r.data),
 
-    byProduct: (filters?: ReportFilters) =>
-      this.client
-        .get<ApiResponse<ProductReportItem[]>>('/reports/product', { params: filters })
-        .then((r) => r.data),
-
-    byManager: (filters?: ReportFilters) =>
-      this.client
-        .get<ApiResponse<ManagerReportItem[]>>('/reports/manager', { params: filters })
-        .then((r) => r.data),
-
-    platform: (filters?: {
-      startDate?: string;
-      endDate?: string;
-      tenantId?: string;
-      vendorId?: string;
-    }) =>
+    platform: (filters?: any) =>
       this.client
         .get<ApiResponse<any>>('/reports/platform', { params: filters })
         .then((r) => r.data),
   };
 
-  // ── Audit Logs ────────────────────────────────────────────
-
   auditLogs = {
-    list: (params?: PaginationParams & { entity?: string; userId?: string }) =>
+    list: (params?: any) =>
       this.client
-        .get<ApiResponse<PaginatedResponse<AuditLog>>>('/audit-logs', { params })
+        .get<ApiResponse<PaginatedResponse<any>>>('/audit-logs', { params })
         .then((r) => r.data),
   };
 }
-
-// ── Default Export ─────────────────────────────────────────────
 
 export { type ApiResponse, type PaginatedResponse };

@@ -1,0 +1,17 @@
+export enum Role {
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  TENANT_ADMIN = 'TENANT_ADMIN',
+  INVENTORY_MANAGER = 'INVENTORY_MANAGER',
+}
+
+export enum PurchaseStatus {
+  DRAFT = 'DRAFT',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum TenantPlan {
+  BASIC = 'BASIC',
+  STANDARD = 'STANDARD',
+  PREMIUM = 'PREMIUM',
+}

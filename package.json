@@ -2,43 +2,44 @@
   "name": "kitchen-erp",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "npm@10.0.0",
-  "description": "Multi-tenant Kitchen ERP System",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "packageManager": "pnpm@9.15.0",
+  "description": "Enterprise Multi-tenant Kitchen ERP System",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,js,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,js,css}\"",
     "db:generate": "prisma generate --schema=prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "db:migrate:create": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/migrations/$(date +%Y%m%d%H%M%S)_migration/migration.sql",
     "db:migrate:prod": "prisma migrate deploy --schema=prisma/schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio --schema=prisma/schema.prisma",
-    "db:reset": "prisma migrate reset --schema=prisma/schema.prisma"
+    "db:reset": "prisma migrate reset --schema=prisma/schema.prisma",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
     "@prisma/client": "^5.22.0",
-    "prettier": "^3.3.3",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
-    "turbo": "^2.3.0",
-    "typescript": "^5.6.3"
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
   },
   "engines": {
     "node": ">=20.0.0",
-    "npm": ">=10.0.0"
-  },
-  "prettier": {
-    "semi": true,
-    "singleQuote": true,
-    "tabWidth": 2,
-    "trailingComma": "es5",
-    "printWidth": 100
+    "pnpm": ">=9.0.0"
   }
 }

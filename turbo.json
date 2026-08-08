@@ -1,9 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".env"],
+  "ui": "tui",
+  "globalDependencies": [".env", "tsconfig.base.json"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
@@ -13,7 +15,11 @@
     "lint": {
       "dependsOn": ["^build"]
     },
-    "type-check": {
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "typecheck": {
       "dependsOn": ["^build"]
     }
   }

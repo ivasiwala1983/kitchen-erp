@@ -9,16 +9,21 @@
 /**
  * Format a date to YYYY-MM-DD string
  */
-export function formatDate(date: Date | string): string {
+export function formatDate(date?: Date | string | null): string {
+  if (!date) return '-';
   const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
   return d.toISOString().split('T')[0];
 }
 
 /**
  * Format a datetime for display (e.g. "07 Aug 2026, 3:30 PM")
  */
-export function formatDateTime(date: Date | string): string {
-  return new Date(date).toLocaleString('en-IN', {
+export function formatDateTime(date?: Date | string | null): string {
+  if (!date) return '-';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

@@ -36,7 +36,9 @@ export function extractTenantSlug(req: Request): string | undefined {
       if (parts.length > 1 && !['localhost', 'lvh', 'www', '127', '0'].includes(parts[0])) {
         return parts[0].toLowerCase();
       }
-    } catch {}
+    } catch {
+      // ignore URL parse error
+    }
   }
 
   // 3. Extract from Referer header (e.g. http://badri.localhost:3000/dashboard)
@@ -48,7 +50,9 @@ export function extractTenantSlug(req: Request): string | undefined {
       if (parts.length > 1 && !['localhost', 'lvh', 'www', '127', '0'].includes(parts[0])) {
         return parts[0].toLowerCase();
       }
-    } catch {}
+    } catch {
+      // ignore URL parse error
+    }
   }
 
   // 4. Extract from Host header (e.g. badri.localhost:4000)
