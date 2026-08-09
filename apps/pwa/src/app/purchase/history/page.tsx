@@ -129,10 +129,23 @@ export default function HistoryPage() {
 
   function getInvoiceUrl(url?: string | null): string | null {
     if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('kitchen_erp_access_token') : null;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      if (token && url.includes('/api/purchases/') && !url.includes('token=')) {
+        const joiner = url.includes('?') ? '&' : '?';
+        return `${url}${joiner}token=${encodeURIComponent(token)}&redirect=true`;
+      }
+      return url;
+    }
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
     const origin = apiBase.replace(/\/api\/?$/, '');
-    return `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
+    const fullUrl = `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
+    if (token && !fullUrl.includes('token=')) {
+      const joiner = fullUrl.includes('?') ? '&' : '?';
+      return `${fullUrl}${joiner}token=${encodeURIComponent(token)}&redirect=true`;
+    }
+    return fullUrl;
   }
 
   const toggleExpand = (id: string) => {

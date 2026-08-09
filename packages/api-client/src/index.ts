@@ -63,6 +63,14 @@ export function setTokens(input: any) {
   }
 }
 
+export function getAccessToken(): string | null {
+  if (accessToken) return accessToken;
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('kitchen_erp_access_token');
+  }
+  return null;
+}
+
 export function clearTokens() {
   accessToken = null;
   refreshToken = null;

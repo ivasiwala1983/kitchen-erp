@@ -1,6 +1,6 @@
 /**
  * Authentication middleware.
- * Verifies JWT access token from Authorization header.
+ * Verifies JWT access token from Authorization header or URL query parameter (?token=...).
  * Attaches decoded payload to req.user.
  */
 
@@ -11,16 +11,19 @@ import type { AuthenticatedRequest } from '../shared/types';
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   try {
-    const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedError('No authentication token provided');
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query.token && typeof req.query.token === 'string') {
+      token = req.query.token;
+    } else if (req.query.accessToken && typeof req.query.accessToken === 'string') {
+      token = req.query.accessToken;
     }
 
-    const token = authHeader.split(' ')[1];
-
     if (!token) {
-      throw new UnauthorizedError('Invalid authentication token format');
+      throw new UnauthorizedError('No authentication token provided');
     }
 
     const payload = verifyAccessToken(token);

@@ -208,8 +208,11 @@ router.get(
       const storage = getStorageProvider();
       const signedUrl = await storage.getSignedUrl(purchase.invoiceStoragePath, 300);
 
-      // Support direct redirect via query param ?redirect=true
-      if (req.query.redirect === 'true' || req.query.redirect === '1') {
+      // Support direct redirect for browser tab navigation (?redirect=true, ?token=..., or Accept: text/html)
+      const acceptsHtml = req.headers.accept?.includes('text/html');
+      const hasDirectQuery =
+        req.query.redirect === 'true' || req.query.redirect === '1' || Boolean(req.query.token);
+      if (acceptsHtml || hasDirectQuery) {
         res.redirect(signedUrl);
         return;
       }
