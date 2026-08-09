@@ -105,12 +105,17 @@ export default function PwaVendorLedgerDetailPage() {
             <h1
               style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}
             >
-              {vendorName}
+              🏢 {vendorName}
             </h1>
             {categoryName && (
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                📁 Category: {categoryName}
-              </p>
+              <div style={{ marginTop: '0.25rem' }}>
+                <span
+                  className="pwa-badge pwa-badge-blue"
+                  style={{ fontSize: '0.6875rem', fontWeight: 700, padding: '0.15rem 0.5rem' }}
+                >
+                  📁 Category: {categoryName}
+                </span>
+              </div>
             )}
           </div>
         </div>
@@ -254,9 +259,14 @@ export default function PwaVendorLedgerDetailPage() {
 
                   {t.referenceType && (
                     <div
-                      style={{ fontSize: '0.6875rem', color: 'var(--text-light)', marginTop: 2 }}
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        fontWeight: 600,
+                        marginTop: 2,
+                      }}
                     >
-                      Ref: {t.referenceType} #{t.referenceId ? t.referenceId.slice(0, 8) : ''}
+                      📄 Order Ref: #{t.referenceId ? t.referenceId.slice(0, 8) : 'N/A'}
                     </div>
                   )}
                 </div>

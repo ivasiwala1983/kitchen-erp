@@ -284,7 +284,8 @@ export default function TenantHistoryPage() {
           >
             {purchases.map((p) => {
               const id = String(p.id);
-              const vendor = p.vendor as { name?: string } | undefined;
+              const vendor = p.vendor as
+                { name?: string; category?: { name?: string } } | undefined;
               const items = (p.items as Array<Record<string, unknown>>) || [];
               const grandTotal = Number(p.grandTotal || 0);
               const isExpanded = expandedId === id;
@@ -310,13 +311,58 @@ export default function TenantHistoryPage() {
                     onClick={() => toggleExpand(id)}
                   >
                     <div>
-                      <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>
-                        {vendor?.name || 'Supplier / Vendor'}
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '1rem',
+                          color: 'var(--text-main)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <span>🏢</span> {vendor?.name || 'Supplier / Vendor'}
+                        {vendor?.category?.name && (
+                          <span
+                            className="pwa-badge pwa-badge-blue"
+                            style={{
+                              fontSize: '0.6875rem',
+                              fontWeight: 700,
+                              padding: '0.15rem 0.5rem',
+                            }}
+                          >
+                            📁 {vendor.category.name}
+                          </span>
+                        )}
                       </div>
                       <div
-                        style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}
                       >
-                        📅 {purchaseDateStr} · {items.length} item{items.length === 1 ? '' : 's'}
+                        <span>
+                          📅 {purchaseDateStr} · {items.length} item{items.length === 1 ? '' : 's'}
+                        </span>
+                        {Boolean(p.invoiceUrl) && (
+                          <span
+                            style={{
+                              fontSize: '0.6875rem',
+                              fontWeight: 700,
+                              color: 'var(--forest-green)',
+                              background: 'rgba(22, 101, 52, 0.1)',
+                              padding: '0.1rem 0.4rem',
+                              borderRadius: 4,
+                            }}
+                          >
+                            📄 Invoice Attached
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>

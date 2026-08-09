@@ -438,21 +438,50 @@ export default function HistoryPage() {
                           color: 'var(--text-main)',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.375rem',
+                          gap: '0.5rem',
+                          flexWrap: 'wrap',
                         }}
                       >
                         <span>🏢</span> {vendorObj?.name || 'Unknown Vendor'}
+                        {vendorObj?.category?.name && (
+                          <span
+                            className="pwa-badge pwa-badge-blue"
+                            style={{
+                              fontSize: '0.6875rem',
+                              fontWeight: 700,
+                              padding: '0.15rem 0.5rem',
+                            }}
+                          >
+                            📁 {vendorObj.category.name}
+                          </span>
+                        )}
                       </div>
                       <div
                         style={{
                           fontSize: '0.75rem',
                           fontWeight: 600,
                           color: 'var(--text-muted)',
-                          marginTop: '2px',
+                          marginTop: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
                         }}
                       >
-                        {vendorObj?.category?.name ? `📁 ${vendorObj.category.name} · ` : ''}
-                        {formatDate(purchaseDateStr)}
+                        <span>📅 {formatDate(purchaseDateStr)}</span>
+                        {invoiceLink && (
+                          <span
+                            style={{
+                              fontSize: '0.6875rem',
+                              fontWeight: 700,
+                              color: 'var(--forest-green)',
+                              background: 'rgba(22, 101, 52, 0.1)',
+                              padding: '0.1rem 0.4rem',
+                              borderRadius: 4,
+                            }}
+                          >
+                            📄 Invoice Attached
+                          </span>
+                        )}
                       </div>
                     </div>
 
