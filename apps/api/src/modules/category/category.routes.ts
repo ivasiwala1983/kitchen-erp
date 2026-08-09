@@ -101,7 +101,16 @@ export class CategoryService {
   async create(tenantId: string, dto: z.infer<typeof createCategorySchema>, createdBy: string) {
     const existing = await this.repo.findByName(dto.name, tenantId);
     if (existing) throw new ConflictError(`Category with name "${dto.name}" already exists`);
-    return this.repo.create({ ...dto, tenantId, createdBy });
+    return this.repo.create({
+      tenantId,
+      name: dto.name,
+      displayOrder: dto.displayOrder,
+      icon: dto.icon,
+      color: dto.color,
+      description: dto.description,
+      isActive: dto.isActive,
+      createdBy,
+    });
   }
 
   async update(
