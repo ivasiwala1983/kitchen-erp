@@ -155,6 +155,24 @@ export default function PurchaseMobilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Draft Storage State
+  const DRAFT_KEY = 'kitchen_erp_purchase_draft';
+  const [savedDraft, setSavedDraft] = useState<{
+    vendorId?: string;
+    vendorName?: string;
+    categoryId?: string;
+    items: Array<{
+      productId: string;
+      name: string;
+      unit: string;
+      qty: number;
+      rate: number;
+      total: number;
+    }>;
+    date?: string;
+    updatedAt?: string;
+  } | null>(null);
+
   // Running Grand Total calculation
   const grandTotal = addedItems.reduce((sum, item) => sum + item.total, 0);
 
@@ -239,6 +257,62 @@ export default function PurchaseMobilePage() {
     })();
   }, [activeCategoryId]);
 
+  // Draft Auto-Saver & Draft Recovery Handlers
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+          setSavedDraft(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (addedItems.length > 0) {
+      const draftData = {
+        vendorId: activeVendor?.id,
+        vendorName: activeVendor?.name,
+        categoryId: activeCategoryId,
+        items: addedItems,
+        date: selectedDate.toISOString(),
+        updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+    } else if (!savedDraft) {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+  }, [addedItems, activeVendor, activeCategoryId, selectedDate, savedDraft]);
+
+  const handleRestoreDraft = () => {
+    if (!savedDraft) return;
+    if (savedDraft.items && savedDraft.items.length > 0) {
+      setAddedItems(savedDraft.items);
+    }
+    if (savedDraft.categoryId) {
+      setActiveCategoryId(savedDraft.categoryId);
+    }
+    if (savedDraft.date) {
+      try {
+        setSelectedDate(new Date(savedDraft.date));
+      } catch {}
+    }
+    setSavedDraft(null);
+    setSuccess('📥 Saved draft purchase order restored!');
+    setTimeout(() => setSuccess(''), 3500);
+  };
+
+  const handleDiscardDraft = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+    setSavedDraft(null);
+  };
+
   // Selected Product details & unit auto-fill
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const currentUnit = selectedProduct?.unit || 'kg';
@@ -292,7 +366,7 @@ export default function PurchaseMobilePage() {
     setAddedItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Save Complete Purchase Order
+  // Save Complete Purchase Order with Optimistic Immediate Feedback & Failure Draft Protection
   const handleSavePurchase = async () => {
     if (!activeVendor) {
       setError('Please select a vendor for this category');
@@ -303,28 +377,52 @@ export default function PurchaseMobilePage() {
       return;
     }
 
+    const itemsSnapshot = [...addedItems];
+    const vendorSnapshot = activeVendor;
+    const dateSnapshot = selectedDate;
+
     setSaving(true);
     setError('');
-    setSuccess('');
+    setSuccess('⚡ Purchase order submitted! Saving to cloud in background...');
+
+    const inFlightDraft = {
+      vendorId: vendorSnapshot.id,
+      vendorName: vendorSnapshot.name,
+      categoryId: activeCategoryId,
+      items: itemsSnapshot,
+      date: dateSnapshot.toISOString(),
+      updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(inFlightDraft));
+    }
 
     try {
       const purchaseRes = await api.purchases.create({
-        vendorId: activeVendor.id,
-        items: addedItems.map((i) => ({ productId: i.productId, qty: i.qty, rate: i.rate })),
-        purchaseDate: selectedDate.toISOString(),
+        vendorId: vendorSnapshot.id,
+        items: itemsSnapshot.map((i) => ({ productId: i.productId, qty: i.qty, rate: i.rate })),
+        purchaseDate: dateSnapshot.toISOString(),
       });
 
       if (purchaseRes.data && invoiceFile) {
+        setSuccess('⚡ Uploading attached invoice receipt...');
         await api.purchases.uploadInvoice(purchaseRes.data.id, invoiceFile);
       }
 
-      setSuccess('Purchase order saved successfully!');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+      setSavedDraft(null);
+      setSuccess('🎉 Purchase order saved successfully!');
       setAddedItems([]);
       setInvoiceFile(null);
       setTimeout(() => setSuccess(''), 4000);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message || 'Failed to save purchase');
+      const errMsg = err?.response?.data?.message || 'Network connection or server error';
+
+      setError(`⚠️ ${errMsg}. Don't worry! Your purchase was saved as a Draft so you can retry.`);
+      setSavedDraft(inFlightDraft);
     } finally {
       setSaving(false);
     }
@@ -461,6 +559,58 @@ export default function PurchaseMobilePage() {
             ›
           </button>
         </div>
+
+        {/* Saved Draft Recovery Banner */}
+        {savedDraft && addedItems.length === 0 && (
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+              border: '1px solid #93c5fd',
+              borderRadius: 14,
+              padding: '0.875rem 1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.875rem', color: '#1e40af' }}>
+                📝 Saved Draft Found ({savedDraft.items?.length || 0} item
+                {(savedDraft.items?.length || 0) === 1 ? '' : 's'})
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#1e3a8a', marginTop: 2 }}>
+                Saved at {savedDraft.updatedAt || 'earlier'}{' '}
+                {savedDraft.vendorName ? `for ${savedDraft.vendorName}` : ''}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={handleRestoreDraft}
+                className="pwa-btn pwa-btn-primary pwa-btn-sm"
+                style={{ fontWeight: 800, fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+              >
+                📥 Restore Draft
+              </button>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="pwa-btn pwa-btn-secondary pwa-btn-sm"
+                style={{
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.5rem',
+                  color: '#4b5563',
+                }}
+              >
+                🗑️ Clear
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 4. Category & Vendor Selection Card */}
         <div className="pwa-card" style={{ padding: '1.125rem', marginBottom: '1rem' }}>
