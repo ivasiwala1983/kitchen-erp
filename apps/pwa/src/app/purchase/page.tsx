@@ -268,7 +268,9 @@ export default function PurchaseMobilePage() {
           setSavedDraft(parsed);
         }
       }
-    } catch {}
+    } catch (err) {
+      void err;
+    }
   }, []);
 
   useEffect(() => {
@@ -299,7 +301,9 @@ export default function PurchaseMobilePage() {
     if (savedDraft.date) {
       try {
         setSelectedDate(new Date(savedDraft.date));
-      } catch {}
+      } catch (err) {
+        void err;
+      }
     }
     setSavedDraft(null);
     setSuccess('📥 Saved draft purchase order restored!');

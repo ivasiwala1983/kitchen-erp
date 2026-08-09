@@ -273,7 +273,9 @@ export default function TenantPurchaseMobilePage() {
           setSavedDraft(parsed);
         }
       }
-    } catch {}
+    } catch (err) {
+      void err;
+    }
   }, [DRAFT_KEY]);
 
   useEffect(() => {
@@ -304,7 +306,9 @@ export default function TenantPurchaseMobilePage() {
     if (savedDraft.date) {
       try {
         setSelectedDate(new Date(savedDraft.date));
-      } catch {}
+      } catch (err) {
+        void err;
+      }
     }
     setSavedDraft(null);
     setSuccess('📥 Saved draft purchase order restored!');
