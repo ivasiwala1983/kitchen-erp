@@ -370,6 +370,36 @@ export default function Sidebar({ user }: { user: UserPublic }) {
             </svg>
             Logout
           </button>
+
+          {/* Powered by Argusoft Footer */}
+          <div
+            style={{
+              marginTop: '0.875rem',
+              paddingTop: '0.75rem',
+              borderTop: '1px solid var(--color-border)',
+              textAlign: 'center',
+              fontSize: '0.75rem',
+              color: 'var(--color-text-muted)',
+              lineHeight: 1.4,
+            }}
+          >
+            <div>© {new Date().getFullYear()} Kitchen ERP</div>
+            <div style={{ marginTop: 2 }}>
+              Powered by{' '}
+              <a
+                href="https://www.argusoft.com"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  fontWeight: 700,
+                  color: 'var(--color-brand-light, #6366f1)',
+                  textDecoration: 'none',
+                }}
+              >
+                Argusoft India Ltd. ↗
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

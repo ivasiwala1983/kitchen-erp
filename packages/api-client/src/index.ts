@@ -218,6 +218,9 @@ export class KitchenErpApi {
     get: (id: string) =>
       this.client.get<ApiResponse<TenantPublic>>(`/tenants/${id}`).then((r) => r.data),
 
+    getDetails: (id: string) =>
+      this.client.get<ApiResponse<unknown>>(`/tenants/${id}/details`).then((r) => r.data),
+
     getBySlug: (slug: string) =>
       this.client.get<ApiResponse<TenantPublic>>(`/tenant/by-slug/${slug}`).then((r) => r.data),
 

@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { UserPublic } from '@kitchen-erp/types';
+import { Role } from '@kitchen-erp/types';
 import { api } from '../lib/api';
 import { setTokens, clearTokens } from '@kitchen-erp/api-client';
 
@@ -24,7 +25,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.auth
         .me()
         .then((res) => {
-          if (res.data) setUser(res.data);
+          if (res.data) {
+            if (res.data.role === Role.INVENTORY_MANAGER) {
+              clearTokens();
+              setUser(null);
+            } else {
+              setUser(res.data);
+            }
+          }
         })
         .catch(() => {
           clearTokens();
@@ -38,6 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, tenantSlug?: string) => {
     const res = await api.auth.login({ email, password, tenantSlug });
     if (res.data) {
+      if (res.data.user.role === Role.INVENTORY_MANAGER) {
+        clearTokens();
+        throw new Error(
+          "👋 Hello! You don't have access to the Admin Portal. Please use the Mobile Kitchen PWA to manage daily purchases."
+        );
+      }
       setTokens(res.data.tokens);
       if (typeof window !== 'undefined' && tenantSlug) {
         localStorage.setItem('kitchen_erp_tenant_slug', tenantSlug);

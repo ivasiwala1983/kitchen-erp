@@ -4,8 +4,7 @@
  */
 
 import 'express-async-errors';
-import express from 'express';
-import cors from 'cors';
+import express, { RequestHandler } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
@@ -31,20 +30,7 @@ import auditLogRoutes from './modules/auditLog/auditLog.routes';
 
 const app = express();
 
-// Allowed origins setup
-const defaultAllowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3002',
-  'http://localhost:4000',
-  'https://kitchen-erp-admin.vercel.app',
-  'https://kitchen-erp-pwa.vercel.app',
-  'https://kitchen-erp-api.vercel.app',
-];
-
-const allAllowedOrigins = Array.from(
-  new Set([...defaultAllowedOrigins, ...(config.corsOrigin || [])])
-);
+// Top-level CORS handling
 
 // 1. Top-Level CORS & OPTIONS Preflight Handling (Runs before helmet and rate-limiters)
 app.use((req, res, next) => {
@@ -109,7 +95,7 @@ if (config.seaweedFallbackLocal) {
 const api = config.apiPrefix;
 
 // Helper to mount routes under both /api/path and /path
-const mountRoute = (routePath: string, ...handlers: any[]) => {
+const mountRoute = (routePath: string, ...handlers: (RequestHandler | express.Router)[]) => {
   if (routePath.startsWith('/')) {
     app.use(routePath, ...handlers);
   }

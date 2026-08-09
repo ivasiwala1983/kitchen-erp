@@ -309,7 +309,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
       action: 'UPDATE',
       entity: 'Purchase',
       entityId: purchase.id,
-      newValues: dto as any,
+      newValues: dto as Record<string, unknown>,
     });
 
     sendSuccess(res, purchase, 'Purchase updated');

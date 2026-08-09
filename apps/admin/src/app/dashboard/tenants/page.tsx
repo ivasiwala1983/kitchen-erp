@@ -2,8 +2,61 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../../../lib/api';
-import { formatDate } from '@kitchen-erp/utils';
+import { formatDate, formatCurrency } from '@kitchen-erp/utils';
 import type { Tenant, TenantPlan } from '@kitchen-erp/types';
+
+interface TenantDetailsData {
+  tenant: {
+    id: string;
+    name: string;
+    slug: string;
+    domain?: string | null;
+    plan: string;
+    currency: string;
+    isActive: boolean;
+    createdAt: string;
+    userCount: number;
+    vendorCount: number;
+    productCount: number;
+    purchaseCount: number;
+    totalSpend: number;
+  };
+  users: Array<{
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+    createdAt: string;
+  }>;
+  vendors: Array<{
+    id: string;
+    name: string;
+    phone?: string | null;
+    email?: string | null;
+    category?: string | null;
+    isActive: boolean;
+    createdAt: string;
+  }>;
+  products: Array<{
+    id: string;
+    name: string;
+    categoryName: string;
+    unit: string;
+    isActive: boolean;
+    createdAt: string;
+  }>;
+  purchases: Array<{
+    id: string;
+    purchaseDate: string;
+    vendorName: string;
+    totalAmount: number;
+    status: string;
+    invoiceReceiptUrl?: string | null;
+    itemCount: number;
+    createdByName: string;
+  }>;
+}
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -11,6 +64,15 @@ export default function TenantsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [deletingTenant, setDeletingTenant] = useState<Tenant | null>(null);
+
+  // Tenant Details Modal states
+  const [selectedDetailTenant, setSelectedDetailTenant] = useState<Tenant | null>(null);
+  const [detailData, setDetailData] = useState<TenantDetailsData | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailTab, setDetailTab] = useState<
+    'overview' | 'users' | 'vendors' | 'products' | 'purchases'
+  >('overview');
+
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -172,6 +234,23 @@ export default function TenantsPage() {
     });
   };
 
+  const openDetailsModal = async (tenant: Tenant) => {
+    setSelectedDetailTenant(tenant);
+    setDetailData(null);
+    setLoadingDetails(true);
+    setDetailTab('overview');
+    try {
+      const res = (await api.tenants.getDetails(tenant.id)) as { data?: TenantDetailsData };
+      if (res?.data) {
+        setDetailData(res.data);
+      }
+    } catch (e: unknown) {
+      setError(formatApiError(e));
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   const safeTenants = tenants || [];
 
   const CURRENCY_OPTIONS = [
@@ -303,6 +382,14 @@ export default function TenantsPage() {
                     <td>{formatDate(t.createdAt)}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-sm btn-primary"
+                          onClick={() => openDetailsModal(t)}
+                          title="View Tenant Details"
+                          style={{ background: '#3b82f6', borderColor: '#3b82f6', color: 'white' }}
+                        >
+                          🔍 Details
+                        </button>
                         <button
                           className="btn btn-sm btn-secondary"
                           onClick={() => openEditModal(t)}
@@ -636,6 +723,551 @@ export default function TenantsPage() {
                 {submitting ? 'Deleting...' : 'Yes, Delete Tenant'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TENANT DETAILS MODAL ───────────────────────────────────────── */}
+      {selectedDetailTenant && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setSelectedDetailTenant(null)}
+        >
+          <div
+            className="modal"
+            style={{
+              maxWidth: 920,
+              width: '94vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '1.5rem',
+            }}
+          >
+            {/* Modal Top Header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+                paddingBottom: '0.75rem',
+                borderBottom: '1px solid var(--color-border)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 10,
+                    background: '#f0f4e8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.25rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  🍳
+                </div>
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <h2
+                      style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 800,
+                        margin: 0,
+                        color: 'var(--color-text-primary)',
+                      }}
+                    >
+                      {selectedDetailTenant.name}
+                    </h2>
+                    <span
+                      className={`badge badge-${selectedDetailTenant.isActive ? 'green' : 'red'}`}
+                    >
+                      {selectedDetailTenant.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    <span className="badge badge-purple">{selectedDetailTenant.plan}</span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.8125rem',
+                      color: 'var(--color-text-muted)',
+                      marginTop: 2,
+                    }}
+                  >
+                    Slug: <code>{selectedDetailTenant.slug}</code> · Created:{' '}
+                    {formatDate(selectedDetailTenant.createdAt)}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedDetailTenant(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)',
+                  padding: '0.25rem',
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {loadingDetails ? (
+              <div style={{ padding: '3rem', textAlign: 'center' }}>
+                <div className="spinner" style={{ margin: '0 auto 1rem', width: 36, height: 36 }} />
+                <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                  Loading tenant details & metrics...
+                </div>
+              </div>
+            ) : detailData ? (
+              <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.25rem' }}>
+                {/* Summary Metrics Cards */}
+                <div className="grid-4" style={{ marginBottom: '1.25rem', gap: '0.75rem' }}>
+                  <div className="stat-card" style={{ padding: '0.875rem' }}>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Users Count
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+                      {detailData.users.length}
+                    </div>
+                  </div>
+                  <div className="stat-card" style={{ padding: '0.875rem' }}>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Vendors Count
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+                      {detailData.vendors.length}
+                    </div>
+                  </div>
+                  <div className="stat-card" style={{ padding: '0.875rem' }}>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Products Count
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+                      {detailData.products.length}
+                    </div>
+                  </div>
+                  <div className="stat-card" style={{ padding: '0.875rem' }}>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Total Spend
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 800,
+                        color: 'var(--color-accent-green)',
+                      }}
+                    >
+                      {formatCurrency(
+                        detailData.tenant.totalSpend,
+                        detailData.tenant.currency || 'INR'
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tab Navigation */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    borderBottom: '1px solid var(--color-border)',
+                    marginBottom: '1rem',
+                    paddingBottom: '0.5rem',
+                    overflowX: 'auto',
+                  }}
+                >
+                  <button
+                    className={`btn btn-sm ${detailTab === 'overview' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setDetailTab('overview')}
+                  >
+                    ℹ️ Overview
+                  </button>
+                  <button
+                    className={`btn btn-sm ${detailTab === 'users' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setDetailTab('users')}
+                  >
+                    👥 Users ({detailData.users.length})
+                  </button>
+                  <button
+                    className={`btn btn-sm ${detailTab === 'vendors' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setDetailTab('vendors')}
+                  >
+                    🏬 Vendors ({detailData.vendors.length})
+                  </button>
+                  <button
+                    className={`btn btn-sm ${detailTab === 'products' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setDetailTab('products')}
+                  >
+                    🥦 Products ({detailData.products.length})
+                  </button>
+                  <button
+                    className={`btn btn-sm ${detailTab === 'purchases' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setDetailTab('purchases')}
+                  >
+                    🧾 Purchases ({detailData.purchases.length})
+                  </button>
+                </div>
+
+                {/* Tab Content Panels */}
+                {detailTab === 'overview' && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                      gap: '1rem',
+                    }}
+                  >
+                    <div className="card" style={{ padding: '1rem' }}>
+                      <h3
+                        style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.75rem' }}
+                      >
+                        Organization Overview
+                      </h3>
+                      <div
+                        style={{
+                          fontSize: '0.8125rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <div>
+                          <strong>Tenant ID:</strong> <code>{detailData.tenant.id}</code>
+                        </div>
+                        <div>
+                          <strong>Kitchen Name:</strong> {detailData.tenant.name}
+                        </div>
+                        <div>
+                          <strong>URL Slug:</strong> <code>{detailData.tenant.slug}</code>
+                        </div>
+                        <div>
+                          <strong>Domain:</strong> {detailData.tenant.domain || 'Not configured'}
+                        </div>
+                        <div>
+                          <strong>Subscription Plan:</strong>{' '}
+                          <span className="badge badge-purple">{detailData.tenant.plan}</span>
+                        </div>
+                        <div>
+                          <strong>Currency:</strong>{' '}
+                          <span className="badge badge-blue">{detailData.tenant.currency}</span>
+                        </div>
+                        <div>
+                          <strong>Created On:</strong> {formatDate(detailData.tenant.createdAt)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="card" style={{ padding: '1rem' }}>
+                      <h3
+                        style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.75rem' }}
+                      >
+                        Activity Breakdown
+                      </h3>
+                      <div
+                        style={{
+                          fontSize: '0.8125rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <div>
+                          <strong>Total Registered Staff:</strong> {detailData.users.length} users
+                        </div>
+                        <div>
+                          <strong>Suppliers / Vendors:</strong> {detailData.vendors.length} vendors
+                        </div>
+                        <div>
+                          <strong>Inventory Product Master:</strong> {detailData.products.length}{' '}
+                          items
+                        </div>
+                        <div>
+                          <strong>Total Purchases Recorded:</strong> {detailData.purchases.length}{' '}
+                          invoices
+                        </div>
+                        <div>
+                          <strong>Total Kitchen Expenditure:</strong>{' '}
+                          <strong style={{ color: 'var(--color-accent-green)' }}>
+                            {formatCurrency(
+                              detailData.tenant.totalSpend,
+                              detailData.tenant.currency || 'INR'
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {detailTab === 'users' && (
+                  <div className="table-responsive">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>User Name</th>
+                          <th>Email Address</th>
+                          <th>System Role</th>
+                          <th>Status</th>
+                          <th>Joined Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailData.users.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              style={{
+                                textAlign: 'center',
+                                color: 'var(--color-text-muted)',
+                                padding: '1.5rem',
+                              }}
+                            >
+                              No users registered for this tenant.
+                            </td>
+                          </tr>
+                        ) : (
+                          detailData.users.map((u) => (
+                            <tr key={u.id}>
+                              <td style={{ fontWeight: 600 }}>{u.name}</td>
+                              <td>
+                                <code>{u.email}</code>
+                              </td>
+                              <td>
+                                <span
+                                  className={`badge ${u.role === 'TENANT_ADMIN' ? 'badge-purple' : 'badge-blue'}`}
+                                >
+                                  {u.role}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`badge badge-${u.isActive ? 'green' : 'red'}`}>
+                                  {u.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td>{formatDate(u.createdAt)}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {detailTab === 'vendors' && (
+                  <div className="table-responsive">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Vendor Name</th>
+                          <th>Category</th>
+                          <th>Phone</th>
+                          <th>Email</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailData.vendors.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              style={{
+                                textAlign: 'center',
+                                color: 'var(--color-text-muted)',
+                                padding: '1.5rem',
+                              }}
+                            >
+                              No vendors added for this tenant.
+                            </td>
+                          </tr>
+                        ) : (
+                          detailData.vendors.map((v) => (
+                            <tr key={v.id}>
+                              <td style={{ fontWeight: 600 }}>{v.name}</td>
+                              <td>
+                                <span className="badge badge-blue">{v.category || 'General'}</span>
+                              </td>
+                              <td>{v.phone || '—'}</td>
+                              <td>{v.email || '—'}</td>
+                              <td>
+                                <span className={`badge badge-${v.isActive ? 'green' : 'red'}`}>
+                                  {v.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {detailTab === 'products' && (
+                  <div className="table-responsive">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Product Name</th>
+                          <th>Category</th>
+                          <th>Unit</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailData.products.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              style={{
+                                textAlign: 'center',
+                                color: 'var(--color-text-muted)',
+                                padding: '1.5rem',
+                              }}
+                            >
+                              No products found in catalog for this tenant.
+                            </td>
+                          </tr>
+                        ) : (
+                          detailData.products.map((p) => (
+                            <tr key={p.id}>
+                              <td style={{ fontWeight: 600 }}>{p.name}</td>
+                              <td>
+                                <span className="badge badge-purple">{p.categoryName}</span>
+                              </td>
+                              <td>
+                                <code>{p.unit}</code>
+                              </td>
+                              <td>
+                                <span className={`badge badge-${p.isActive ? 'green' : 'red'}`}>
+                                  {p.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {detailTab === 'purchases' && (
+                  <div className="table-responsive">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Purchase Date</th>
+                          <th>Vendor</th>
+                          <th>Items</th>
+                          <th>Created By</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                          <th>Invoice Receipt</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailData.purchases.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={7}
+                              style={{
+                                textAlign: 'center',
+                                color: 'var(--color-text-muted)',
+                                padding: '1.5rem',
+                              }}
+                            >
+                              No purchases recorded for this tenant.
+                            </td>
+                          </tr>
+                        ) : (
+                          detailData.purchases.map((pur) => (
+                            <tr key={pur.id}>
+                              <td style={{ whiteSpace: 'nowrap' }}>
+                                {formatDate(pur.purchaseDate)}
+                              </td>
+                              <td style={{ fontWeight: 600 }}>{pur.vendorName}</td>
+                              <td>{pur.itemCount} items</td>
+                              <td>{pur.createdByName}</td>
+                              <td
+                                style={{
+                                  fontWeight: 700,
+                                  color: 'var(--color-accent-green)',
+                                }}
+                              >
+                                {formatCurrency(
+                                  pur.totalAmount,
+                                  detailData.tenant.currency || 'INR'
+                                )}
+                              </td>
+                              <td>
+                                <span className="badge badge-green">{pur.status}</span>
+                              </td>
+                              <td>
+                                {pur.invoiceReceiptUrl ? (
+                                  <a
+                                    href={pur.invoiceReceiptUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn btn-sm btn-secondary"
+                                    style={{
+                                      textDecoration: 'none',
+                                      padding: '0.2rem 0.55rem',
+                                      fontSize: '0.75rem',
+                                    }}
+                                  >
+                                    📎 View Receipt
+                                  </a>
+                                ) : (
+                                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                    —
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       )}

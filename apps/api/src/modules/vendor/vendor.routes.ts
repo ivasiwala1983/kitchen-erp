@@ -187,7 +187,7 @@ router.patch(
         action: 'UPDATE',
         entity: 'Vendor',
         entityId: vendor.id,
-        newValues: dto as any,
+        newValues: dto as Record<string, unknown>,
       });
 
       sendSuccess(res, vendor, 'Vendor updated');

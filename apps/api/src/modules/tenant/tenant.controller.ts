@@ -30,6 +30,19 @@ export async function getTenant(req: Request, res: Response, next: NextFunction)
   }
 }
 
+export async function getTenantDetails(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const details = await service.getTenantDetails(String(req.params.id));
+    sendSuccess(res, details);
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function getTenantBySlug(
   req: Request,
   res: Response,
@@ -95,7 +108,7 @@ export async function updateTenant(req: Request, res: Response, next: NextFuncti
       action: 'UPDATE',
       entity: 'Tenant',
       entityId: tenant.id,
-      newValues: dto as any,
+      newValues: dto as Record<string, unknown>,
     });
 
     sendSuccess(res, tenant, 'Tenant updated');

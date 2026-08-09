@@ -31,24 +31,17 @@ export default function TenantDashboardPage() {
         style={{
           background: 'linear-gradient(135deg, var(--forest-green), #14532d)',
           color: 'white',
-          padding: '1.5rem',
+          padding: '1.25rem 1.5rem',
           borderRadius: 16,
           marginBottom: '1.5rem',
+          boxShadow: '0 8px 24px rgba(31, 78, 56, 0.2)',
         }}
       >
-        <div
-          style={{
-            fontSize: '0.875rem',
-            opacity: 0.9,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}
-        >
-          Welcome back
-        </div>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0.25rem 0' }}>{user.name}</h1>
-        <p style={{ fontSize: '0.875rem', opacity: 0.9 }}>
-          Role: <strong>{user.role}</strong> · {tenant?.name || tenantSlug}
+        <h1 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'white' }}>
+          Welcome back, {user.name} 👋
+        </h1>
+        <p style={{ fontSize: '0.875rem', opacity: 0.9, marginTop: '0.35rem', fontWeight: 600 }}>
+          🍳 {tenant?.name || tenantSlug}
         </p>
       </div>
 
@@ -169,39 +162,97 @@ export default function TenantDashboardPage() {
         </Link>
       </div>
 
-      {/* Tenant Meta Summary */}
+      {/* Tenant Meta Summary & Sign Out */}
       <div
         className="pwa-card"
         style={{
-          padding: '1rem',
+          padding: '1rem 1.25rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          gap: '1rem',
         }}
       >
-        <div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Active Kitchen
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: '#f0f4e8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.125rem',
+              flexShrink: 0,
+            }}
+          >
+            🍳
           </div>
-          <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>
-            {tenant?.name || tenantSlug}
+          <div>
+            <div
+              style={{
+                fontSize: '0.6875rem',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}
+            >
+              Active Kitchen
+            </div>
+            <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--text-main)' }}>
+              {tenant?.name || tenantSlug}
+            </div>
           </div>
         </div>
         <button
           onClick={logout}
-          className="pwa-btn"
+          type="button"
           style={{
             background: '#fee2e2',
             color: '#dc2626',
             border: 'none',
-            padding: '0.5rem 1rem',
+            padding: '0.5rem 1.125rem',
             fontSize: '0.8125rem',
-            fontWeight: 700,
-            borderRadius: 8,
+            fontWeight: 800,
+            borderRadius: 10,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
           }}
         >
           Sign Out
         </button>
+      </div>
+
+      {/* Powered by Argusoft Footer */}
+      <div
+        style={{
+          marginTop: '1.5rem',
+          textAlign: 'center',
+          fontSize: '0.78125rem',
+          color: 'var(--text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.35rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span>© {new Date().getFullYear()} Kitchen ERP · Powered by</span>
+        <a
+          href="https://www.argusoft.com"
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            fontWeight: 800,
+            color: 'var(--forest-green)',
+            textDecoration: 'none',
+          }}
+        >
+          Argusoft India Ltd. ↗
+        </a>
       </div>
     </div>
   );

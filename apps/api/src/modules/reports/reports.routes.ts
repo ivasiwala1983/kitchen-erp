@@ -5,7 +5,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { reportRepository, prisma } from '@kitchen-erp/database';
+import { prisma } from '@kitchen-erp/database';
 import { sendSuccess } from '../../shared/response';
 import type { AuthenticatedRequest } from '../../shared/types';
 import { authenticate } from '../../middleware/auth.middleware';
@@ -24,7 +24,7 @@ router.get(
     try {
       const { startDate, endDate, tenantId, vendorId } = req.query;
 
-      const purchaseWhere: any = { deletedAt: null };
+      const purchaseWhere: Record<string, unknown> = { deletedAt: null };
       if (tenantId && String(tenantId).trim()) {
         purchaseWhere.tenantId = String(tenantId).trim();
       }

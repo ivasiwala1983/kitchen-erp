@@ -3,7 +3,7 @@
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
-import type { TenantPublic, UserPublic } from '@kitchen-erp/types';
+import { Role, type TenantPublic, type UserPublic } from '@kitchen-erp/types';
 import Link from 'next/link';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -87,7 +87,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         try {
           const userRes = await api.auth.me();
           if (isMounted && userRes.data) {
-            setUser(userRes.data);
+            if (userRes.data.role !== Role.INVENTORY_MANAGER) {
+              clearTokens();
+              if (isMounted) setUser(null);
+            } else {
+              setUser(userRes.data);
+            }
           }
         } catch {
           clearTokens();
@@ -182,8 +187,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             fontSize: '0.875rem',
           }}
         >
-          No active kitchen tenant found for slug <code>"{tenantSlug}"</code>. Please verify the URL
-          or enter a valid kitchen identifier.
+          No active kitchen tenant found for slug <code>&quot;{tenantSlug}&quot;</code>. Please
+          verify the URL or enter a valid kitchen identifier.
         </p>
         <button
           onClick={() => router.push('/')}
@@ -205,36 +210,53 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           style={{
             background: 'var(--forest-green)',
             color: 'white',
-            padding: '0.75rem 1rem',
+            padding: '0.45rem 1rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+            height: 46,
+            boxSizing: 'border-box',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Link
-              href={`/t/${tenantSlug}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: 'white',
-                textDecoration: 'none',
-                fontWeight: 800,
-                fontSize: '1.125rem',
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>🍳</span>
-              <span>{tenant?.name || tenantSlug}</span>
-            </Link>
-          </div>
+          <Link
+            href={`/t/${tenantSlug}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: 'white',
+              textDecoration: 'none',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={{ fontSize: '1.125rem', lineHeight: 1 }}>🍳</span>
+            <span style={{ fontWeight: 800, fontSize: '0.875rem', letterSpacing: '-0.2px' }}>
+              {tenant?.name || tenantSlug}
+            </span>
+            {user?.name && (
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                  background: 'rgba(255, 255, 255, 0.18)',
+                  color: '#a7f3d0',
+                  padding: '0.15rem 0.45rem',
+                  borderRadius: 6,
+                  marginLeft: 2,
+                }}
+              >
+                {user.name}
+              </span>
+            )}
+          </Link>
 
           <nav
-            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem' }}
           >
             <Link
               href={`/t/${tenantSlug}/purchase`}

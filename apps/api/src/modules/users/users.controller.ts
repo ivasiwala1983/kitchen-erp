@@ -75,7 +75,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
       action: 'UPDATE',
       entity: 'User',
       entityId: user.id,
-      newValues: dto as any,
+      newValues: dto as Record<string, unknown>,
     });
 
     sendSuccess(res, user, 'User updated');

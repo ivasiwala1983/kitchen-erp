@@ -10,6 +10,38 @@ import type { Category, Vendor, Product } from '@kitchen-erp/types';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
 
+function getCategoryPlaceholder(catName?: string): string {
+  if (!catName) return '-- Select product --';
+  const lower = catName.toLowerCase();
+  if (lower.includes('veg')) return '-- e.g. Potato, Tomato, Onion... --';
+  if (lower.includes('fruit')) return '-- e.g. Banana, Mango, Apple... --';
+  if (lower.includes('dairy') || lower.includes('milk'))
+    return '-- e.g. Milk, Cheese, Paneer... --';
+  if (lower.includes('spice') || lower.includes('masala'))
+    return '-- e.g. Turmeric, Cumin, Chili... --';
+  if (
+    lower.includes('meat') ||
+    lower.includes('chicken') ||
+    lower.includes('fish') ||
+    lower.includes('poultry')
+  )
+    return '-- e.g. Chicken, Mutton, Fish... --';
+  if (lower.includes('bakery') || lower.includes('bread'))
+    return '-- e.g. Bread, Buns, Butter... --';
+  if (lower.includes('beverage') || lower.includes('drink'))
+    return '-- e.g. Tea, Coffee, Juice... --';
+  if (lower.includes('oil') || lower.includes('ghee')) return '-- e.g. Cooking Oil, Ghee... --';
+  if (
+    lower.includes('grain') ||
+    lower.includes('rice') ||
+    lower.includes('pulse') ||
+    lower.includes('flour') ||
+    lower.includes('dal')
+  )
+    return '-- e.g. Basmati, Dal, Wheat Flour... --';
+  return `-- e.g. Select product... --`;
+}
+
 export default function PurchaseMobilePage() {
   const router = useRouter();
   const api = useRef(
@@ -33,20 +65,32 @@ export default function PurchaseMobilePage() {
     return `${year}-${month}-${day}`;
   };
 
-  // Format Date for Display
+  // Format Date for Display (DD/MMM/YYYY)
   const formatDateDisplay = (d: Date): string => {
+    const day = String(d.getDate()).padStart(2, '0');
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    const formatted = `${day}/${month}/${year}`;
+
     const today = new Date();
     const isToday =
       d.getFullYear() === today.getFullYear() &&
       d.getMonth() === today.getMonth() &&
       d.getDate() === today.getDate();
-
-    const formatted = d.toLocaleDateString('en-IN', {
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
 
     return isToday ? `Today (${formatted})` : formatted;
   };
@@ -99,12 +143,14 @@ export default function PurchaseMobilePage() {
     }>
   >([]);
 
-  // Invoice Receipt File
+  // Invoice Receipt File & Input Refs
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+  const [tenantName, setTenantName] = useState<string>('');
 
   // Loading & Feedback States
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -122,31 +168,32 @@ export default function PurchaseMobilePage() {
   // 1. Initial Load: Fetch Tenant Profile & Active Categories
   useEffect(() => {
     (async () => {
-      setLoading(true);
       try {
         const [meRes, cRes] = await Promise.all([
           api.auth.me().catch(() => null),
           api.categories.list({ isActive: true, limit: 100 }) as Promise<{ data?: unknown }>,
         ]);
 
-        if (meRes?.data?.tenant?.currency) {
-          setTenantCurrency(meRes.data.tenant.currency);
+        const meData = meRes?.data as
+          { role?: string; tenant?: { name?: string; currency?: string } } | undefined;
+        if (meData?.tenant?.name) {
+          setTenantName(meData.tenant.name);
+        }
+        if (meData?.tenant?.currency) {
+          setTenantCurrency(meData.tenant.currency);
         }
 
         const cObj = cRes as { data?: Category[] };
         const cList: Category[] = Array.isArray(cRes?.data)
           ? (cRes.data as Category[])
           : cObj?.data || [];
-        const sortedCats = [...cList].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-        setCategories(sortedCats);
+        setCategories(cList);
 
-        if (sortedCats.length > 0) {
-          setActiveCategoryId(sortedCats[0].id);
+        if (cList.length > 0) {
+          setActiveCategoryId(cList[0].id);
         }
       } catch {
         setError('Failed to load categories');
-      } finally {
-        setLoading(false);
       }
     })();
   }, []);
@@ -289,23 +336,27 @@ export default function PurchaseMobilePage() {
       <div className="pwa-content">
         {/* 1. Header Bar */}
         <div className="mock-header">
-          <div className="mock-title">Kitchen ERP</div>
+          <div>
+            <div className="mock-title">Kitchen ERP</div>
+            {tenantName && (
+              <div
+                style={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 800,
+                  color: 'var(--forest-green)',
+                  marginTop: 2,
+                }}
+              >
+                {tenantName}
+              </div>
+            )}
+          </div>
           <div className="mock-date">
             <div>Purchase Date</div>
             <div style={{ fontWeight: 800, color: 'var(--forest-green)', fontSize: '0.875rem' }}>
               {formatDateDisplay(selectedDate)}
             </div>
           </div>
-        </div>
-
-        {/* 2. Status Pill Row */}
-        <div className="status-pill-row">
-          <span className="pill-status-green">
-            Role: <strong>Inventory Manager</strong>
-          </span>
-          <span className="pill-status-gray">
-            <span className="dot-indicator" /> {loading ? 'Syncing...' : 'Online'}
-          </span>
         </div>
 
         {/* 3. Fully Interactive & Working Date Selector Card */}
@@ -346,22 +397,41 @@ export default function PurchaseMobilePage() {
             ‹
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
+              style={{
+                fontFamily: 'inherit',
+                fontSize: '0.875rem',
+                fontWeight: 800,
+                color: 'var(--forest-green)',
+                background: '#f8fafc',
+                border: '1.5px solid var(--border)',
+                borderRadius: 10,
+                padding: '0.45rem 0.875rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <span>📅</span>
+              <span>{formatDateDisplay(selectedDate)}</span>
+            </button>
             <input
+              ref={dateInputRef}
               type="date"
               className="pwa-date-input"
               value={formatDateYMD(selectedDate)}
               onChange={handleDateInputChange}
               style={{
-                fontFamily: 'inherit',
-                fontSize: '0.9375rem',
-                fontWeight: 700,
-                color: 'var(--text-main)',
-                background: '#f8fafc',
-                border: '1.5px solid var(--border)',
-                borderRadius: 10,
-                padding: '0.4rem 0.75rem',
-                outline: 'none',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
                 cursor: 'pointer',
               }}
             />
@@ -392,85 +462,84 @@ export default function PurchaseMobilePage() {
           </button>
         </div>
 
-        {/* 4. Display Active Categories (Sorted by Display Order) */}
-        <div
-          style={{
-            marginBottom: '0.5rem',
-            fontWeight: 700,
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}
-        >
-          Select Category
-        </div>
-        <div className="category-chips-row">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              className={`chip-btn ${cat.id === activeCategoryId ? 'active' : 'inactive'}`}
-              onClick={(e) => {
-                setActiveCategoryId(cat.id);
-                e.currentTarget.scrollIntoView({
-                  behavior: 'smooth',
-                  inline: 'center',
-                  block: 'nearest',
-                });
-              }}
-            >
-              {cat.icon ? `${cat.icon} ` : ''}
-              {cat.name}
-            </button>
-          ))}
-        </div>
-
-        {/* 5. Vendor Selection for Category */}
-        <div
-          className="vendor-subtitle"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            margin: '0.75rem 0',
-          }}
-        >
-          <div>
-            {activeCategoryObj
-              ? `${activeCategoryObj.icon || '📁'} ${activeCategoryObj.name.toUpperCase()}`
-              : 'CATEGORY'}{' '}
-            VENDOR:
+        {/* 4. Category & Vendor Selection Card */}
+        <div className="pwa-card" style={{ padding: '1.125rem', marginBottom: '1rem' }}>
+          {/* Category Chips Scroll Row strictly bounded inside card */}
+          <div className="category-chips-row" style={{ marginBottom: '0.875rem' }}>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                className={`chip-btn ${cat.id === activeCategoryId ? 'active' : 'inactive'}`}
+                onClick={(e) => {
+                  setActiveCategoryId(cat.id);
+                  e.currentTarget.scrollIntoView({
+                    behavior: 'smooth',
+                    inline: 'center',
+                    block: 'nearest',
+                  });
+                }}
+              >
+                {cat.icon ? `${cat.icon} ` : ''}
+                {cat.name}
+              </button>
+            ))}
           </div>
-          {vendors.length > 0 ? (
-            <select
+
+          {/* Vendor Selection Row */}
+          <div
+            style={{
+              paddingTop: '0.75rem',
+              borderTop: '1px dashed var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+            }}
+          >
+            <div
               style={{
-                background: '#ffffff',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                padding: '0.375rem 0.625rem',
-                fontSize: '0.8125rem',
-                fontWeight: 700,
+                fontSize: '0.75rem',
+                fontWeight: 800,
                 color: 'var(--forest-green)',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-              value={activeVendor?.id || ''}
-              onChange={(e) => {
-                const v = vendors.find((x) => x.id === e.target.value);
-                if (v) setActiveVendor(v);
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
               }}
             >
-              {vendors.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>
-              No vendors for category
-            </span>
-          )}
+              Vendor / Supplier:
+            </div>
+            {vendors.length > 0 ? (
+              <select
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 10,
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  color: 'var(--forest-green)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  maxWidth: '65%',
+                }}
+                value={activeVendor?.id || ''}
+                onChange={(e) => {
+                  const v = vendors.find((x) => x.id === e.target.value);
+                  if (v) setActiveVendor(v);
+                }}
+              >
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>
+                No vendors for category
+              </span>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -506,27 +575,66 @@ export default function PurchaseMobilePage() {
 
         {/* 6. Product Selection & Quick Entry Card */}
         <div className="add-item-card">
-          <div style={{ marginBottom: '0.5rem' }}>
-            <label
+          <div style={{ marginBottom: '0.75rem' }}>
+            <div
               style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                marginBottom: 4,
-                display: 'block',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 6,
               }}
             >
-              Select Product
-            </label>
+              <label
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Select Product
+              </label>
+              {products.length > 5 && (
+                <span
+                  style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 600 }}
+                >
+                  {filteredProducts.length} of {products.length} products
+                </span>
+              )}
+            </div>
+
+            {products.length > 5 && (
+              <input
+                type="text"
+                className="pwa-input"
+                placeholder={`🔍 Filter ${activeCategoryObj?.name || 'items'}...`}
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                style={{
+                  marginBottom: '0.5rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: 10,
+                }}
+              />
+            )}
+
             <select
               className="item-search-input"
               value={selectedProductId}
-              onChange={(e) => setSelectedProductId(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedProductId(val);
+                if (val) {
+                  setTimeout(() => quantityInputRef.current?.focus(), 50);
+                }
+              }}
             >
-              <option value="">Select product from category...</option>
+              <option value="">{getCategoryPlaceholder(activeCategoryObj?.name)}</option>
               {filteredProducts.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.unit})
+                  {p.name} ({p.unit || 'unit'})
                 </option>
               ))}
             </select>
@@ -537,6 +645,7 @@ export default function PurchaseMobilePage() {
               <span className="input-pill-label">{isWeightUnit ? 'Quantity' : 'Qty'}</span>
               <div className="input-pill-flex">
                 <input
+                  ref={quantityInputRef}
                   type="number"
                   className="pill-input-field"
                   placeholder="0"
@@ -634,45 +743,57 @@ export default function PurchaseMobilePage() {
           </div>
         ))}
 
-        {/* 8. Invoice Upload Section */}
-        <div className="receipts-section-title" style={{ marginTop: '1.25rem' }}>
-          ATTACH INVOICE RECEIPT
-        </div>
-
-        <div
-          style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1.5rem' }}
-        >
-          <div className="receipt-upload-box" onClick={() => fileInputRef.current?.click()}>
+        {/* Subtle, Low-Priority Invoice Receipt Attachment */}
+        <div style={{ margin: '0.75rem 0 1.25rem', textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              background: '#f8fafc',
+              border: '1.5px dashed var(--border)',
+              borderRadius: 10,
+              padding: '0.45rem 0.875rem',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              color: invoiceFile ? 'var(--forest-green)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+            }}
+          >
             <svg
-              width="20"
-              height="20"
+              width="15"
+              height="15"
               fill="none"
-              stroke="var(--text-muted)"
+              stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
             >
               <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
               <circle cx="12" cy="13" r="4" />
             </svg>
-            <span className="receipt-upload-text">Upload Invoice</span>
-          </div>
-
-          {invoiceFile && (
-            <div
-              style={{
-                padding: '0.5rem 0.875rem',
-                background: '#ffffff',
-                borderRadius: 12,
-                border: '1px solid var(--border)',
-                fontSize: '0.8125rem',
-                color: 'var(--forest-green)',
-                fontWeight: 600,
-              }}
-            >
-              ✓ {invoiceFile.name.slice(0, 18)}...
-            </div>
-          )}
-
+            {invoiceFile ? (
+              <>
+                <span>
+                  ✓ {invoiceFile.name.slice(0, 20)}
+                  {invoiceFile.name.length > 20 ? '...' : ''}
+                </span>
+                <span
+                  style={{ color: '#dc2626', marginLeft: 4, fontWeight: 800 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInvoiceFile(null);
+                  }}
+                >
+                  ×
+                </span>
+              </>
+            ) : (
+              <span>📎 Attach Invoice (Optional)</span>
+            )}
+          </button>
           <input
             ref={fileInputRef}
             type="file"

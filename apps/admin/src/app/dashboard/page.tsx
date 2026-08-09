@@ -118,7 +118,28 @@ export default function DashboardPage() {
 
   // ── SUPER ADMIN DASHBOARD VIEW ─────────────────────────────────────────────
   if (user?.role === 'SUPER_ADMIN') {
-    const p = (platformData || {}) as Record<string, any>;
+    const p = (platformData || {}) as {
+      activeTenants?: number;
+      totalTenants?: number;
+      totalPlatformSpend?: number;
+      totalPurchases?: number;
+      totalProducts?: number;
+      totalUsers?: number;
+      totalVendors?: number;
+      tenantsBreakdown?: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        plan: string;
+        userCount: number;
+        vendorCount: number;
+        productCount: number;
+        purchaseCount: number;
+        totalSpend: number;
+        currency?: string;
+      }>;
+      [key: string]: unknown;
+    };
     const tenants = p.tenantsBreakdown || [];
 
     return (
@@ -258,7 +279,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {tenants.map((t: Record<string, any>) => (
+                    {tenants.map((t) => (
                       <tr key={t.id as string}>
                         <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                           {t.name}
@@ -446,7 +467,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {safePurchases.map((purchase: Record<string, any>) => {
+                  {safePurchases.map((purchase: Record<string, unknown>) => {
                     const vendorInfo = purchase.vendor as { name?: string } | undefined;
                     const userInfo = purchase.user as { name?: string } | undefined;
                     const itemsArr = purchase.items as unknown[] | undefined;

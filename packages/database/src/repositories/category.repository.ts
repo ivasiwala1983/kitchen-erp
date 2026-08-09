@@ -62,7 +62,7 @@ export class CategoryRepository {
         where,
         skip: params.skip,
         take: params.take,
-        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+        orderBy: [{ name: 'asc' }],
       }),
       prisma.category.count({ where }),
     ]);

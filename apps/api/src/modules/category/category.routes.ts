@@ -84,6 +84,10 @@ export class CategoryService {
   async list(tenantId: string, page?: number, limit?: number, search?: string, isActive?: boolean) {
     const { page: p, limit: l, skip } = parsePagination(page, limit);
     const { items, total } = await this.repo.findAll(tenantId, { skip, take: l, search, isActive });
+
+    // Sort categories in ascending order by name at service level
+    items.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
     return { data: items, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
@@ -93,13 +97,22 @@ export class CategoryService {
     return category;
   }
 
-  async create(tenantId: string, dto: any, createdBy: string) {
+  async create(
+    tenantId: string,
+    dto: Record<string, unknown> & { name: string },
+    createdBy: string
+  ) {
     const existing = await this.repo.findByName(dto.name, tenantId);
     if (existing) throw new ConflictError(`Category with name "${dto.name}" already exists`);
     return this.repo.create({ ...dto, tenantId, createdBy });
   }
 
-  async update(id: string, tenantId: string, dto: any, updatedBy: string) {
+  async update(
+    id: string,
+    tenantId: string,
+    dto: Record<string, unknown> & { name?: string },
+    updatedBy: string
+  ) {
     const category = await this.getById(id, tenantId);
     if (dto.name && dto.name.toLowerCase() !== category.name.toLowerCase()) {
       const existing = await this.repo.findByName(dto.name, tenantId);
@@ -204,7 +217,7 @@ router.patch(
         action: 'UPDATE',
         entity: 'VendorCategory',
         entityId: category.id,
-        newValues: dto as any,
+        newValues: dto as Record<string, unknown>,
       });
 
       sendSuccess(res, category, 'Category updated');

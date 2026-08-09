@@ -114,8 +114,10 @@ export default function TenantHistoryPage() {
       })
       .then((res) => {
         if (isMounted) {
-          const list = Array.isArray(res.data) ? res.data : (res.data as any)?.data || [];
-          const count = (res as any).total ?? (res.data as any)?.total ?? list.length;
+          const resObj = res as { data?: unknown; total?: number };
+          const dataObj = res.data as { data?: unknown[]; total?: number } | undefined;
+          const list = Array.isArray(res.data) ? res.data : dataObj?.data || [];
+          const count = resObj.total ?? dataObj?.total ?? list.length;
           setPurchases(list as unknown as Record<string, unknown>[]);
           setTotal(count);
         }

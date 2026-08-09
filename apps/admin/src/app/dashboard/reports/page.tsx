@@ -130,7 +130,43 @@ export default function ReportsPage() {
 
   // ── SUPER ADMIN REPORTING VIEW ─────────────────────────────────────────────
   if (user?.role === 'SUPER_ADMIN') {
-    const p = (platformData || {}) as Record<string, any>;
+    const p = (platformData || {}) as {
+      activeTenants?: number;
+      totalTenants?: number;
+      totalPlatformSpend?: number;
+      totalUsers?: number;
+      totalVendors?: number;
+      tenantsBreakdown?: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        plan: string;
+        userCount: number;
+        vendorCount: number;
+        productCount: number;
+        purchaseCount: number;
+        totalSpend: number;
+        currency?: string;
+      }>;
+      tenantsList?: Array<{ id: string; name: string }>;
+      vendorsList?: Array<{ id: string; name: string }>;
+      invoices?: Array<{
+        id: string;
+        purchaseDate: string;
+        tenantName: string;
+        vendorName: string;
+        categoryName?: string;
+        itemCount: number;
+        userName: string;
+        userEmail?: string;
+        status: string;
+        totalAmount: number;
+        grandTotal?: number;
+        currency?: string;
+        [key: string]: unknown;
+      }>;
+      [key: string]: unknown;
+    };
     const tenants = p.tenantsBreakdown || [];
     const tenantsList = p.tenantsList || [];
     const vendorsList = p.vendorsList || [];
@@ -375,7 +411,7 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {invoices.map((inv: Record<string, any>) => (
+                    {invoices.map((inv) => (
                       <tr key={inv.id as string}>
                         <td style={{ whiteSpace: 'nowrap' }}>{formatDate(inv.purchaseDate)}</td>
                         <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
@@ -406,7 +442,7 @@ export default function ReportsPage() {
                             color: 'var(--color-accent-green)',
                           }}
                         >
-                          {formatCurrency(inv.grandTotal, inv.currency || 'INR')}
+                          {formatCurrency(inv.grandTotal || 0, inv.currency || 'INR')}
                         </td>
                       </tr>
                     ))}
@@ -461,7 +497,7 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {tenants.map((t: Record<string, any>) => (
+                    {tenants.map((t) => (
                       <tr key={t.id as string}>
                         <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                           {t.name}
@@ -507,11 +543,11 @@ export default function ReportsPage() {
   }
 
   const totalAmount = data.reduce(
-    (s: number, d: Record<string, any>) => s + (Number(d.totalAmount) || 0),
+    (s: number, d: Record<string, unknown>) => s + (Number(d.totalAmount) || 0),
     0
   );
   const totalPurchases = data.reduce(
-    (s: number, d: Record<string, any>) => s + (Number(d.totalPurchases) || 0),
+    (s: number, d: Record<string, unknown>) => s + (Number(d.totalPurchases) || 0),
     0
   );
 
@@ -631,20 +667,23 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map((row: Record<string, any>, i) => (
+                  {data.map((row: Record<string, unknown>, i) => (
                     <tr key={i}>
                       <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                        {row.date ||
-                          row.vendorName ||
-                          row.categoryName ||
-                          row.productName ||
-                          row.userName}
+                        {String(
+                          row.date ||
+                            row.vendorName ||
+                            row.categoryName ||
+                            row.productName ||
+                            row.userName ||
+                            '—'
+                        )}
                       </td>
-                      {tab === 'product' && <td>{row.unit}</td>}
-                      {tab === 'product' && <td>{row.totalQty}</td>}
-                      {tab !== 'product' && <td>{row.totalPurchases}</td>}
+                      {tab === 'product' && <td>{String(row.unit || '')}</td>}
+                      {tab === 'product' && <td>{Number(row.totalQty || 0)}</td>}
+                      {tab !== 'product' && <td>{Number(row.totalPurchases || 0)}</td>}
                       <td style={{ fontWeight: 700, color: 'var(--color-accent-green)' }}>
-                        {formatCurrency(row.totalAmount)}
+                        {formatCurrency(Number(row.totalAmount || 0))}
                       </td>
                     </tr>
                   ))}

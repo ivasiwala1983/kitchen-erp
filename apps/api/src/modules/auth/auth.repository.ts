@@ -6,11 +6,11 @@
 import { userRepository } from '@kitchen-erp/database';
 
 export class AuthRepository {
-  async findByEmail(email: string): Promise<any> {
+  async findByEmail(email: string): Promise<ReturnType<typeof userRepository.findByEmail>> {
     return userRepository.findByEmail(email);
   }
 
-  async findById(id: string): Promise<any> {
+  async findById(id: string): Promise<ReturnType<typeof userRepository.findById>> {
     return userRepository.findById(id);
   }
 

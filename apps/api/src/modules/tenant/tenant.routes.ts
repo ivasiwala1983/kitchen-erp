@@ -7,6 +7,7 @@ import { Router } from 'express';
 import {
   listTenants,
   getTenant,
+  getTenantDetails,
   getTenantBySlug,
   listPublicTenants,
   createTenant,
@@ -28,6 +29,7 @@ router.get('/by-slug/:slug', getTenantBySlug);
 // Protected tenant management routes (SUPER_ADMIN only)
 router.get('/', authenticate, authorize(Role.SUPER_ADMIN), listTenants);
 router.get('/:id', authenticate, authorize(Role.SUPER_ADMIN), getTenant);
+router.get('/:id/details', authenticate, authorize(Role.SUPER_ADMIN), getTenantDetails);
 router.post('/', authenticate, authorize(Role.SUPER_ADMIN), createTenant);
 router.patch('/:id', authenticate, authorize(Role.SUPER_ADMIN), updateTenant);
 router.patch('/:id/activate', authenticate, authorize(Role.SUPER_ADMIN), activateTenant);

@@ -10,6 +10,38 @@ import type { Category, Vendor, Product } from '@kitchen-erp/types';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
 
+function getCategoryPlaceholder(catName?: string): string {
+  if (!catName) return '-- Select product --';
+  const lower = catName.toLowerCase();
+  if (lower.includes('veg')) return '-- e.g. Potato, Tomato, Onion... --';
+  if (lower.includes('fruit')) return '-- e.g. Banana, Mango, Apple... --';
+  if (lower.includes('dairy') || lower.includes('milk'))
+    return '-- e.g. Milk, Cheese, Paneer... --';
+  if (lower.includes('spice') || lower.includes('masala'))
+    return '-- e.g. Turmeric, Cumin, Chili... --';
+  if (
+    lower.includes('meat') ||
+    lower.includes('chicken') ||
+    lower.includes('fish') ||
+    lower.includes('poultry')
+  )
+    return '-- e.g. Chicken, Mutton, Fish... --';
+  if (lower.includes('bakery') || lower.includes('bread'))
+    return '-- e.g. Bread, Buns, Butter... --';
+  if (lower.includes('beverage') || lower.includes('drink'))
+    return '-- e.g. Tea, Coffee, Juice... --';
+  if (lower.includes('oil') || lower.includes('ghee')) return '-- e.g. Cooking Oil, Ghee... --';
+  if (
+    lower.includes('grain') ||
+    lower.includes('rice') ||
+    lower.includes('pulse') ||
+    lower.includes('flour') ||
+    lower.includes('dal')
+  )
+    return '-- e.g. Basmati, Dal, Wheat Flour... --';
+  return `-- e.g. Select product... --`;
+}
+
 export default function TenantPurchaseMobilePage() {
   const params = useParams();
   const router = useRouter();
@@ -38,20 +70,32 @@ export default function TenantPurchaseMobilePage() {
     return `${year}-${month}-${day}`;
   };
 
-  // Format Date for Display
+  // Format Date for Display (DD/MMM/YYYY)
   const formatDateDisplay = (d: Date): string => {
+    const day = String(d.getDate()).padStart(2, '0');
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    const formatted = `${day}/${month}/${year}`;
+
     const today = new Date();
     const isToday =
       d.getFullYear() === today.getFullYear() &&
       d.getMonth() === today.getMonth() &&
       d.getDate() === today.getDate();
-
-    const formatted = d.toLocaleDateString('en-IN', {
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
 
     return isToday ? `Today (${formatted})` : formatted;
   };
@@ -104,12 +148,14 @@ export default function TenantPurchaseMobilePage() {
     }>
   >([]);
 
-  // Invoice Receipt File
+  // Invoice Receipt File & Input Refs
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+  const [tenantName, setTenantName] = useState<string>('');
 
   // Loading & Feedback States
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -127,31 +173,32 @@ export default function TenantPurchaseMobilePage() {
   // 1. Initial Load: Fetch Tenant Profile & Active Categories
   useEffect(() => {
     (async () => {
-      setLoading(true);
       try {
         const [meRes, cRes] = await Promise.all([
           api.auth.me().catch(() => null),
           api.categories.list({ isActive: true, limit: 100 }) as Promise<{ data?: unknown }>,
         ]);
 
-        if (meRes?.data?.tenant?.currency) {
-          setTenantCurrency(meRes.data.tenant.currency);
+        const meData = meRes?.data as
+          { role?: string; tenant?: { name?: string; currency?: string } } | undefined;
+        if (meData?.tenant?.name) {
+          setTenantName(meData.tenant.name);
+        }
+        if (meData?.tenant?.currency) {
+          setTenantCurrency(meData.tenant.currency);
         }
 
         const cObj = cRes as { data?: Category[] };
         const cList: Category[] = Array.isArray(cRes?.data)
           ? (cRes.data as Category[])
           : cObj?.data || [];
-        const sortedCats = [...cList].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-        setCategories(sortedCats);
+        setCategories(cList);
 
-        if (sortedCats.length > 0) {
-          setActiveCategoryId(sortedCats[0].id);
+        if (cList.length > 0) {
+          setActiveCategoryId(cList[0].id);
         }
       } catch {
         setError('Failed to load categories');
-      } finally {
-        setLoading(false);
       }
     })();
   }, [tenantSlug]);
@@ -288,31 +335,25 @@ export default function TenantPurchaseMobilePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: '60vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <div
-          className="pwa-spinner"
-          style={{ width: 32, height: 32, borderColor: 'var(--forest-green)' }}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="app-shell">
       {/* ── Scrollable Mobile Content ─────────────────────────────────── */}
       <div className="pwa-content">
         {/* 1. Header Bar */}
         <div className="mock-header">
-          <div className="mock-title">Kitchen ERP ({tenantSlug})</div>
+          <div>
+            <div className="mock-title">Kitchen ERP</div>
+            <div
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 800,
+                color: 'var(--forest-green)',
+                marginTop: 2,
+              }}
+            >
+              {tenantName || tenantSlug.toUpperCase()}
+            </div>
+          </div>
           <div className="mock-date">
             <div>Purchase Date</div>
             <div style={{ fontWeight: 800, color: 'var(--forest-green)', fontSize: '0.875rem' }}>
@@ -321,257 +362,464 @@ export default function TenantPurchaseMobilePage() {
           </div>
         </div>
 
-        {/* 2. Date Navigation Controls */}
-        <div className="pwa-card" style={{ margin: '0.75rem 1rem', padding: '0.625rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {/* 3. Fully Interactive & Working Date Selector Card */}
+        <div
+          className="date-selector-card"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#ffffff',
+            padding: '0.625rem 0.875rem',
+            borderRadius: 14,
+            boxShadow: 'var(--shadow-sm)',
+            marginBottom: '1rem',
+          }}
+        >
+          <button
+            type="button"
+            className="date-arrow-btn"
+            onClick={handlePrevDay}
+            title="Previous Day"
+            aria-label="Previous Day"
+            style={{
+              width: 40,
+              height: 40,
+              border: 'none',
+              borderRadius: 10,
+              background: '#f0f4e8',
+              color: 'var(--forest-green)',
+              fontSize: '1.25rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ‹
+          </button>
+
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <button
-              className="pwa-btn pwa-btn-secondary"
-              onClick={handlePrevDay}
-              style={{ flex: 1, padding: '0.5rem' }}
+              type="button"
+              onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
+              style={{
+                fontFamily: 'inherit',
+                fontSize: '0.875rem',
+                fontWeight: 800,
+                color: 'var(--forest-green)',
+                background: '#f8fafc',
+                border: '1.5px solid var(--border)',
+                borderRadius: 10,
+                padding: '0.45rem 0.875rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
             >
-              ◀ Prev Day
+              <span>📅</span>
+              <span>{formatDateDisplay(selectedDate)}</span>
             </button>
             <input
+              ref={dateInputRef}
               type="date"
-              className="pwa-input"
+              className="pwa-date-input"
               value={formatDateYMD(selectedDate)}
               onChange={handleDateInputChange}
-              style={{ flex: 1.5, textAlign: 'center', fontSize: '0.875rem', padding: '0.4rem' }}
-            />
-            <button
-              className="pwa-btn pwa-btn-secondary"
-              onClick={handleNextDay}
-              style={{ flex: 1, padding: '0.5rem' }}
-            >
-              Next Day ▶
-            </button>
-          </div>
-        </div>
-
-        {/* Alerts */}
-        {error && (
-          <div className="pwa-alert pwa-alert-error" style={{ margin: '0 1rem 0.5rem' }}>
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="pwa-alert pwa-alert-success" style={{ margin: '0 1rem 0.5rem' }}>
-            {success}
-          </div>
-        )}
-
-        {/* 3. Category Horizontal Pills */}
-        <div className="category-scroll">
-          {categories.map((cat) => {
-            const isActive = cat.id === activeCategoryId;
-            return (
-              <button
-                key={cat.id}
-                className={`category-pill ${isActive ? 'active' : ''}`}
-                onClick={() => setActiveCategoryId(cat.id)}
-              >
-                <span>{cat.icon || '📦'}</span>
-                <span>{cat.name}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 4. Active Category & Vendor Selection */}
-        {activeCategoryObj && (
-          <div className="category-section">
-            <div className="category-header">
-              <span style={{ fontSize: '1.25rem' }}>{activeCategoryObj.icon || '📦'}</span>
-              <span className="category-title">{activeCategoryObj.name} Category</span>
-            </div>
-
-            <div className="pwa-field" style={{ marginBottom: 0 }}>
-              <label className="pwa-label">Select Vendor / Supplier</label>
-              {vendors.length > 0 ? (
-                <select
-                  className="pwa-select"
-                  value={activeVendor?.id || ''}
-                  onChange={(e) => {
-                    const found = vendors.find((v) => v.id === e.target.value);
-                    setActiveVendor(found || null);
-                  }}
-                >
-                  {vendors.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} {v.phone ? `(${v.phone})` : ''}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div
-                  style={{
-                    fontSize: '0.8125rem',
-                    color: 'var(--text-muted)',
-                    fontStyle: 'italic',
-                    padding: '0.5rem 0',
-                  }}
-                >
-                  No active vendors found for this category.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 5. Product Entry Form */}
-        <div className="form-card">
-          <div className="pwa-field">
-            <label className="pwa-label">Item / Product Name</label>
-            <input
-              type="text"
-              className="pwa-input"
-              placeholder="Search or filter item..."
-              value={productSearch}
-              onChange={(e) => {
-                setProductSearch(e.target.value);
-                setSelectedProductId('');
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                cursor: 'pointer',
               }}
-              style={{ marginBottom: '0.375rem' }}
             />
-            {products.length > 0 ? (
-              <select
-                className="pwa-select"
-                value={selectedProductId}
-                onChange={(e) => setSelectedProductId(e.target.value)}
-              >
-                <option value="">-- Select {activeCategoryObj?.name || 'Item'} --</option>
-                {filteredProducts.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.unit})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div
-                style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontStyle: 'italic' }}
-              >
-                No items available in this category.
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div className="pwa-field" style={{ marginBottom: 0 }}>
-              <label className="pwa-label">Quantity ({currentUnit})</label>
-              <input
-                type="number"
-                step="any"
-                className="pwa-input"
-                placeholder={isWeightUnit ? 'e.g. 5.5' : 'e.g. 10'}
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-              />
-            </div>
-            <div className="pwa-field" style={{ marginBottom: 0 }}>
-              <label className="pwa-label">
-                Rate ({currencySymbol}/{currentUnit})
-              </label>
-              <input
-                type="number"
-                step="any"
-                className="pwa-input"
-                placeholder="e.g. 120"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-              />
-            </div>
           </div>
 
           <button
             type="button"
-            className="pwa-btn pwa-btn-secondary"
-            onClick={handleAddItem}
-            style={{ width: '100%', marginTop: '0.75rem' }}
+            className="date-arrow-btn"
+            onClick={handleNextDay}
+            title="Next Day"
+            aria-label="Next Day"
+            style={{
+              width: 40,
+              height: 40,
+              border: 'none',
+              borderRadius: 10,
+              background: '#f0f4e8',
+              color: 'var(--forest-green)',
+              fontSize: '1.25rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            + Add Line Item
+            ›
           </button>
         </div>
 
-        {/* 6. Invoice Receipt File Upload */}
-        <div className="pwa-card" style={{ margin: '0 1rem 0.75rem', padding: '0.875rem' }}>
+        {/* 4. Category & Vendor Selection Card */}
+        <div className="pwa-card" style={{ padding: '1.125rem', marginBottom: '1rem' }}>
+          {/* Category Chips Scroll Row strictly bounded inside card */}
+          <div className="category-chips-row" style={{ marginBottom: '0.875rem' }}>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                className={`chip-btn ${cat.id === activeCategoryId ? 'active' : 'inactive'}`}
+                onClick={(e) => {
+                  setActiveCategoryId(cat.id);
+                  e.currentTarget.scrollIntoView({
+                    behavior: 'smooth',
+                    inline: 'center',
+                    block: 'nearest',
+                  });
+                }}
+              >
+                {cat.icon ? `${cat.icon} ` : ''}
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Vendor Selection Row */}
           <div
             style={{
-              fontWeight: 700,
-              fontSize: '0.875rem',
-              color: 'var(--text-main)',
-              marginBottom: '0.375rem',
+              paddingTop: '0.75rem',
+              borderTop: '1px dashed var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
             }}
           >
-            Attach Invoice Receipt (Optional)
-          </div>
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            ref={fileInputRef}
-            onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
-            style={{ fontSize: '0.8125rem', width: '100%' }}
-          />
-          {invoiceFile && (
             <div
               style={{
                 fontSize: '0.75rem',
+                fontWeight: 800,
                 color: 'var(--forest-green)',
-                fontWeight: 600,
-                marginTop: 4,
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
               }}
             >
-              Selected: {invoiceFile.name} ({(invoiceFile.size / 1024).toFixed(1)} KB)
+              Vendor / Supplier:
+            </div>
+            {vendors.length > 0 ? (
+              <select
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 10,
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  color: 'var(--forest-green)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  maxWidth: '65%',
+                }}
+                value={activeVendor?.id || ''}
+                onChange={(e) => {
+                  const v = vendors.find((x) => x.id === e.target.value);
+                  if (v) setActiveVendor(v);
+                }}
+              >
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>
+                No vendors for category
+              </span>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              padding: '0.625rem 0.875rem',
+              background: '#fee2e2',
+              color: '#dc2626',
+              borderRadius: 10,
+              fontSize: '0.8125rem',
+              marginBottom: '0.75rem',
+              fontWeight: 600,
+            }}
+          >
+            {error}
+          </div>
+        )}
+        {success && (
+          <div
+            style={{
+              padding: '0.625rem 0.875rem',
+              background: '#d1fae5',
+              color: '#059669',
+              borderRadius: 10,
+              fontSize: '0.8125rem',
+              marginBottom: '0.75rem',
+              fontWeight: 600,
+            }}
+          >
+            {success}
+          </div>
+        )}
+
+        {/* 6. Product Selection & Quick Entry Card */}
+        <div className="add-item-card">
+          <div style={{ marginBottom: '0.75rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 6,
+              }}
+            >
+              <label
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Select Product
+              </label>
+              {products.length > 5 && (
+                <span
+                  style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 600 }}
+                >
+                  {filteredProducts.length} of {products.length} products
+                </span>
+              )}
+            </div>
+
+            {products.length > 5 && (
+              <input
+                type="text"
+                className="pwa-input"
+                placeholder={`🔍 Filter ${activeCategoryObj?.name || 'items'}...`}
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                style={{
+                  marginBottom: '0.5rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: 10,
+                }}
+              />
+            )}
+
+            <select
+              className="item-search-input"
+              value={selectedProductId}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedProductId(val);
+                if (val) {
+                  setTimeout(() => quantityInputRef.current?.focus(), 50);
+                }
+              }}
+            >
+              <option value="">{getCategoryPlaceholder(activeCategoryObj?.name)}</option>
+              {filteredProducts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.unit || 'unit'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="inputs-row">
+            <div className="input-pill-box">
+              <span className="input-pill-label">{isWeightUnit ? 'Quantity' : 'Qty'}</span>
+              <div className="input-pill-flex">
+                <input
+                  ref={quantityInputRef}
+                  type="number"
+                  className="pill-input-field"
+                  placeholder="0"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  step="0.01"
+                />
+                <span className="pill-suffix">{currentUnit}</span>
+              </div>
+            </div>
+
+            <div className="input-pill-box">
+              <span className="input-pill-label">Rate</span>
+              <div className="input-pill-flex">
+                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  {currencySymbol}
+                </span>
+                <input
+                  type="number"
+                  className="pill-input-field"
+                  placeholder="0"
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                  step="0.01"
+                />
+                <span className="pill-suffix">/{currentUnit}</span>
+              </div>
+            </div>
+
+            <button className="btn-add-plus" onClick={handleAddItem}>
+              +
+            </button>
+          </div>
+
+          {/* Instant Qty * Rate Preview */}
+          {weight && rate && (
+            <div
+              style={{
+                marginTop: '0.5rem',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                color: 'var(--forest-green)',
+                textAlign: 'right',
+              }}
+            >
+              Subtotal: {formatCurrency(parseFloat(weight) * parseFloat(rate), tenantCurrency)}
             </div>
           )}
         </div>
 
-        {/* 7. Added Line Items List */}
-        <div className="items-list-container">
-          <div className="items-list-header">Added Items ({addedItems.length})</div>
+        {/* 7. Added Purchase Items (Receipt Rows) */}
+        {addedItems.length > 0 && (
+          <div
+            style={{
+              margin: '1rem 0 0.5rem 0',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}
+          >
+            Purchase Items ({addedItems.length})
+          </div>
+        )}
 
-          {addedItems.length === 0 ? (
-            <div className="empty-state">
-              <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>🛒</div>
-              <div>No items added to this purchase yet.</div>
-              <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                Select items above and tap "+ Add Line Item"
+        {addedItems.map((item, index) => (
+          <div key={index} className="added-item-card">
+            <div className="added-item-header">
+              <div>
+                <span className="added-item-title">{item.name}</span>
+                <span className="added-item-sub">Item #{index + 1}</span>
               </div>
+              <button className="btn-remove-item" onClick={() => handleRemoveItem(index)}>
+                ×
+              </button>
             </div>
-          ) : (
-            addedItems.map((item, index) => (
-              <div key={index} className="item-row">
-                <div className="item-details">
-                  <div className="item-name">{item.name}</div>
-                  <div className="item-sub">
-                    {item.qty} {item.unit} × {formatCurrency(item.rate, tenantCurrency)}
-                  </div>
-                </div>
-                <div className="item-total-col">
-                  <div className="item-total">{formatCurrency(item.total, tenantCurrency)}</div>
-                  <button className="item-remove-btn" onClick={() => handleRemoveItem(index)}>
-                    Remove
-                  </button>
-                </div>
+
+            <div className="added-item-row">
+              <div className="added-pill-box">
+                <span>{item.qty}</span>
+                <span className="pill-suffix">{item.unit}</span>
               </div>
-            ))
-          )}
+
+              <div className="added-pill-box">
+                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                  {currencySymbol}
+                </span>
+                <span>{item.rate}</span>
+                <span className="pill-suffix">/{item.unit}</span>
+              </div>
+
+              <div className="item-row-total">{formatCurrency(item.total, tenantCurrency)}</div>
+            </div>
+          </div>
+        ))}
+
+        {/* Subtle, Low-Priority Invoice Receipt Attachment */}
+        <div style={{ margin: '0.75rem 0 1.25rem', textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              background: '#f8fafc',
+              border: '1.5px dashed var(--border)',
+              borderRadius: 10,
+              padding: '0.45rem 0.875rem',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              color: invoiceFile ? 'var(--forest-green)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <svg
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            {invoiceFile ? (
+              <>
+                <span>
+                  ✓ {invoiceFile.name.slice(0, 20)}
+                  {invoiceFile.name.length > 20 ? '...' : ''}
+                </span>
+                <span
+                  style={{ color: '#dc2626', marginLeft: 4, fontWeight: 800 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInvoiceFile(null);
+                  }}
+                >
+                  ×
+                </span>
+              </>
+            ) : (
+              <span>📎 Attach Invoice (Optional)</span>
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            style={{ display: 'none' }}
+            onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+          />
         </div>
       </div>
 
-      {/* ── 8. Sticky Ticket Summary Badge Bar ────────────────────────── */}
-      <div className="ticket-badge-bar">
+      {/* ── 9. Sticky Sawtooth Bottom Grand Total Bar ─────────────────────── */}
+      <div className="bottom-ticket-bar">
         <div
-          className={`ticket-badge-card ${addedItems.length > 0 ? 'clickable' : ''}`}
-          onClick={() => {
-            if (addedItems.length > 0 && !saving) {
-              handleSavePurchase();
-            }
-          }}
+          className="ticket-container"
+          onClick={handleSavePurchase}
+          style={{ cursor: 'pointer' }}
         >
-          <div className="ticket-badge-content">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div className="ticket-badge-icon">🧾</div>
-              <div className="ticket-badge-title">
+          <div className="ticket-flex">
+            <div>
+              <div className="ticket-label">
+                VENDOR · {activeVendor?.name ? activeVendor.name.toUpperCase() : 'NONE'}
+              </div>
+              <div className="ticket-sub">
                 {saving
                   ? 'Saving Purchase...'
                   : `${addedItems.length} item${addedItems.length === 1 ? '' : 's'} (Tap to Submit Purchase)`}
@@ -582,7 +830,7 @@ export default function TenantPurchaseMobilePage() {
         </div>
       </div>
 
-      {/* ── 9. Bottom Navigation Bar ──────────────────────────────── */}
+      {/* ── 10. Bottom Navigation Bar ──────────────────────────────── */}
       <nav className="bottom-nav">
         <Link href={`/t/${tenantSlug}/purchase`} className="bottom-nav-item active">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

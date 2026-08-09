@@ -174,28 +174,35 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Powered by Argusoft Footer */}
         <div
-          className="login-hint"
           style={{
-            marginTop: '1.5rem',
-            background: '#f8fafc',
-            padding: '0.75rem',
-            borderRadius: 8,
+            marginTop: '2rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--color-border)',
+            textAlign: 'center',
             fontSize: '0.8125rem',
+            color: 'var(--color-text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.35rem',
+            flexWrap: 'wrap',
           }}
         >
-          <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-            Default Credentials:
-          </div>
-          <div>
-            Super Admin: <code>super@kitchenerp.com</code> / <code>SuperAdmin@123</code>
-          </div>
-          <div>
-            Test Tenant Admin: <code>admin@test.com</code> / <code>TenantAdmin@123</code>
-          </div>
-          <div>
-            Demo Tenant Admin: <code>admin@demo.kitchenerp.com</code> / <code>TenantAdmin@123</code>
-          </div>
+          <span>© {new Date().getFullYear()} Kitchen ERP · Powered by</span>
+          <a
+            href="https://www.argusoft.com"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              fontWeight: 700,
+              color: 'var(--color-brand-light, #6366f1)',
+              textDecoration: 'none',
+            }}
+          >
+            Argusoft India Ltd. ↗
+          </a>
         </div>
       </div>
 
