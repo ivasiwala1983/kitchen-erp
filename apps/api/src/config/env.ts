@@ -50,11 +50,10 @@ export const config = {
   // CORS
   corsOrigin: (process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:3001').split(','),
 
-  // SeaweedFS
-  seaweedMasterUrl: process.env.SEAWEEDFS_MASTER_URL || 'http://localhost:9333',
-  seaweedPublicUrl: process.env.SEAWEEDFS_PUBLIC_URL || 'http://localhost:8080',
-  seaweedFallbackLocal: process.env.SEAWEEDFS_FALLBACK_LOCAL === 'true',
-  uploadsDir: process.env.UPLOADS_DIR || './uploads',
+  // Supabase Storage
+  supabaseUrl: process.env.SUPABASE_URL || '',
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  supabaseStorageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'kitchen-erp-invoices',
 
   // Multi-Tenant Configuration
   tenantMode: (process.env.TENANT_MODE || 'path') as 'path' | 'subdomain',

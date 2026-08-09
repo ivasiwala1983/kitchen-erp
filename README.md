@@ -124,9 +124,11 @@ pnpm install
    ```env
    DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:6543/postgres?pgbouncer=true"
    DIRECT_URL="postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres"
+   SUPABASE_URL="https://[YOUR_SUPABASE_PROJECT_REF].supabase.co"
+   SUPABASE_SERVICE_ROLE_KEY="your-supabase-service-role-key"
+   SUPABASE_STORAGE_BUCKET="kitchen-erp-invoices"
    JWT_SECRET="your-super-secret-jwt-key-min-32-chars"
    APP_DOMAIN="localhost"
-   SEAWEED_URL="http://localhost:9333"
    ```
 
 3. App-specific environment variables are located in local `.env.local` files:
@@ -138,7 +140,10 @@ pnpm install
 
 ## 🐘 How Supabase & Prisma Work
 
-- **Supabase Usage**: Supabase is used **strictly as a PostgreSQL database host**. Supabase Auth, Storage, and Realtime services are not used.
+- **Supabase PostgreSQL & Storage**: Supabase acts as both our hosted PostgreSQL database and private file storage provider.
+  - **Supabase Storage**: Private bucket (`kitchen-erp-invoices`) handles encrypted, tenant-isolated invoice file attachments with short-lived signed URLs.
+  - **Storage Provider Abstraction**: A modular `StorageProvider` interface keeps business logic storage-agnostic.
+- **Single Prisma Schema**: All database models belong to `packages/database/prisma/schema.prisma`.
 - **Single Prisma Schema**: All database models belong to `prisma/schema.prisma`.
 - **Dual-Connection Configuration**:
   - `DATABASE_URL`: Connection pooler (Port 6543) for runtime query execution.

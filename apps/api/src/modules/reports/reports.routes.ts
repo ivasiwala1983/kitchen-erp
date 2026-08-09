@@ -140,7 +140,12 @@ router.get(
         grandTotal: Number(p.grandTotal),
         status: p.status,
         notes: p.notes,
-        invoiceUrl: p.invoiceUrl,
+        invoiceUrl:
+          p.invoiceUrl || (p.invoiceStoragePath ? `/api/purchases/${p.id}/invoice` : null),
+        invoiceFileName: p.invoiceFileName,
+        invoiceMimeType: p.invoiceMimeType,
+        invoiceSize: p.invoiceSize,
+        invoiceUploadedAt: p.invoiceUploadedAt,
         items: p.items.map((i) => ({
           id: i.id,
           productName: i.product?.name || 'Item',

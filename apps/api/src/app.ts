@@ -7,7 +7,6 @@ import 'express-async-errors';
 import express, { RequestHandler } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import path from 'path';
 import rateLimit from 'express-rate-limit';
 
 import { config } from './config/env';
@@ -84,11 +83,6 @@ if (config.isDev) {
   app.use(morgan('dev'));
 } else {
   app.use(morgan('combined'));
-}
-
-// Static file serving (local invoice uploads)
-if (config.seaweedFallbackLocal) {
-  app.use('/uploads', express.static(path.resolve(config.uploadsDir)));
 }
 
 // ── Routes ────────────────────────────────────────────────────

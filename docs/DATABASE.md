@@ -134,18 +134,23 @@ Raw kitchen materials (e.g., Basmati Rice, Milk, Sunflower Oil).
 
 Purchase order header.
 
-| Field          | Type           | Constraints                              | Description                      |
-| -------------- | -------------- | ---------------------------------------- | -------------------------------- |
-| `id`           | String (UUID)  | PK                                       | Primary Key                      |
-| `tenantId`     | String (UUID)  | FK -> `Tenant.id`                        | Multi-tenant scope               |
-| `vendorId`     | String (UUID)  | FK -> `Vendor.id`                        | Supplier                         |
-| `userId`       | String (UUID)  | FK -> `User.id`                          | Creator (Inventory Manager)      |
-| `grandTotal`   | Decimal(12,2)  | Required                                 | Auto-computed sum of item totals |
-| `status`       | PurchaseStatus | Enum (`DRAFT`, `CONFIRMED`, `CANCELLED`) | Order status                     |
-| `invoiceUrl`   | String?        | Optional                                 | SeaweedFS/Local URL              |
-| `invoiceFid`   | String?        | Optional                                 | SeaweedFS File ID                |
-| `notes`        | String?        | Optional                                 | Remarks                          |
-| `purchaseDate` | DateTime       | Default `now()`                          | Transaction date                 |
+| Field                | Type           | Constraints                              | Description                                  |
+| -------------------- | -------------- | ---------------------------------------- | -------------------------------------------- |
+| `id`                 | String (UUID)  | PK                                       | Primary Key                                  |
+| `tenantId`           | String (UUID)  | FK -> `Tenant.id`                        | Multi-tenant scope                           |
+| `vendorId`           | String (UUID)  | FK -> `Vendor.id`                        | Supplier                                     |
+| `userId`             | String (UUID)  | FK -> `User.id`                          | Creator (Inventory Manager)                  |
+| `grandTotal`         | Decimal(12,2)  | Required                                 | Auto-computed sum of item totals             |
+| `status`             | PurchaseStatus | Enum (`DRAFT`, `CONFIRMED`, `CANCELLED`) | Order status                                 |
+| `invoiceUrl`         | String?        | Optional                                 | API Proxy URL (`/api/purchases/:id/invoice`) |
+| `invoiceStoragePath` | String?        | Optional                                 | Supabase Storage object path                 |
+| `invoiceFileName`    | String?        | Optional                                 | Original filename                            |
+| `invoiceMimeType`    | String?        | Optional                                 | File MIME type (e.g. `application/pdf`)      |
+| `invoiceSize`        | Int?           | Optional                                 | File size in bytes                           |
+| `invoiceUploadedAt`  | DateTime?      | Optional                                 | Upload timestamp                             |
+| `invoiceUploadedBy`  | String (UUID)? | FK -> `User.id`                          | User who uploaded the invoice                |
+| `notes`              | String?        | Optional                                 | Remarks                                      |
+| `purchaseDate`       | DateTime       | Default `now()`                          | Transaction date                             |
 
 ---
 

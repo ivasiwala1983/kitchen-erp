@@ -30,6 +30,12 @@ export interface UpdatePurchaseDto {
   status?: PurchaseStatus;
   invoiceUrl?: string | null;
   invoiceFid?: string | null;
+  invoiceStoragePath?: string | null;
+  invoiceFileName?: string | null;
+  invoiceMimeType?: string | null;
+  invoiceSize?: number | null;
+  invoiceUploadedAt?: Date | null;
+  invoiceUploadedBy?: string | null;
   updatedBy?: string;
 }
 
@@ -180,6 +186,14 @@ export class PurchaseRepository {
           ...(dto.status && { status: dto.status }),
           ...(dto.invoiceUrl !== undefined && { invoiceUrl: dto.invoiceUrl }),
           ...(dto.invoiceFid !== undefined && { invoiceFid: dto.invoiceFid }),
+          ...(dto.invoiceStoragePath !== undefined && {
+            invoiceStoragePath: dto.invoiceStoragePath,
+          }),
+          ...(dto.invoiceFileName !== undefined && { invoiceFileName: dto.invoiceFileName }),
+          ...(dto.invoiceMimeType !== undefined && { invoiceMimeType: dto.invoiceMimeType }),
+          ...(dto.invoiceSize !== undefined && { invoiceSize: dto.invoiceSize }),
+          ...(dto.invoiceUploadedAt !== undefined && { invoiceUploadedAt: dto.invoiceUploadedAt }),
+          ...(dto.invoiceUploadedBy !== undefined && { invoiceUploadedBy: dto.invoiceUploadedBy }),
           ...(dto.updatedBy && { updatedBy: dto.updatedBy }),
         },
         include: {

@@ -127,6 +127,27 @@ export interface UpdatePurchaseDto {
   status?: PurchaseStatus;
 }
 
+export interface InvoiceUploadResponse {
+  purchaseId: string;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string | Date;
+  signedUrl: string;
+  invoiceUrl: string;
+}
+
+export interface InvoiceMetadataResponse {
+  purchaseId: string;
+  fileName: string | null;
+  mimeType: string | null;
+  size: number | null;
+  uploadedAt: string | Date | null;
+  signedUrl: string;
+  invoiceUrl: string;
+}
+
 export interface CreatePaymentDto {
   vendorId: string;
   amount: number;

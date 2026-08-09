@@ -38,6 +38,8 @@ import type {
   LedgerSummary,
   CreatePaymentDto,
   LedgerQueryParams,
+  InvoiceUploadResponse,
+  InvoiceMetadataResponse,
 } from '@kitchen-erp/types';
 
 // ── Token Storage ─────────────────────────────────────────────
@@ -354,11 +356,19 @@ export class KitchenErpApi {
       const formData = new FormData();
       formData.append('invoice', file);
       return this.client
-        .post<ApiResponse<{ invoiceUrl: string }>>(`/purchases/${id}/invoice`, formData, {
+        .post<ApiResponse<InvoiceUploadResponse>>(`/purchases/${id}/invoice`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         .then((r) => r.data);
     },
+
+    getInvoice: (id: string) =>
+      this.client
+        .get<ApiResponse<InvoiceMetadataResponse>>(`/purchases/${id}/invoice`)
+        .then((r) => r.data),
+
+    deleteInvoice: (id: string) =>
+      this.client.delete<ApiResponse<void>>(`/purchases/${id}/invoice`).then((r) => r.data),
   };
 
   reports = {

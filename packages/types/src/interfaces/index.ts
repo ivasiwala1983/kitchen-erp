@@ -120,6 +120,17 @@ export interface PurchaseItemPublic {
   total: number;
 }
 
+export interface InvoiceMetadata {
+  purchaseId: string;
+  storagePath: string | null;
+  fileName: string | null;
+  mimeType: string | null;
+  size: number | null;
+  uploadedAt: string | Date | null;
+  uploadedBy?: string | null;
+  signedUrl?: string | null;
+}
+
 export interface PurchasePublic {
   id: string;
   tenantId: string;
@@ -130,6 +141,12 @@ export interface PurchasePublic {
   grandTotal: number;
   invoiceUrl?: string | null;
   invoiceFid?: string | null;
+  invoiceStoragePath?: string | null;
+  invoiceFileName?: string | null;
+  invoiceMimeType?: string | null;
+  invoiceSize?: number | null;
+  invoiceUploadedAt?: string | Date | null;
+  invoiceUploadedBy?: string | null;
   notes?: string | null;
   status: PurchaseStatus;
   purchaseDate: string | Date;

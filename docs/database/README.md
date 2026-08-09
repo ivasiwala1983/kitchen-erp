@@ -5,7 +5,7 @@
 The Kitchen ERP monorepo utilizes Supabase strictly as a hosted PostgreSQL database.
 
 > [!NOTE]
-> Supabase Auth, Storage, and Realtime services are not used.
+> Supabase is utilized for PostgreSQL database hosting and private file storage (`kitchen-erp-invoices`). Supabase Auth and Realtime services are not used.
 
 ### Prisma Dual-URL Connection Setup
 

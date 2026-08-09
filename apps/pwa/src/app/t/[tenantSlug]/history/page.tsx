@@ -134,6 +134,14 @@ export default function TenantHistoryPage() {
     };
   }, [api, page, dateRange]);
 
+  function getInvoiceUrl(url?: string | null): string | null {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+    const origin = apiBase.replace(/\/api\/?$/, '');
+    return `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
@@ -373,10 +381,10 @@ export default function TenantHistoryPage() {
                         );
                       })}
 
-                      {p.invoiceUrl ? (
+                      {p.invoiceUrl && getInvoiceUrl(p.invoiceUrl as string) ? (
                         <div style={{ marginTop: '0.75rem' }}>
                           <a
-                            href={String(p.invoiceUrl)}
+                            href={getInvoiceUrl(p.invoiceUrl as string)!}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="pwa-btn pwa-btn-secondary"

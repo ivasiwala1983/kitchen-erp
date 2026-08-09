@@ -432,6 +432,73 @@ export default function PurchasesPage() {
               </div>
             )}
 
+            {/* Invoice File Metadata Info */}
+            {Boolean(
+              (selected as unknown as Record<string, unknown>).invoiceFileName ||
+              (selected as unknown as Record<string, unknown>).invoiceUrl
+            ) && (
+              <div
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--color-bg-secondary)',
+                  border: '1px solid var(--color-border)',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      color: 'var(--color-text-primary)',
+                    }}
+                  >
+                    📄{' '}
+                    {((selected as unknown as Record<string, unknown>).invoiceFileName as string) ||
+                      'Attached Invoice'}
+                  </div>
+                  {(selected as unknown as Record<string, unknown>).invoiceSize ? (
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      Size:{' '}
+                      {(
+                        ((selected as unknown as Record<string, unknown>).invoiceSize as number) /
+                        1024
+                      ).toFixed(1)}{' '}
+                      KB
+                      {Boolean(
+                        (selected as unknown as Record<string, unknown>).invoiceUploadedAt
+                      ) &&
+                        ` • Uploaded ${new Date((selected as unknown as Record<string, unknown>).invoiceUploadedAt as string).toLocaleDateString()}`}
+                    </div>
+                  ) : null}
+                </div>
+                {getInvoiceUrl(
+                  (selected as unknown as Record<string, unknown>).invoiceUrl as string
+                ) && (
+                  <a
+                    href={getInvoiceUrl(
+                      (selected as unknown as Record<string, unknown>).invoiceUrl as string
+                    )!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-secondary"
+                  >
+                    📥 Download
+                  </a>
+                )}
+              </div>
+            )}
+
             {/* Action Bar */}
             <div
               style={{

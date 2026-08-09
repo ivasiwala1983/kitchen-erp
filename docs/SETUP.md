@@ -49,9 +49,9 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5434/kitchen_erp?schema=p
 JWT_SECRET="kitchen-erp-super-secret-jwt-key-2026-change-in-prod"
 JWT_REFRESH_SECRET="kitchen-erp-super-secret-refresh-key-2026-change-in-prod"
 API_PORT=4000
-NEXT_PUBLIC_API_URL="http://localhost:4000/api"
-SEAWEEDFS_FALLBACK_LOCAL="true"
-UPLOADS_DIR="./uploads"
+SUPABASE_URL="https://[YOUR_SUPABASE_PROJECT_REF].supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="your-supabase-service-role-key"
+SUPABASE_STORAGE_BUCKET="kitchen-erp-invoices"
 ```
 
 ---
