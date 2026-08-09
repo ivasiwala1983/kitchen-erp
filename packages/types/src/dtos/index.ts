@@ -1,4 +1,4 @@
-import { Role, TenantPlan, PurchaseStatus } from '../enums';
+import { Role, TenantPlan, PurchaseStatus, PaymentMethod, LedgerTransactionType } from '../enums';
 
 export interface LoginDto {
   email: string;
@@ -125,4 +125,25 @@ export interface UpdatePurchaseDto {
   vendorId?: string;
   notes?: string;
   status?: PurchaseStatus;
+}
+
+export interface CreatePaymentDto {
+  vendorId: string;
+  amount: number;
+  paymentDate?: string;
+  paymentMethod: PaymentMethod;
+  reference?: string;
+  note?: string;
+}
+
+export interface LedgerQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  vendorId?: string;
+  categoryId?: string;
+  type?: LedgerTransactionType;
+  paymentMethod?: PaymentMethod;
+  startDate?: string;
+  endDate?: string;
 }

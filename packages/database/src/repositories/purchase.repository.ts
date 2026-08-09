@@ -3,8 +3,9 @@
  * Encapsulates all Purchase data access queries.
  */
 
-import { Prisma, Purchase, PurchaseStatus } from '@prisma/client';
+import { Prisma, Purchase, PurchaseStatus, LedgerTransactionType } from '@prisma/client';
 import { prisma } from '../client/prisma';
+import { ledgerRepository } from './ledger.repository';
 
 export interface PurchaseItemInput {
   productId: string;
@@ -101,28 +102,52 @@ export class PurchaseRepository {
 
     const grandTotal = preparedItems.reduce((acc, curr) => acc + curr.total, 0);
 
-    return prisma.purchase.create({
-      data: {
-        tenantId: dto.tenantId,
-        vendorId: dto.vendorId,
-        userId: dto.userId,
-        grandTotal,
-        notes: dto.notes || null,
-        status: dto.status || PurchaseStatus.CONFIRMED,
-        purchaseDate: dto.purchaseDate || new Date(),
-        createdBy: dto.userId,
-        updatedBy: dto.userId,
-        items: {
-          createMany: {
-            data: preparedItems,
+    return prisma.$transaction(async (tx) => {
+      // 1. Create Purchase record with items
+      const purchase = await tx.purchase.create({
+        data: {
+          tenantId: dto.tenantId,
+          vendorId: dto.vendorId,
+          userId: dto.userId,
+          grandTotal,
+          notes: dto.notes || null,
+          status: dto.status || PurchaseStatus.CONFIRMED,
+          purchaseDate: dto.purchaseDate || new Date(),
+          createdBy: dto.userId,
+          updatedBy: dto.userId,
+          items: {
+            createMany: {
+              data: preparedItems,
+            },
           },
         },
-      },
-      include: {
-        vendor: { include: { category: true } },
-        user: { select: { id: true, name: true, email: true, role: true } },
-        items: { include: { product: { include: { category: true } } } },
-      },
+        include: {
+          vendor: { include: { category: true } },
+          user: { select: { id: true, name: true, email: true, role: true } },
+          items: { include: { product: { include: { category: true } } } },
+        },
+      });
+
+      // 2. Ensure LedgerAccount exists for Tenant + Vendor
+      const account = await ledgerRepository.findOrCreateAccount(dto.tenantId, dto.vendorId, tx);
+
+      // 3. Create LedgerTransaction atomically
+      await tx.ledgerTransaction.create({
+        data: {
+          tenantId: dto.tenantId,
+          ledgerAccountId: account.id,
+          vendorId: dto.vendorId,
+          type: LedgerTransactionType.PURCHASE,
+          amount: grandTotal,
+          referenceType: 'PURCHASE',
+          referenceId: purchase.id,
+          transactionDate: purchase.purchaseDate,
+          note: dto.notes || null,
+          createdBy: dto.userId,
+        },
+      });
+
+      return purchase;
     });
   }
 

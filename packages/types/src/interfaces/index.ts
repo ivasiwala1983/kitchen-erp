@@ -1,4 +1,11 @@
-import { Role, TenantPlan, PurchaseStatus } from '../enums';
+import {
+  Role,
+  TenantPlan,
+  PurchaseStatus,
+  LedgerTransactionType,
+  PaymentMethod,
+  LedgerAccountStatus,
+} from '../enums';
 
 export interface JwtPayload {
   userId?: string;
@@ -196,6 +203,61 @@ export interface ManagerReportItem {
   totalAmount: number;
 }
 
+export interface LedgerAccountPublic {
+  id: string;
+  tenantId: string;
+  vendorId: string;
+  vendor?: VendorPublic;
+  openingBalance: number;
+  status: LedgerAccountStatus;
+  currentBalance: number;
+  isVendorCredit: boolean;
+  absBalance: number;
+  lastTransactionDate?: string | Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface LedgerTransactionPublic {
+  id: string;
+  tenantId: string;
+  ledgerAccountId: string;
+  vendorId: string;
+  type: LedgerTransactionType;
+  amount: number;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  transactionDate: string | Date;
+  paymentMethod?: PaymentMethod | null;
+  note?: string | null;
+  createdBy?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface VendorPaymentPublic {
+  id: string;
+  tenantId: string;
+  vendorId: string;
+  vendor?: VendorPublic;
+  ledgerAccountId: string;
+  amount: number;
+  paymentDate: string | Date;
+  paymentMethod: PaymentMethod;
+  reference?: string | null;
+  note?: string | null;
+  createdBy?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface LedgerSummary {
+  totalPayable: number;
+  totalCredit: number;
+  vendorCount: number;
+  netBalance: number;
+}
+
 // Convenient type aliases
 export type Category = CategoryPublic;
 export type Vendor = VendorPublic;
@@ -204,3 +266,6 @@ export type Tenant = TenantPublic;
 export type User = UserPublic;
 export type Purchase = PurchasePublic;
 export type PurchaseItem = PurchaseItemPublic;
+export type LedgerAccount = LedgerAccountPublic;
+export type LedgerTransaction = LedgerTransactionPublic;
+export type VendorPayment = VendorPaymentPublic;

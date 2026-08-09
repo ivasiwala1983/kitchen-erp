@@ -37,10 +37,31 @@ export default function TenantDashboardPage() {
           boxShadow: '0 8px 24px rgba(31, 78, 56, 0.2)',
         }}
       >
-        <h1 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'white' }}>
+        <h1
+          style={{
+            fontSize: '1.25rem',
+            fontWeight: 800,
+            margin: 0,
+            color: 'white',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+          title={`Welcome back, ${user.name} 👋`}
+        >
           Welcome back, {user.name} 👋
         </h1>
-        <p style={{ fontSize: '0.875rem', opacity: 0.9, marginTop: '0.35rem', fontWeight: 600 }}>
+        <p
+          style={{
+            fontSize: '0.875rem',
+            opacity: 0.9,
+            marginTop: '0.35rem',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           🍳 {tenant?.name || tenantSlug}
         </p>
       </div>
@@ -113,6 +134,27 @@ export default function TenantDashboardPage() {
           </div>
         </Link>
 
+        <Link href={`/t/${tenantSlug}/ledger`} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <div
+            className="pwa-card"
+            style={{
+              padding: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              height: '100%',
+            }}
+          >
+            <div style={{ fontSize: '1.75rem' }}>📖</div>
+            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--forest-green)' }}>
+              Vendor Ledger
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Payables, credit & vendor payments
+            </div>
+          </div>
+        </Link>
+
         <Link
           href={`/t/${tenantSlug}/profile`}
           style={{ textDecoration: 'none', color: 'inherit' }}
@@ -133,30 +175,6 @@ export default function TenantDashboardPage() {
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               Account details & password
-            </div>
-          </div>
-        </Link>
-
-        <Link
-          href={`/t/${tenantSlug}/settings`}
-          style={{ textDecoration: 'none', color: 'inherit' }}
-        >
-          <div
-            className="pwa-card"
-            style={{
-              padding: '1.25rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-              height: '100%',
-            }}
-          >
-            <div style={{ fontSize: '1.75rem' }}>⚙️</div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>
-              Settings
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Tenant info & configuration
             </div>
           </div>
         </Link>

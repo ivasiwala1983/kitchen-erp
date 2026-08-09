@@ -24,13 +24,23 @@ export * from './repositories/purchase.repository';
 export * from './repositories/invoice.repository';
 export * from './repositories/audit.repository';
 export * from './repositories/report.repository';
+export * from './repositories/ledger.repository';
+export * from './repositories/payment.repository';
 
 // Database Services
 export * from './services/tenantResolver.service';
 export * from './services/auditLogger.service';
 
 // Re-export Prisma Client types & enums directly from @prisma/client
-export { Role, PurchaseStatus, TenantPlan, Prisma } from '@prisma/client';
+export {
+  Role,
+  PurchaseStatus,
+  TenantPlan,
+  LedgerTransactionType,
+  PaymentMethod,
+  LedgerAccountStatus,
+  Prisma,
+} from '@prisma/client';
 
 export type {
   Tenant,
@@ -41,4 +51,7 @@ export type {
   Purchase,
   PurchaseItem,
   AuditLog,
+  LedgerAccount,
+  LedgerTransaction,
+  VendorPayment,
 } from '@prisma/client';

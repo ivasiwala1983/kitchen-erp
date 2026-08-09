@@ -4,7 +4,6 @@ import React, { useEffect, useState, createContext, useContext } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { Role, type TenantPublic, type UserPublic } from '@kitchen-erp/types';
-import Link from 'next/link';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
@@ -201,100 +200,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const isLoginPage = pathname.includes('/login');
-
   return (
     <TenantContext.Provider value={{ tenant, user, tenantSlug, isLoading, logout }}>
-      {!isLoginPage && (
-        <header
-          style={{
-            background: 'var(--forest-green)',
-            color: 'white',
-            padding: '0.45rem 1rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-            height: 46,
-            boxSizing: 'border-box',
-          }}
-        >
-          <Link
-            href={`/t/${tenantSlug}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              color: 'white',
-              textDecoration: 'none',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span style={{ fontSize: '1.125rem', lineHeight: 1 }}>🍳</span>
-            <span style={{ fontWeight: 800, fontSize: '0.875rem', letterSpacing: '-0.2px' }}>
-              {tenant?.name || tenantSlug}
-            </span>
-            {user?.name && (
-              <span
-                style={{
-                  fontSize: '0.6875rem',
-                  fontWeight: 700,
-                  background: 'rgba(255, 255, 255, 0.18)',
-                  color: '#a7f3d0',
-                  padding: '0.15rem 0.45rem',
-                  borderRadius: 6,
-                  marginLeft: 2,
-                }}
-              >
-                {user.name}
-              </span>
-            )}
-          </Link>
-
-          <nav
-            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem' }}
-          >
-            <Link
-              href={`/t/${tenantSlug}/purchase`}
-              style={{
-                color:
-                  pathname.includes('/purchase') && !pathname.includes('/history')
-                    ? '#a7f3d0'
-                    : 'white',
-                textDecoration: 'none',
-                fontWeight: 700,
-              }}
-            >
-              Purchase
-            </Link>
-            <Link
-              href={`/t/${tenantSlug}/history`}
-              style={{
-                color: pathname.includes('/history') ? '#a7f3d0' : 'white',
-                textDecoration: 'none',
-                fontWeight: 700,
-              }}
-            >
-              History
-            </Link>
-            <Link
-              href={`/t/${tenantSlug}/profile`}
-              style={{
-                color: pathname.includes('/profile') ? '#a7f3d0' : 'white',
-                textDecoration: 'none',
-                fontWeight: 700,
-              }}
-            >
-              Profile
-            </Link>
-          </nav>
-        </header>
-      )}
-
       <main>{children}</main>
     </TenantContext.Provider>
   );

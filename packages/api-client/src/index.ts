@@ -32,6 +32,12 @@ import type {
   UpdatePurchaseDto,
   PaginationParams,
   TokenPair,
+  LedgerAccountPublic,
+  LedgerTransactionPublic,
+  VendorPaymentPublic,
+  LedgerSummary,
+  CreatePaymentDto,
+  LedgerQueryParams,
 } from '@kitchen-erp/types';
 
 // ── Token Storage ─────────────────────────────────────────────
@@ -392,6 +398,47 @@ export class KitchenErpApi {
     list: (params?: any) =>
       this.client
         .get<ApiResponse<PaginatedResponse<any>>>('/audit-logs', { params })
+        .then((r) => r.data),
+  };
+
+  ledger = {
+    summary: () =>
+      this.client.get<ApiResponse<LedgerSummary>>('/ledger/summary').then((r) => r.data),
+
+    vendors: (params?: LedgerQueryParams) =>
+      this.client
+        .get<ApiResponse<PaginatedResponse<LedgerAccountPublic>>>('/ledger/vendors', { params })
+        .then((r) => r.data),
+
+    getVendorDetail: (vendorId: string) =>
+      this.client
+        .get<ApiResponse<LedgerAccountPublic>>(`/ledger/vendors/${vendorId}`)
+        .then((r) => r.data),
+
+    getVendorTransactions: (vendorId: string, params?: LedgerQueryParams) =>
+      this.client
+        .get<ApiResponse<PaginatedResponse<LedgerTransactionPublic>>>(
+          `/ledger/vendors/${vendorId}/transactions`,
+          { params }
+        )
+        .then((r) => r.data),
+
+    payments: (params?: LedgerQueryParams) =>
+      this.client
+        .get<ApiResponse<PaginatedResponse<VendorPaymentPublic>>>('/ledger/payments', { params })
+        .then((r) => r.data),
+
+    createPayment: (dto: CreatePaymentDto) =>
+      this.client
+        .post<ApiResponse<{ payment: VendorPaymentPublic; currentBalance: number }>>(
+          '/ledger/payments',
+          dto
+        )
+        .then((r) => r.data),
+
+    getPayment: (id: string) =>
+      this.client
+        .get<ApiResponse<VendorPaymentPublic>>(`/ledger/payments/${id}`)
         .then((r) => r.data),
   };
 }

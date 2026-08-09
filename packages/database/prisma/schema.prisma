@@ -37,6 +37,30 @@ enum TenantPlan {
   PREMIUM
 }
 
+enum LedgerTransactionType {
+  OPENING_BALANCE
+  PURCHASE
+  PAYMENT
+  ADJUSTMENT
+  REFUND
+  CREDIT_NOTE
+  DEBIT_NOTE
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  UPI
+  CARD
+  OTHER
+}
+
+enum LedgerAccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // ── Tenant ───────────────────────────────────────────────────
 
 /// Represents a restaurant/kitchen tenant on the platform
@@ -57,12 +81,15 @@ model Tenant {
   updatedBy String?   @db.Uuid
 
   // Relations
-  users      User[]
-  categories Category[]
-  vendors    Vendor[]
-  products   Product[]
-  purchases  Purchase[]
-  auditLogs  AuditLog[]
+  users              User[]
+  categories         Category[]
+  vendors            Vendor[]
+  products           Product[]
+  purchases          Purchase[]
+  auditLogs          AuditLog[]
+  ledgerAccounts     LedgerAccount[]
+  ledgerTransactions LedgerTransaction[]
+  vendorPayments     VendorPayment[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -154,9 +181,12 @@ model Vendor {
   updatedBy String?   @db.Uuid
 
   // Relations
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  category  Category @relation(fields: [categoryId], references: [id])
-  purchases Purchase[]
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  category           Category            @relation(fields: [categoryId], references: [id])
+  purchases          Purchase[]
+  ledgerAccounts     LedgerAccount[]
+  ledgerTransactions LedgerTransaction[]
+  payments           VendorPayment[]
 
   @@index([tenantId])
   @@index([categoryId])
@@ -274,4 +304,98 @@ model AuditLog {
   @@index([entity])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ── Ledger Account ───────────────────────────────────────────
+
+/// One financial ledger account per tenant + vendor
+model LedgerAccount {
+  id             String              @id @default(uuid()) @db.Uuid
+  tenantId       String              @db.Uuid
+  vendorId       String              @db.Uuid
+  openingBalance Decimal             @default(0.00) @db.Decimal(12, 2)
+  status         LedgerAccountStatus @default(ACTIVE)
+
+  // Audit fields
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // soft delete
+
+  // Relations
+  tenant       Tenant              @relation(fields: [tenantId], references: [id])
+  vendor       Vendor              @relation(fields: [vendorId], references: [id])
+  transactions LedgerTransaction[]
+  payments     VendorPayment[]
+
+  @@unique([tenantId, vendorId])
+  @@index([tenantId])
+  @@index([vendorId])
+  @@map("ledger_accounts")
+}
+
+// ── Ledger Transaction ───────────────────────────────────────
+
+/// Financial ledger transaction log for vendor account
+model LedgerTransaction {
+  id              String                @id @default(uuid()) @db.Uuid
+  tenantId        String                @db.Uuid
+  ledgerAccountId String                @db.Uuid
+  vendorId        String                @db.Uuid
+  type            LedgerTransactionType
+  amount          Decimal               @db.Decimal(12, 2)
+  referenceType   String?
+  referenceId     String?               @db.Uuid
+  transactionDate DateTime              @default(now())
+  paymentMethod   PaymentMethod?
+  note            String?
+  createdBy       String?               @db.Uuid
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  ledgerAccount LedgerAccount @relation(fields: [ledgerAccountId], references: [id])
+  vendor        Vendor        @relation(fields: [vendorId], references: [id])
+
+  @@unique([referenceType, referenceId])
+  @@index([tenantId])
+  @@index([ledgerAccountId])
+  @@index([vendorId])
+  @@index([transactionDate])
+  @@index([referenceId])
+  @@index([createdAt])
+  @@map("ledger_transactions")
+}
+
+// ── Vendor Payment ───────────────────────────────────────────
+
+/// Dedicated payment entity for auditability and history
+model VendorPayment {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @db.Uuid
+  vendorId        String        @db.Uuid
+  ledgerAccountId String        @db.Uuid
+  amount          Decimal       @db.Decimal(12, 2)
+  paymentDate     DateTime      @default(now())
+  paymentMethod   PaymentMethod
+  reference       String?
+  note            String?
+  createdBy       String?       @db.Uuid
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  vendor        Vendor        @relation(fields: [vendorId], references: [id])
+  ledgerAccount LedgerAccount @relation(fields: [ledgerAccountId], references: [id])
+
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([ledgerAccountId])
+  @@index([paymentDate])
+  @@map("vendor_payments")
 }

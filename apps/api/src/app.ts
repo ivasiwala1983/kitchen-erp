@@ -25,6 +25,7 @@ import purchaseRoutes from './modules/purchase/purchase.routes';
 import invoiceRoutes from './modules/invoice/invoice.routes';
 import reportsRoutes from './modules/reports/reports.routes';
 import auditLogRoutes from './modules/auditLog/auditLog.routes';
+import ledgerRoutes from './modules/ledger/ledger.routes';
 
 // ── App Setup ─────────────────────────────────────────────────
 
@@ -135,6 +136,9 @@ mountRoute('/reports', reportsRoutes);
 
 // Audit Logs (TENANT_ADMIN)
 mountRoute('/audit-logs', auditLogRoutes);
+
+// Vendor Ledger & Payments
+mountRoute('/ledger', ledgerRoutes);
 
 // ── Error Handling ────────────────────────────────────────────
 
