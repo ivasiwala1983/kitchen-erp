@@ -3,6 +3,7 @@
  * Consumes enterprise @kitchen-erp/database CategoryRepository.
  */
 
+import { z } from 'zod';
 import { categoryRepository as dbCategoryRepository } from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
 import { NotFoundError, ConflictError } from '../../shared/errors';
@@ -97,11 +98,7 @@ export class CategoryService {
     return category;
   }
 
-  async create(
-    tenantId: string,
-    dto: Record<string, unknown> & { name: string },
-    createdBy: string
-  ) {
+  async create(tenantId: string, dto: z.infer<typeof createCategorySchema>, createdBy: string) {
     const existing = await this.repo.findByName(dto.name, tenantId);
     if (existing) throw new ConflictError(`Category with name "${dto.name}" already exists`);
     return this.repo.create({ ...dto, tenantId, createdBy });
@@ -110,7 +107,7 @@ export class CategoryService {
   async update(
     id: string,
     tenantId: string,
-    dto: Record<string, unknown> & { name?: string },
+    dto: z.infer<typeof updateCategorySchema>,
     updatedBy: string
   ) {
     const category = await this.getById(id, tenantId);
