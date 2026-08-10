@@ -46,15 +46,15 @@ export default function TenantDashboardPage() {
             display: 'flex',
             alignItems: 'center',
             gap: '0.35rem',
-            padding: '0.4rem 0.75rem',
+            padding: '0.45rem 0.85rem',
             borderRadius: 999,
-            background: '#1e293b',
-            color: '#38bdf8',
+            background: 'var(--mint-light)',
+            color: 'var(--forest-green)',
             textDecoration: 'none',
             fontSize: '0.8125rem',
-            fontWeight: 700,
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.15)',
+            fontWeight: 800,
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <span>🤖</span>
@@ -107,12 +107,13 @@ export default function TenantDashboardPage() {
       <div
         className="pwa-card"
         style={{
-          background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-          color: 'white',
+          background: '#ffffff',
+          color: 'var(--text-main)',
           padding: '1.25rem 1.5rem',
           borderRadius: 16,
           marginBottom: '1.5rem',
-          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.2)',
+          border: '1.5px solid var(--border)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div
@@ -125,25 +126,39 @@ export default function TenantDashboardPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.5rem' }}>🤖</span>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+            <h2
+              style={{
+                fontSize: '1.1rem',
+                fontWeight: 800,
+                margin: 0,
+                color: 'var(--forest-green)',
+              }}
+            >
               Ask ArgusOne
             </h2>
           </div>
           <span
             style={{
               fontSize: '0.75rem',
-              fontWeight: 700,
+              fontWeight: 800,
               padding: '0.2rem 0.6rem',
               borderRadius: 999,
-              background: 'rgba(56, 189, 248, 0.15)',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
+              background: 'var(--mint-light)',
+              color: 'var(--forest-green)',
+              border: '1px solid var(--border)',
             }}
           >
             ArgusOne Assistant
           </span>
         </div>
-        <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0 0 1rem 0', lineHeight: 1.4 }}>
+        <p
+          style={{
+            fontSize: '0.85rem',
+            color: 'var(--text-muted)',
+            margin: '0 0 1rem 0',
+            lineHeight: 1.4,
+          }}
+        >
           Ask about purchases, vendors, inventory attention items, or ledger balances.
         </p>
         <Link
@@ -154,17 +169,17 @@ export default function TenantDashboardPage() {
             justifyContent: 'space-between',
             padding: '0.75rem 1rem',
             borderRadius: 12,
-            background: 'rgba(255, 255, 255, 0.08)',
-            color: '#f8fafc',
+            background: 'var(--bg-page)',
+            color: 'var(--forest-green)',
             textDecoration: 'none',
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: '0.875rem',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            border: '1px solid var(--border)',
             transition: 'all 0.2s ease',
           }}
         >
           <span>Ask ArgusOne...</span>
-          <span style={{ fontSize: '1rem', color: '#38bdf8', fontWeight: 700 }}>→</span>
+          <span style={{ fontSize: '1rem', color: 'var(--forest-green)', fontWeight: 800 }}>→</span>
         </Link>
       </div>
 
@@ -258,7 +273,7 @@ export default function TenantDashboardPage() {
         </Link>
 
         <Link
-          href={`/t/${tenantSlug}/assistant`}
+          href={`/t/${tenantSlug}/profile`}
           style={{ textDecoration: 'none', color: 'inherit' }}
         >
           <div
@@ -269,46 +284,15 @@ export default function TenantDashboardPage() {
               flexDirection: 'column',
               gap: '0.5rem',
               height: '100%',
-              background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-              color: '#f8fafc',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
             }}
           >
-            <div style={{ fontSize: '1.75rem' }}>🤖</div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#38bdf8' }}>Ask ArgusOne</div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-              Ask about your business data
+            <div style={{ fontSize: '1.75rem' }}>👤</div>
+            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>
+              My Profile
             </div>
-          </div>
-        </Link>
-
-        <Link
-          href={`/t/${tenantSlug}/profile`}
-          style={{ textDecoration: 'none', color: 'inherit', gridColumn: 'span 2' }}
-        >
-          <div
-            className="pwa-card"
-            style={{
-              padding: '1rem 1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ fontSize: '1.5rem' }}>👤</div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--text-main)' }}>
-                  My Profile
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Account details & security settings
-                </div>
-              </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Account details & security settings
             </div>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-              →
-            </span>
           </div>
         </Link>
       </div>

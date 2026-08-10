@@ -514,7 +514,7 @@ export default function TenantPurchaseMobilePage() {
       {/* ── Scrollable Mobile Content ─────────────────────────────────── */}
       <div className="pwa-content">
         {/* 1. Header Bar */}
-        <div className="mock-header">
+        <div className="mock-header" style={{ alignItems: 'center' }}>
           <div>
             <div className="mock-title">ArgusOne</div>
             <div
@@ -528,12 +528,26 @@ export default function TenantPurchaseMobilePage() {
               {tenantName || tenantSlug.toUpperCase()}
             </div>
           </div>
-          <div className="mock-date">
-            <div>Purchase Date</div>
-            <div style={{ fontWeight: 800, color: 'var(--forest-green)', fontSize: '0.875rem' }}>
-              {formatDateDisplay(selectedDate)}
-            </div>
-          </div>
+          <Link
+            href={`/t/${tenantSlug}/assistant?source=purchases`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.45rem 0.85rem',
+              borderRadius: 999,
+              background: 'var(--mint-light)',
+              color: 'var(--forest-green)',
+              textDecoration: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: 800,
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <span>🤖</span>
+            <span>Ask ArgusOne</span>
+          </Link>
         </div>
 
         {/* Purchase Navigation Tabs */}

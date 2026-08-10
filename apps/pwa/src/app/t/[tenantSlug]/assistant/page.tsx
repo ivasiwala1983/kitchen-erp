@@ -112,7 +112,6 @@ export default function ArgusOneAssistantPage() {
     setIsProcessing(true);
 
     try {
-      // Build conversation history format for API payload
       const historyPayload = messages.map((m) => ({
         role: m.role,
         content: m.content,
@@ -168,8 +167,8 @@ export default function ArgusOneAssistantPage() {
         height: '100vh',
         maxWidth: 600,
         margin: '0 auto',
-        background: '#0f172a',
-        color: '#f8fafc',
+        background: 'var(--bg-page)',
+        color: 'var(--text-main)',
         fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
       }}
     >
@@ -180,8 +179,9 @@ export default function ArgusOneAssistantPage() {
           alignItems: 'center',
           gap: '0.75rem',
           padding: '1rem 1.25rem',
-          background: '#1e293b',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          background: '#ffffff',
+          borderBottom: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         <button
@@ -194,11 +194,11 @@ export default function ArgusOneAssistantPage() {
             width: 36,
             height: 36,
             borderRadius: 10,
-            background: 'rgba(255, 255, 255, 0.08)',
-            color: '#f8fafc',
-            border: 'none',
+            background: 'var(--bg-page)',
+            color: 'var(--text-main)',
+            border: '1px solid var(--border)',
             fontSize: '1.2rem',
-            fontWeight: 700,
+            fontWeight: 800,
             cursor: 'pointer',
           }}
         >
@@ -207,11 +207,18 @@ export default function ArgusOneAssistantPage() {
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.25rem' }}>🤖</span>
-            <h1 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+            <h1
+              style={{
+                fontSize: '1.1rem',
+                fontWeight: 900,
+                margin: 0,
+                color: 'var(--forest-green)',
+              }}
+            >
               ArgusOne Assistant
             </h1>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 2 }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
             Business Operations Intelligence
           </div>
         </div>
@@ -232,12 +239,13 @@ export default function ArgusOneAssistantPage() {
         {messages.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div
+              className="pwa-card"
               style={{
-                background: 'linear-gradient(135deg, #1e293b, #334155)',
+                background: 'linear-gradient(135deg, var(--forest-green), #14532d)',
+                color: '#ffffff',
                 padding: '1.25rem',
                 borderRadius: 16,
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                boxShadow: '0 8px 24px rgba(15, 23, 42, 0.3)',
+                boxShadow: '0 8px 24px rgba(31, 78, 56, 0.2)',
               }}
             >
               <h2
@@ -245,12 +253,12 @@ export default function ArgusOneAssistantPage() {
                   fontSize: '1.1rem',
                   fontWeight: 800,
                   margin: '0 0 0.5rem 0',
-                  color: '#38bdf8',
+                  color: '#ffffff',
                 }}
               >
                 {contextGreeting.title}
               </h2>
-              <p style={{ fontSize: '0.875rem', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.875rem', opacity: 0.95, margin: 0, lineHeight: 1.5 }}>
                 {contextGreeting.body}
               </p>
             </div>
@@ -260,10 +268,10 @@ export default function ArgusOneAssistantPage() {
               <div
                 style={{
                   fontSize: '0.75rem',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  color: '#64748b',
+                  color: 'var(--text-muted)',
                   marginBottom: '0.5rem',
                 }}
               >
@@ -283,20 +291,18 @@ export default function ArgusOneAssistantPage() {
                     onClick={() => setSelectedCategory(cat)}
                     type="button"
                     style={{
-                      padding: '0.3rem 0.75rem',
+                      padding: '0.35rem 0.75rem',
                       borderRadius: 20,
                       fontSize: '0.75rem',
-                      fontWeight: 700,
+                      fontWeight: 800,
                       border:
                         selectedCategory === cat
-                          ? '1px solid #38bdf8'
-                          : '1px solid rgba(255,255,255,0.1)',
-                      background:
-                        selectedCategory === cat
-                          ? 'rgba(56, 189, 248, 0.2)'
-                          : 'rgba(255,255,255,0.05)',
-                      color: selectedCategory === cat ? '#38bdf8' : '#94a3b8',
+                          ? '1px solid var(--forest-green)'
+                          : '1px solid var(--border)',
+                      background: selectedCategory === cat ? 'var(--forest-green)' : '#ffffff',
+                      color: selectedCategory === cat ? '#ffffff' : 'var(--text-main)',
                       cursor: 'pointer',
+                      boxShadow: 'var(--shadow-sm)',
                     }}
                   >
                     {cat === 'ALL' ? 'All Topics' : cat}
@@ -316,23 +322,24 @@ export default function ArgusOneAssistantPage() {
                       textAlign: 'left',
                       padding: '0.875rem 1rem',
                       borderRadius: 12,
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      color: '#f8fafc',
+                      background: '#ffffff',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text-main)',
                       fontSize: '0.875rem',
+                      fontWeight: 600,
                       cursor: 'pointer',
-                      transition: 'background 0.2s',
+                      boxShadow: 'var(--shadow-sm)',
                     }}
                   >
                     <span>{item.text}</span>
                     <span
                       style={{
                         fontSize: '0.75rem',
-                        padding: '0.15rem 0.4rem',
-                        borderRadius: 6,
-                        background: 'rgba(56, 189, 248, 0.15)',
-                        color: '#38bdf8',
-                        fontWeight: 700,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: 999,
+                        background: 'var(--mint-light)',
+                        color: 'var(--forest-green)',
+                        fontWeight: 800,
                       }}
                     >
                       {item.category}
@@ -362,10 +369,10 @@ export default function ArgusOneAssistantPage() {
                   maxWidth: '92%',
                   padding: '1.25rem',
                   borderRadius: '16px 16px 16px 4px',
-                  background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  boxShadow: '0 8px 24px rgba(15, 23, 42, 0.4)',
-                  color: '#f8fafc',
+                  background: '#ffffff',
+                  border: '1.5px solid var(--border)',
+                  boxShadow: 'var(--shadow-card)',
+                  color: 'var(--text-main)',
                 }}
               >
                 <div
@@ -377,7 +384,9 @@ export default function ArgusOneAssistantPage() {
                   }}
                 >
                   <span style={{ fontSize: '1.4rem' }}>🤖</span>
-                  <span style={{ fontWeight: 800, color: '#38bdf8', fontSize: '0.95rem' }}>
+                  <span
+                    style={{ fontWeight: 800, color: 'var(--forest-green)', fontSize: '0.95rem' }}
+                  >
                     ArgusOne Assistant
                   </span>
                 </div>
@@ -387,18 +396,18 @@ export default function ArgusOneAssistantPage() {
                     lineHeight: 1.5,
                     whiteSpace: 'pre-wrap',
                     marginBottom: '1rem',
-                    color: '#e2e8f0',
+                    color: 'var(--text-main)',
                   }}
                 >
                   {msg.content}
                 </div>
                 <div
                   style={{
-                    background: 'rgba(255,255,255,0.05)',
+                    background: 'var(--bg-page)',
                     borderRadius: 12,
                     padding: '0.75rem 1rem',
                     fontSize: '0.8rem',
-                    color: '#94a3b8',
+                    color: 'var(--text-muted)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.35rem',
@@ -418,9 +427,9 @@ export default function ArgusOneAssistantPage() {
                     width: '100%',
                     padding: '0.75rem',
                     borderRadius: 10,
-                    background: '#0284c7',
+                    background: 'var(--forest-green)',
                     color: '#ffffff',
-                    fontWeight: 700,
+                    fontWeight: 800,
                     fontSize: '0.875rem',
                     textDecoration: 'none',
                     textAlign: 'center',
@@ -437,9 +446,13 @@ export default function ArgusOneAssistantPage() {
                   padding: '0.875rem 1.1rem',
                   borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                   background:
-                    msg.role === 'user' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#1e293b',
-                  color: '#f8fafc',
-                  border: msg.role === 'user' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                    msg.role === 'user'
+                      ? 'linear-gradient(135deg, var(--forest-green), #14532d)'
+                      : '#ffffff',
+                  color: msg.role === 'user' ? '#ffffff' : 'var(--text-main)',
+                  border: msg.role === 'user' ? 'none' : '1.5px solid var(--border)',
+                  boxShadow:
+                    msg.role === 'user' ? '0 4px 12px rgba(31, 78, 56, 0.2)' : 'var(--shadow-card)',
                   fontSize: '0.9rem',
                   lineHeight: 1.5,
                   whiteSpace: 'pre-wrap',
@@ -457,7 +470,7 @@ export default function ArgusOneAssistantPage() {
                   alignItems: 'center',
                   gap: '0.35rem',
                   fontSize: '0.75rem',
-                  color: '#64748b',
+                  color: 'var(--text-muted)',
                   marginTop: '0.1rem',
                 }}
               >
@@ -466,11 +479,11 @@ export default function ArgusOneAssistantPage() {
                   <span
                     key={idx}
                     style={{
-                      padding: '0.1rem 0.4rem',
-                      borderRadius: 4,
-                      background: 'rgba(255,255,255,0.06)',
-                      color: '#94a3b8',
-                      fontWeight: 600,
+                      padding: '0.1rem 0.5rem',
+                      borderRadius: 999,
+                      background: 'var(--mint-light)',
+                      color: 'var(--forest-green)',
+                      fontWeight: 700,
                     }}
                   >
                     • {ds}
@@ -494,11 +507,11 @@ export default function ArgusOneAssistantPage() {
                       gap: '0.35rem',
                       padding: '0.4rem 0.75rem',
                       borderRadius: 20,
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      color: '#38bdf8',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      background: 'var(--mint-light)',
+                      color: 'var(--forest-green)',
+                      border: '1px solid var(--border)',
                       fontSize: '0.75rem',
-                      fontWeight: 700,
+                      fontWeight: 800,
                       textDecoration: 'none',
                     }}
                   >
@@ -511,16 +524,17 @@ export default function ArgusOneAssistantPage() {
           </div>
         ))}
 
-        {/* Friendly Thinking Indicator */}
+        {/* Friendly Processing Indicator */}
         {isProcessing && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              color: '#94a3b8',
+              color: 'var(--text-muted)',
               fontSize: '0.85rem',
               padding: '0.5rem',
+              fontWeight: 600,
             }}
           >
             <span style={{ animation: 'pulse 1.5s infinite', fontSize: '1.2rem' }}>🔎</span>
@@ -535,8 +549,9 @@ export default function ArgusOneAssistantPage() {
       <footer
         style={{
           padding: '0.875rem 1.25rem',
-          background: '#1e293b',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          background: '#ffffff',
+          borderTop: '1px solid var(--border)',
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.03)',
         }}
       >
         <form
@@ -556,9 +571,9 @@ export default function ArgusOneAssistantPage() {
               flex: 1,
               padding: '0.875rem 1rem',
               borderRadius: 12,
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: '#f8fafc',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-main)',
               fontSize: '0.9rem',
               outline: 'none',
             }}
@@ -569,8 +584,9 @@ export default function ArgusOneAssistantPage() {
             style={{
               padding: '0 1.25rem',
               borderRadius: 12,
-              background: inputMessage.trim() && !isProcessing ? '#0284c7' : '#334155',
-              color: '#f8fafc',
+              background:
+                inputMessage.trim() && !isProcessing ? 'var(--forest-green)' : 'var(--border)',
+              color: '#ffffff',
               border: 'none',
               fontWeight: 800,
               fontSize: '1.1rem',

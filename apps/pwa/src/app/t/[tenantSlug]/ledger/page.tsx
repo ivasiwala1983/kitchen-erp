@@ -91,7 +91,7 @@ export default function PwaLedgerListPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '0.75rem',
+          marginBottom: '1rem',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
@@ -124,46 +124,42 @@ export default function PwaLedgerListPage() {
           </div>
         </div>
 
-        <Link href={`/t/${tenantSlug}/ledger/pay`}>
-          <button
-            className="pwa-btn pwa-btn-primary pwa-btn-sm"
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Link
+            href={`/t/${tenantSlug}/assistant?source=ledger`}
             style={{
-              padding: '0.5rem 0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.45rem 0.75rem',
+              borderRadius: 999,
+              background: 'var(--mint-light)',
+              color: 'var(--forest-green)',
+              textDecoration: 'none',
               fontSize: '0.8125rem',
               fontWeight: 800,
-              borderRadius: 10,
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
             }}
           >
-            + Pay Vendor
-          </button>
-        </Link>
-      </div>
-
-      {/* Contextual AI Entry Point for Ledger */}
-      <div style={{ marginBottom: '1rem' }}>
-        <Link
-          href={`/t/${tenantSlug}/assistant?source=ledger`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.625rem 0.875rem',
-            borderRadius: 12,
-            background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-            color: '#f8fafc',
-            textDecoration: 'none',
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>🤖</span>
-            <span>Ask ArgusOne about your ledger</span>
-          </div>
-          <span style={{ color: '#38bdf8', fontWeight: 800 }}>→</span>
-        </Link>
+            <span>Ask ArgusOne</span>
+          </Link>
+
+          <Link href={`/t/${tenantSlug}/ledger/pay`}>
+            <button
+              className="pwa-btn pwa-btn-primary pwa-btn-sm"
+              style={{
+                padding: '0.5rem 0.875rem',
+                fontSize: '0.8125rem',
+                fontWeight: 800,
+                borderRadius: 10,
+              }}
+            >
+              + Pay Vendor
+            </button>
+          </Link>
+        </div>
       </div>
 
       {/* Financial Summary Card */}

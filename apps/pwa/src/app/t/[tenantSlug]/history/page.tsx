@@ -35,7 +35,7 @@ export default function TenantHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [_total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -218,7 +218,7 @@ export default function TenantHistoryPage() {
       {/* ── Scrollable Mobile Content ─────────────────────────────────── */}
       <div className="pwa-content">
         {/* Header */}
-        <div className="mock-header">
+        <div className="mock-header" style={{ alignItems: 'center' }}>
           <div>
             <div className="mock-title">Purchase History</div>
             <div
@@ -232,12 +232,26 @@ export default function TenantHistoryPage() {
               {tenantName || tenantSlug.toUpperCase()}
             </div>
           </div>
-          <div className="mock-date">
-            <div>Total Purchases</div>
-            <div style={{ fontWeight: 800, color: 'var(--forest-green)', fontSize: '0.875rem' }}>
-              {total} orders
-            </div>
-          </div>
+          <Link
+            href={`/t/${tenantSlug}/assistant?source=purchases`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.45rem 0.85rem',
+              borderRadius: 999,
+              background: 'var(--mint-light)',
+              color: 'var(--forest-green)',
+              textDecoration: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: 800,
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <span>🤖</span>
+            <span>Ask ArgusOne</span>
+          </Link>
         </div>
 
         {/* Purchase Sub-Navigation Tabs */}
@@ -274,33 +288,6 @@ export default function TenantHistoryPage() {
             }}
           >
             📋 Purchase History
-          </Link>
-        </div>
-
-        {/* Contextual AI Entry Point for Purchases */}
-        <div style={{ margin: '0.5rem 1rem 0.25rem' }}>
-          <Link
-            href={`/t/${tenantSlug}/assistant?source=purchases`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.625rem 0.875rem',
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-              color: '#f8fafc',
-              textDecoration: 'none',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>🤖</span>
-              <span>Ask ArgusOne about purchases</span>
-            </div>
-            <span style={{ color: '#38bdf8', fontWeight: 800 }}>→</span>
           </Link>
         </div>
 
