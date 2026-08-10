@@ -8,7 +8,7 @@ import type { UserLanguage, UserTone } from '../guardrails/tone.guard';
 
 export interface ArgusOneGraphState {
   userMessage: string;
-  history: Array<{ role: 'user' | 'assistant'; content: string }>;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
   authenticatedUser: {
     userId: string;
     role: string;

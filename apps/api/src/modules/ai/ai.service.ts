@@ -15,7 +15,7 @@ export class AiService {
 
   public async chat(
     message: string,
-    history: Array<{ role: 'user' | 'assistant'; content: string }>,
+    history: Array<{ role: 'user' | 'assistant'; content: string }> | undefined,
     context: {
       tenantId: string;
       userId: string;

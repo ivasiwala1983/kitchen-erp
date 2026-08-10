@@ -10,16 +10,17 @@ import type { AuthenticatedRequest } from '../../shared/types';
 import { aiService } from './ai.service';
 import { extractTenantSlug } from '../../middleware/tenant.middleware';
 
-const historyItemSchema = z.object({
-  role: z.enum(['user', 'assistant']),
-  content: z.string(),
-});
-
-type HistoryItem = z.infer<typeof historyItemSchema>;
-
 const chatRequestSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty').max(2000, 'Message is too long'),
-  history: z.array(historyItemSchema).optional().default([]),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 export async function chatController(
@@ -37,9 +38,11 @@ export async function chatController(
 
     const tenantSlug = extractTenantSlug(req) || req.user?.tenantSlug || undefined;
 
-    const formattedHistory: HistoryItem[] = (history || []).map((h) => ({
-      role: h.role,
-      content: h.content,
+    const formattedHistory: Array<{ role: 'user' | 'assistant'; content: string }> = (
+      history || []
+    ).map((h) => ({
+      role: h.role as 'user' | 'assistant',
+      content: h.content || '',
     }));
 
     const response = await aiService.chat(message, formattedHistory, {

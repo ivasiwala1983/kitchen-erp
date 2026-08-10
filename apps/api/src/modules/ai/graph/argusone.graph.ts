@@ -17,7 +17,7 @@ import type { AIProvider } from '../providers/ai.provider';
 
 export interface GraphExecuteInput {
   message: string;
-  history: Array<{ role: 'user' | 'assistant'; content: string }>;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
   context: {
     tenantId: string;
     userId: string;
