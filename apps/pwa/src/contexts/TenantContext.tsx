@@ -132,7 +132,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           style={{ width: 36, height: 36, borderColor: 'var(--forest-green)' }}
         />
         <p style={{ marginTop: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-          Loading kitchen platform...
+          Loading ArgusOne...
         </p>
       </div>
     );

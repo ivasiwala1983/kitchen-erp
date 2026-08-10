@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Kitchen ERP — Mobile Kitchen PWA',
-  description: 'Kitchen Inventory & Purchase Management Mobile App',
+  title: 'ArgusOne',
+  description: 'ArgusOne — Business Operations Platform',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Kitchen ERP',
+    title: 'ArgusOne',
   },
   icons: {
     icon: '/icon-192.png',

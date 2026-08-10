@@ -22,7 +22,7 @@ export const ApiEnvSchema = z.object({
 
 export const WebAppEnvSchema = z.object({
   NEXT_PUBLIC_API_URL: z.string().url('NEXT_PUBLIC_API_URL must be a valid URL'),
-  NEXT_PUBLIC_APP_NAME: z.string().default('Kitchen ERP'),
+  NEXT_PUBLIC_APP_NAME: z.string().default('ArgusOne'),
 });
 
 export type RootEnv = z.infer<typeof RootEnvSchema>;

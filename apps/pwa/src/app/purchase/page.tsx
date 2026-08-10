@@ -439,7 +439,7 @@ export default function PurchaseMobilePage() {
         {/* 1. Header Bar */}
         <div className="mock-header">
           <div>
-            <div className="mock-title">Kitchen ERP</div>
+            <div className="mock-title">ArgusOne</div>
             {tenantName && (
               <div
                 style={{

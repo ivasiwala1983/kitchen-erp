@@ -516,7 +516,7 @@ export default function TenantPurchaseMobilePage() {
         {/* 1. Header Bar */}
         <div className="mock-header">
           <div>
-            <div className="mock-title">Kitchen ERP</div>
+            <div className="mock-title">ArgusOne</div>
             <div
               style={{
                 fontSize: '0.8125rem',

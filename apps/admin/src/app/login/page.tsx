@@ -76,11 +76,11 @@ export default function LoginPage() {
               <path d="M3 2h18M3 22h18M6 2v20M18 2v20M3 12h18" />
             </svg>
           </div>
-          <span className="logo-text">Kitchen ERP</span>
+          <span className="logo-text">ArgusOne</span>
         </div>
 
-        <h1 className="login-title">Welcome back</h1>
-        <p className="login-subtitle">Sign in to your admin portal</p>
+        <h1 className="login-title">Login to ArgusOne</h1>
+        <p className="login-subtitle">Business Operations Platform</p>
 
         {error && (
           <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
@@ -134,7 +134,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               className="input"
-              placeholder="admin@demo.kitchenerp.com"
+              placeholder="admin@demo.argusone.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -190,7 +190,7 @@ export default function LoginPage() {
             flexWrap: 'wrap',
           }}
         >
-          <span>© {new Date().getFullYear()} Kitchen ERP · Powered by</span>
+          <span>© {new Date().getFullYear()} ArgusOne · Powered by</span>
           <a
             href="https://www.argusoft.com"
             target="_blank"

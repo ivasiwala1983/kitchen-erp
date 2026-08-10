@@ -286,10 +286,10 @@ export default function Sidebar({ user }: { user: UserPublic }) {
           <div
             style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}
           >
-            Kitchen ERP
+            ArgusOne
           </div>
           <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>
-            Admin Portal
+            Business Operations Platform
           </div>
         </div>
       </div>
@@ -401,7 +401,7 @@ export default function Sidebar({ user }: { user: UserPublic }) {
               lineHeight: 1.4,
             }}
           >
-            <div>© {new Date().getFullYear()} Kitchen ERP</div>
+            <div>© {new Date().getFullYear()} ArgusOne</div>
             <div style={{ marginTop: 2 }}>
               Powered by{' '}
               <a

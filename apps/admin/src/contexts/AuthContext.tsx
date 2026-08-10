@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.data.user.role === Role.INVENTORY_MANAGER) {
         clearTokens();
         throw new Error(
-          "👋 Hello! You don't have access to the Admin Portal. Please use the Mobile Kitchen PWA to manage daily purchases."
+          "👋 Hello! You don't have access to the Admin Portal. Please use the ArgusOne Mobile App to manage daily purchases."
         );
       }
       setTokens(res.data.tokens);

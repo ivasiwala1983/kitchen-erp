@@ -1,7 +1,7 @@
 {
-  "name": "Kitchen ERP — Inventory & Purchase",
-  "short_name": "Kitchen ERP",
-  "description": "Smart Multi-Tenant Kitchen Inventory & Purchase Management System",
+  "name": "ArgusOne",
+  "short_name": "ArgusOne",
+  "description": "ArgusOne — Business Operations Platform",
   "start_url": "/",
   "id": "/",
   "display": "standalone",

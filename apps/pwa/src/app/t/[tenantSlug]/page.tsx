@@ -258,7 +258,7 @@ export default function TenantDashboardPage() {
           flexWrap: 'wrap',
         }}
       >
-        <span>© {new Date().getFullYear()} Kitchen ERP · Powered by</span>
+        <span>© {new Date().getFullYear()} ArgusOne · Powered by</span>
         <a
           href="https://www.argusoft.com"
           target="_blank"

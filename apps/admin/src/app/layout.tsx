@@ -3,8 +3,8 @@ import './globals.css';
 import { AuthProvider } from '../contexts/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'Kitchen ERP — Admin Portal',
-  description: 'Multi-tenant Kitchen ERP Administration Portal',
+  title: 'ArgusOne Admin',
+  description: 'ArgusOne — Multi-tenant Business Operations Platform Admin Portal',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

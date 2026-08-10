@@ -209,10 +209,10 @@ export default function RootPwaPage() {
                 marginBottom: '0.25rem',
               }}
             >
-              Kitchen ERP
+              ArgusOne
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
-              Mobile Kitchen Portal
+              Business Operations Platform
             </p>
           </div>
 
@@ -264,7 +264,7 @@ export default function RootPwaPage() {
                   id="pwa-email"
                   type="email"
                   className="pwa-input"
-                  placeholder="manager@demo.kitchenerp.com"
+                  placeholder="manager@demo.argusone.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -358,7 +358,7 @@ export default function RootPwaPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  📲 Install Kitchen ERP App
+                  📲 Install ArgusOne App
                 </button>
               ) : isIos ? (
                 <div
@@ -390,7 +390,7 @@ export default function RootPwaPage() {
               flexWrap: 'wrap',
             }}
           >
-            <span>© {new Date().getFullYear()} Kitchen ERP · Powered by</span>
+            <span>© {new Date().getFullYear()} ArgusOne · Powered by</span>
             <a
               href="https://www.argusoft.com"
               target="_blank"

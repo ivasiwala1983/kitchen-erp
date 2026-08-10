@@ -150,7 +150,7 @@ export default function TenantLoginPage() {
             {tenant?.name || tenantSlug.toUpperCase()}
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>
-            Kitchen ERP Mobile Portal
+            ArgusOne — Business Operations Platform
           </p>
         </div>
 
@@ -279,7 +279,7 @@ export default function TenantLoginPage() {
             flexWrap: 'wrap',
           }}
         >
-          <span>© {new Date().getFullYear()} Kitchen ERP · Powered by</span>
+          <span>© {new Date().getFullYear()} ArgusOne · Powered by</span>
           <a
             href="https://www.argusoft.com"
             target="_blank"
