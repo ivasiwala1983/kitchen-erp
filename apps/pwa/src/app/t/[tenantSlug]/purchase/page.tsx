@@ -129,6 +129,77 @@ export default function TenantPurchaseMobilePage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [activeVendor, setActiveVendor] = useState<Vendor | null>(null);
 
+  // Quick Add Vendor Modal state
+  const [showAddVendorModal, setShowAddVendorModal] = useState(false);
+  const [newVendorName, setNewVendorName] = useState('');
+  const [quickAddLoading, setQuickAddLoading] = useState(false);
+  const [quickAddError, setQuickAddError] = useState('');
+  const [duplicateVendor, setDuplicateVendor] = useState<Vendor | null>(null);
+
+  // Quick Add Vendor Submit Handler
+  const handleQuickAddVendor = async () => {
+    const trimmed = newVendorName.trim();
+    if (!trimmed) {
+      setQuickAddError('Vendor name is required');
+      return;
+    }
+    if (trimmed.length < 2) {
+      setQuickAddError('Vendor name must be at least 2 characters');
+      return;
+    }
+    if (!activeCategoryId) {
+      setQuickAddError('Please select a category first');
+      return;
+    }
+
+    setQuickAddLoading(true);
+    setQuickAddError('');
+    setDuplicateVendor(null);
+
+    try {
+      const res = await api.vendors.quickAdd({
+        name: trimmed,
+        categoryId: activeCategoryId,
+      });
+
+      if (res.data) {
+        const vendorData = res.data.vendor as Vendor;
+
+        if (res.data.created) {
+          setVendors((prev) => {
+            const exists = prev.some((v) => v.id === vendorData.id);
+            return exists ? prev : [...prev, vendorData];
+          });
+          setActiveVendor(vendorData);
+          setShowAddVendorModal(false);
+          setSuccess(`✓ Vendor "${vendorData.name}" created and selected!`);
+          setTimeout(() => setSuccess(''), 3000);
+        } else if (res.data.existing) {
+          setDuplicateVendor(vendorData);
+          setQuickAddError(`"${vendorData.name}" already exists.`);
+        }
+      }
+    } catch (e: any) {
+      const errMsg =
+        e?.response?.data?.message || e?.message || 'Failed to add vendor. Please try again.';
+      setQuickAddError(errMsg);
+    } finally {
+      setQuickAddLoading(false);
+    }
+  };
+
+  const handleUseExistingVendor = () => {
+    if (!duplicateVendor) return;
+    setVendors((prev) => {
+      const exists = prev.some((v) => v.id === duplicateVendor.id);
+      return exists ? prev : [...prev, duplicateVendor];
+    });
+    setActiveVendor(duplicateVendor);
+    setShowAddVendorModal(false);
+    setSuccess(`✓ Vendor "${duplicateVendor.name}" selected!`);
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
   // Products filtered by selected Category
   const [products, setProducts] = useState<Product[]>([]);
   const [productSearch, setProductSearch] = useState('');
@@ -697,6 +768,34 @@ export default function TenantPurchaseMobilePage() {
               </span>
             )}
           </div>
+
+          {/* Quick Add Vendor Action Link */}
+          <div style={{ marginTop: '0.625rem', textAlign: 'right' }}>
+            <button
+              type="button"
+              id="quick-add-vendor-btn"
+              onClick={() => {
+                setNewVendorName('');
+                setQuickAddError('');
+                setDuplicateVendor(null);
+                setShowAddVendorModal(true);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--forest-green)',
+                fontSize: '0.78125rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                padding: '0.2rem 0.4rem',
+              }}
+            >
+              + Add New Vendor
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -1028,6 +1127,228 @@ export default function TenantPurchaseMobilePage() {
           Logout
         </button>
       </nav>
+
+      {/* ── Quick Add Vendor Modal ───────────────────────────────────── */}
+      {showAddVendorModal && (
+        <div
+          id="quick-add-vendor-modal"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+            backdropFilter: 'blur(4px)',
+          }}
+          onClick={() => setShowAddVendorModal(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 16,
+              padding: '1.25rem',
+              width: '100%',
+              maxWidth: 380,
+              boxShadow:
+                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  color: 'var(--forest-green)',
+                  margin: 0,
+                }}
+              >
+                Add Vendor
+              </h3>
+              <button
+                type="button"
+                id="modal-close-btn"
+                onClick={() => setShowAddVendorModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {activeCategoryObj && (
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  marginBottom: '1rem',
+                  background: '#f8fafc',
+                  padding: '0.35rem 0.625rem',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                }}
+              >
+                Category: <strong>{activeCategoryObj.name}</strong>
+              </div>
+            )}
+
+            {quickAddError && (
+              <div
+                id="quick-add-error-msg"
+                style={{
+                  padding: '0.55rem 0.75rem',
+                  background: duplicateVendor ? '#fef3c7' : '#fee2e2',
+                  color: duplicateVendor ? '#92400e' : '#dc2626',
+                  borderRadius: 8,
+                  fontSize: '0.8125rem',
+                  marginBottom: '0.875rem',
+                  fontWeight: 600,
+                }}
+              >
+                {quickAddError}
+              </div>
+            )}
+
+            {duplicateVendor ? (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  id="btn-use-existing-vendor"
+                  onClick={handleUseExistingVendor}
+                  style={{
+                    flex: 1,
+                    background: 'var(--forest-green)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '0.625rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Use Existing Vendor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddVendorModal(false)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '0.625rem 1rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    color: '#4b5563',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleQuickAddVendor();
+                }}
+              >
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      marginBottom: '0.375rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    Vendor Name
+                  </label>
+                  <input
+                    type="text"
+                    id="quick-vendor-name-input"
+                    autoFocus
+                    className="pwa-input"
+                    placeholder="e.g. Patel Vegetables"
+                    value={newVendorName}
+                    onChange={(e) => {
+                      setNewVendorName(e.target.value);
+                      if (quickAddError) setQuickAddError('');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem 0.875rem',
+                      fontSize: '0.875rem',
+                      borderRadius: 10,
+                      border: '1.5px solid var(--border)',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddVendorModal(false)}
+                    style={{
+                      background: '#f1f5f9',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
+                      color: '#475569',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    id="submit-quick-add-vendor-btn"
+                    disabled={quickAddLoading}
+                    style={{
+                      background: 'var(--forest-green)',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '0.5rem 1.25rem',
+                      fontSize: '0.8125rem',
+                      fontWeight: 800,
+                      color: '#ffffff',
+                      cursor: quickAddLoading ? 'not-allowed' : 'pointer',
+                      opacity: quickAddLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {quickAddLoading ? 'Adding...' : 'Add Vendor'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

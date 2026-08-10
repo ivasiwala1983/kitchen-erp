@@ -84,6 +84,27 @@ export interface CreateVendorDto {
   gst?: string;
 }
 
+export interface QuickAddVendorDto {
+  name: string;
+  categoryId: string;
+}
+
+export interface QuickAddVendorResult {
+  created: boolean;
+  existing?: boolean;
+  vendor: {
+    id: string;
+    tenantId: string;
+    categoryId: string;
+    name: string;
+    isActive: boolean;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    gst?: string | null;
+  };
+}
+
 export interface UpdateVendorDto {
   categoryId?: string;
   name?: string;

@@ -39,6 +39,21 @@ export class VendorRepository {
     });
   }
 
+  async findByName(
+    tenantId: string,
+    name: string
+  ): Promise<(Vendor & { category?: { id: string; name: string } }) | null> {
+    const trimmed = name.trim();
+    return prisma.vendor.findFirst({
+      where: {
+        tenantId,
+        deletedAt: null,
+        name: { equals: trimmed, mode: 'insensitive' },
+      },
+      include: { category: true },
+    });
+  }
+
   async findAll(
     tenantId: string,
     params: {

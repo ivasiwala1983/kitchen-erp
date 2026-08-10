@@ -23,6 +23,8 @@ import type {
   UpdateCategoryDto,
   VendorPublic,
   CreateVendorDto,
+  QuickAddVendorDto,
+  QuickAddVendorResult,
   UpdateVendorDto,
   ProductPublic,
   CreateProductDto,
@@ -308,6 +310,11 @@ export class KitchenErpApi {
 
     create: (dto: CreateVendorDto) =>
       this.client.post<ApiResponse<VendorPublic>>('/vendors', dto).then((r) => r.data),
+
+    quickAdd: (dto: QuickAddVendorDto) =>
+      this.client
+        .post<ApiResponse<QuickAddVendorResult>>('/vendors/quick-add', dto)
+        .then((r) => r.data),
 
     update: (id: string, dto: UpdateVendorDto) =>
       this.client.patch<ApiResponse<VendorPublic>>(`/vendors/${id}`, dto).then((r) => r.data),

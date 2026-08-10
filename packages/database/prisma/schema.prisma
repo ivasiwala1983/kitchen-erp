@@ -188,6 +188,7 @@ model Vendor {
   ledgerTransactions LedgerTransaction[]
   payments           VendorPayment[]
 
+  @@unique([tenantId, name])
   @@index([tenantId])
   @@index([categoryId])
   @@index([deletedAt])

@@ -1,13 +1,16 @@
-/**
- * Vendor Module — Repository Adapter, Service, Controller, Routes
- * Consumes enterprise @kitchen-erp/database VendorRepository.
- */
-
-import { vendorRepository as dbVendorRepository } from '@kitchen-erp/database';
+import {
+  vendorRepository as dbVendorRepository,
+  categoryRepository as dbCategoryRepository,
+  ledgerRepository as dbLedgerRepository,
+} from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
-import { NotFoundError } from '../../shared/errors';
-import type { CreateVendorInput, UpdateVendorInput } from './vendor.validation';
-import { createVendorSchema, updateVendorSchema } from './vendor.validation';
+import { NotFoundError, ConflictError } from '../../shared/errors';
+import type {
+  CreateVendorInput,
+  UpdateVendorInput,
+  QuickAddVendorInput,
+} from './vendor.validation';
+import { createVendorSchema, updateVendorSchema, quickAddVendorSchema } from './vendor.validation';
 import { Router, Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendCreated, sendPaginated } from '../../shared/response';
 import type { AuthenticatedRequest } from '../../shared/types';
@@ -29,6 +32,10 @@ class VendorRepository {
 
   async findById(id: string, tenantId: string) {
     return dbVendorRepository.findById(id, tenantId);
+  }
+
+  async findByName(tenantId: string, name: string) {
+    return dbVendorRepository.findByName(tenantId, name);
   }
 
   async create(data: CreateVendorInput & { tenantId: string; createdBy: string }) {
@@ -87,6 +94,67 @@ class VendorService {
 
   async create(tenantId: string, dto: CreateVendorInput, createdBy: string) {
     return this.repo.create({ ...dto, tenantId, createdBy });
+  }
+
+  async quickAdd(tenantId: string, dto: QuickAddVendorInput, createdBy: string) {
+    const cleanName = dto.name.trim();
+
+    // Verify category exists and belongs to current tenant
+    const category = await dbCategoryRepository.findById(dto.categoryId, tenantId);
+    if (!category) {
+      throw new NotFoundError('Category not found for this tenant');
+    }
+
+    // Tenant-scoped duplicate check (case & space insensitive)
+    const existing = await this.repo.findByName(tenantId, cleanName);
+    if (existing) {
+      if (!existing.isActive) {
+        throw new ConflictError(
+          'Vendor already exists but is inactive. Please contact Tenant Admin.'
+        );
+      }
+      return {
+        created: false,
+        existing: true,
+        vendor: existing,
+      };
+    }
+
+    try {
+      const vendor = await this.repo.create({
+        tenantId,
+        categoryId: dto.categoryId,
+        name: cleanName,
+        createdBy,
+      });
+
+      // Ensure vendor ledger account exists
+      await dbLedgerRepository.findOrCreateAccount(tenantId, vendor.id);
+
+      return {
+        created: true,
+        existing: false,
+        vendor,
+      };
+    } catch (e: any) {
+      // Race condition protection for unique constraint (P2002)
+      if (e?.code === 'P2002') {
+        const raceVendor = await this.repo.findByName(tenantId, cleanName);
+        if (raceVendor) {
+          if (!raceVendor.isActive) {
+            throw new ConflictError(
+              'Vendor already exists but is inactive. Please contact Tenant Admin.'
+            );
+          }
+          return {
+            created: false,
+            existing: true,
+            vendor: raceVendor,
+          };
+        }
+      }
+      throw e;
+    }
   }
 
   async update(id: string, tenantId: string, dto: UpdateVendorInput, updatedBy: string) {
@@ -161,6 +229,38 @@ router.post(
       });
 
       sendCreated(res, vendor, 'Vendor created');
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+router.post(
+  '/quick-add',
+  authorize(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.INVENTORY_MANAGER),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const dto = quickAddVendorSchema.parse(req.body);
+      const result = await service.quickAdd(authReq.tenantId, dto, authReq.user.sub);
+
+      if (result.created) {
+        recordAuditLog({
+          tenantId: authReq.tenantId,
+          userId: authReq.user.sub,
+          action: 'VENDOR_QUICK_CREATED',
+          entity: 'Vendor',
+          entityId: result.vendor.id,
+          newValues: {
+            name: result.vendor.name,
+            categoryId: result.vendor.categoryId,
+            source: 'PWA_QUICK_ADD',
+          },
+        });
+        return sendCreated(res, result, 'Vendor created successfully');
+      } else {
+        return sendSuccess(res, result, 'Vendor already exists.');
+      }
     } catch (e) {
       next(e);
     }

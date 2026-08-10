@@ -14,7 +14,17 @@ export const createVendorSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const quickAddVendorSchema = z.object({
+  name: z
+    .string({ required_error: 'Vendor name is required' })
+    .trim()
+    .min(2, 'Vendor name must be at least 2 characters')
+    .max(100, 'Vendor name cannot exceed 100 characters'),
+  categoryId: z.string().uuid('Invalid category ID'),
+});
+
 export const updateVendorSchema = createVendorSchema.partial();
 
 export type CreateVendorInput = z.infer<typeof createVendorSchema>;
 export type UpdateVendorInput = z.infer<typeof updateVendorSchema>;
+export type QuickAddVendorInput = z.infer<typeof quickAddVendorSchema>;
