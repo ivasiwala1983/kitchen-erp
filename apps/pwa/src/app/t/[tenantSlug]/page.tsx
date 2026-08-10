@@ -40,26 +40,6 @@ export default function TenantDashboardPage() {
             ArgusOne
           </span>
         </div>
-        <Link
-          href={`/t/${tenantSlug}/assistant`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.45rem 0.85rem',
-            borderRadius: 999,
-            background: 'var(--mint-light)',
-            color: 'var(--forest-green)',
-            textDecoration: 'none',
-            fontSize: '0.8125rem',
-            fontWeight: 800,
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          <span>🤖</span>
-          <span>Ask ArgusOne</span>
-        </Link>
       </div>
 
       {/* Welcome Card */}
@@ -101,6 +81,86 @@ export default function TenantDashboardPage() {
         >
           🍳 {tenant?.name || tenantSlug}
         </p>
+      </div>
+
+      {/* 🤖 Ask ArgusOne Hero Assistant Entry Card */}
+      <div
+        className="pwa-card"
+        style={{
+          background: '#ffffff',
+          color: 'var(--text-main)',
+          padding: '1.25rem 1.5rem',
+          borderRadius: 16,
+          marginBottom: '1.5rem',
+          border: '1.5px solid var(--border)',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '0.5rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>🤖</span>
+            <h2
+              style={{
+                fontSize: '1.1rem',
+                fontWeight: 800,
+                margin: 0,
+                color: 'var(--forest-green)',
+              }}
+            >
+              Ask ArgusOne
+            </h2>
+          </div>
+          <span
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              padding: '0.2rem 0.6rem',
+              borderRadius: 999,
+              background: 'var(--mint-light)',
+              color: 'var(--forest-green)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            ArgusOne Assistant
+          </span>
+        </div>
+        <p
+          style={{
+            fontSize: '0.85rem',
+            color: 'var(--text-muted)',
+            margin: '0 0 1rem 0',
+            lineHeight: 1.4,
+          }}
+        >
+          Ask about purchases, vendors, inventory attention items, or ledger balances.
+        </p>
+        <Link
+          href={`/t/${tenantSlug}/assistant`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.75rem 1rem',
+            borderRadius: 12,
+            background: 'var(--bg-page)',
+            color: 'var(--forest-green)',
+            textDecoration: 'none',
+            fontWeight: 700,
+            fontSize: '0.875rem',
+            border: '1px solid var(--border)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <span>Ask ArgusOne...</span>
+          <span style={{ fontSize: '1rem', color: 'var(--forest-green)', fontWeight: 800 }}>→</span>
+        </Link>
       </div>
 
       {/* Action Items Section */}
