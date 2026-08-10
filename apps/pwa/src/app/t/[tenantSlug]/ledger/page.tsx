@@ -35,9 +35,12 @@ export default function PwaLedgerListPage() {
     // Fetch category master for filters
     api.categories
       .list({ limit: 100 })
-      .then((res: any) => {
-        const items = Array.isArray(res?.data) ? res.data : res?.data?.data || [];
-        setCategories(items);
+      .then((res) => {
+        const r = res as { data?: unknown };
+        const items = Array.isArray(r?.data)
+          ? r.data
+          : (r?.data as { data?: unknown[] })?.data || [];
+        setCategories(items as CategoryPublic[]);
       })
       .catch(() => {});
 
@@ -61,9 +64,12 @@ export default function PwaLedgerListPage() {
         categoryId: selectedCategory || undefined,
         limit: 100,
       })
-      .then((res: any) => {
-        const items = Array.isArray(res?.data) ? res.data : res?.data?.data || [];
-        setVendors(items);
+      .then((res) => {
+        const r = res as { data?: unknown };
+        const items = Array.isArray(r?.data)
+          ? r.data
+          : (r?.data as { data?: unknown[] })?.data || [];
+        setVendors(items as LedgerAccountPublic[]);
       })
       .catch(() => {
         setVendors([]);

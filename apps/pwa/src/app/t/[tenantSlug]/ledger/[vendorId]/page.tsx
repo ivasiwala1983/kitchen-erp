@@ -51,10 +51,16 @@ export default function PwaVendorLedgerDetailPage() {
 
     api.ledger
       .getVendorTransactions(vendorId, { page, limit: LIMIT })
-      .then((res: any) => {
-        const items = Array.isArray(res?.data) ? res.data : res?.data?.data || [];
-        const count = typeof res?.total === 'number' ? res.total : res?.data?.total || items.length;
-        setTransactions(items);
+      .then((res) => {
+        const r = res as { data?: unknown; total?: number };
+        const items = Array.isArray(r?.data)
+          ? r.data
+          : (r?.data as { data?: unknown[] })?.data || [];
+        const count =
+          typeof r?.total === 'number'
+            ? r.total
+            : (r?.data as { total?: number })?.total || items.length;
+        setTransactions(items as LedgerTransactionPublic[]);
         setTotal(count);
       })
       .catch(() => {

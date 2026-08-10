@@ -179,9 +179,10 @@ export default function TenantPurchaseMobilePage() {
           setQuickAddError(`"${vendorData.name}" already exists.`);
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
       const errMsg =
-        e?.response?.data?.message || e?.message || 'Failed to add vendor. Please try again.';
+        err?.response?.data?.message || err?.message || 'Failed to add vendor. Please try again.';
       setQuickAddError(errMsg);
     } finally {
       setQuickAddLoading(false);

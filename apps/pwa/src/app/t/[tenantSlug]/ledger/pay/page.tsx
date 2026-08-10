@@ -47,9 +47,12 @@ export default function PwaMakePaymentPage() {
     // Load active vendors
     api.vendors
       .list({ isActive: true, limit: 100 })
-      .then((res: any) => {
-        const items = Array.isArray(res?.data) ? res.data : res?.data?.data || [];
-        setVendors(items);
+      .then((res) => {
+        const r = res as { data?: unknown };
+        const items = Array.isArray(r?.data)
+          ? r.data
+          : (r?.data as { data?: unknown[] })?.data || [];
+        setVendors(items as VendorPublic[]);
       })
       .catch(() => {});
   }, [tenantSlug]);
@@ -108,8 +111,10 @@ export default function PwaMakePaymentPage() {
           router.replace(`/t/${tenantSlug}/ledger/${selectedVendorId}`);
         }, 1200);
       }
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to record payment. Please try again.';
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } } };
+      const msg =
+        errorObj?.response?.data?.message || 'Failed to record payment. Please try again.';
       setError(msg);
       setSaving(false);
     }
