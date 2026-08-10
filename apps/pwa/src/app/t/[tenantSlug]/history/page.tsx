@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatDate, formatCurrency } from '@kitchen-erp/utils';
+import type { Vendor, Category, PurchasePublic } from '@kitchen-erp/types';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
@@ -30,14 +31,61 @@ export default function TenantHistoryPage() {
     [tenantSlug, router]
   );
 
-  const [purchases, setPurchases] = useState<Record<string, unknown>[]>([]);
+  const [purchases, setPurchases] = useState<PurchasePublic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Smart Date Selector Filter State (Default: ALL)
+  // Filters State
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('ALL');
+  const [selectedVendorId, setSelectedVendorId] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [invoiceFilter, setInvoiceFilter] = useState<'ALL' | 'WITH_INVOICE' | 'NO_INVOICE'>('ALL');
+
+  // Master Data State for Filters
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tenantName, setTenantName] = useState<string>('');
+  const [tenantCurrency, setTenantCurrency] = useState<string>('INR');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Load User & Tenant details and Master Data for filters
+  useEffect(() => {
+    api.auth
+      .me()
+      .then((res) => {
+        if (res.data?.tenant?.currency) {
+          setTenantCurrency(res.data.tenant.currency);
+        }
+        if (res.data?.tenant?.name) {
+          setTenantName(res.data.tenant.name);
+        }
+      })
+      .catch(() => null);
+
+    api.vendors
+      .list({ limit: 100 })
+      .then((res) => setVendors(res.data?.data || []))
+      .catch(() => null);
+
+    api.categories
+      .list({ limit: 100 })
+      .then((res) => setCategories(res.data?.data || []))
+      .catch(() => null);
+  }, [api]);
 
   // Custom date picker inputs
   const [customStartDate, setCustomStartDate] = useState<string>(() => {
@@ -82,48 +130,50 @@ export default function TenantHistoryPage() {
       };
     }
 
-    // ALL
     return { startDate: undefined, endDate: undefined };
   }, [filterType, customStartDate, customEndDate]);
 
-  // Tenant Currency State
-  const [tenantCurrency, setTenantCurrency] = useState<string>('INR');
-
-  useEffect(() => {
-    api.auth
-      .me()
-      .then((res) => {
-        if (res.data?.tenant?.currency) {
-          setTenantCurrency(res.data.tenant.currency);
-        }
-      })
-      .catch(() => null);
-  }, [api]);
-
   // Fetch Purchases from API
-  useEffect(() => {
+  const fetchPurchases = () => {
     let isMounted = true;
     setLoading(true);
+    setError('');
+
+    const invoiceAvailableParam =
+      invoiceFilter === 'WITH_INVOICE' ? true : invoiceFilter === 'NO_INVOICE' ? false : undefined;
 
     api.purchases
       .list({
         page,
-        limit: 20,
+        limit: 15,
+        search: debouncedSearch || undefined,
+        vendorId: selectedVendorId || undefined,
+        categoryId: selectedCategoryId || undefined,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
+        invoiceAvailable: invoiceAvailableParam,
       })
       .then((res) => {
         if (isMounted) {
-          const resObj = res as { data?: unknown; total?: number };
-          const dataObj = res.data as { data?: unknown[]; total?: number } | undefined;
-          const list = Array.isArray(res.data) ? res.data : dataObj?.data || [];
+          const resObj = res as { data?: unknown; total?: number; totalPages?: number };
+          const dataObj = res.data as
+            { data?: PurchasePublic[]; total?: number; totalPages?: number } | undefined;
+          const list = Array.isArray(res.data)
+            ? (res.data as PurchasePublic[])
+            : dataObj?.data || [];
           const count = resObj.total ?? dataObj?.total ?? list.length;
-          setPurchases(list as unknown as Record<string, unknown>[]);
+          const pages = resObj.totalPages ?? dataObj?.totalPages ?? Math.ceil(count / 15);
+
+          setPurchases(list);
           setTotal(count);
+          setTotalPages(pages || 1);
         }
       })
-      .catch(() => {
-        if (isMounted) setPurchases([]);
+      .catch((err) => {
+        if (isMounted) {
+          setError(err?.response?.data?.message || 'Unable to load purchase history.');
+          setPurchases([]);
+        }
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -132,7 +182,11 @@ export default function TenantHistoryPage() {
     return () => {
       isMounted = false;
     };
-  }, [api, page, dateRange]);
+  };
+
+  useEffect(() => {
+    return fetchPurchases();
+  }, [api, page, debouncedSearch, selectedVendorId, selectedCategoryId, invoiceFilter, dateRange]);
 
   function getInvoiceUrl(url?: string | null): string | null {
     if (!url) return null;
@@ -165,26 +219,124 @@ export default function TenantHistoryPage() {
       <div className="pwa-content">
         {/* Header */}
         <div className="mock-header">
-          <div className="mock-title">Purchase History</div>
-          <div className="mock-date">{total} total orders</div>
+          <div>
+            <div className="mock-title">Purchase History</div>
+            <div
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 800,
+                color: 'var(--forest-green)',
+                marginTop: 2,
+              }}
+            >
+              {tenantName || tenantSlug.toUpperCase()}
+            </div>
+          </div>
+          <div className="mock-date">
+            <div>Total Purchases</div>
+            <div style={{ fontWeight: 800, color: 'var(--forest-green)', fontSize: '0.875rem' }}>
+              {total} orders
+            </div>
+          </div>
         </div>
 
-        {/* ── Date Filter Bar ────────────────────────────────────────── */}
-        <div className="pwa-card" style={{ margin: '0.75rem 1rem', padding: '0.75rem' }}>
+        {/* Purchase Sub-Navigation Tabs */}
+        <div style={{ display: 'flex', gap: '0.5rem', margin: '0.75rem 1rem 0.5rem' }}>
+          <Link
+            href={`/t/${tenantSlug}/purchase`}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '0.5rem',
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: '0.8125rem',
+              background: '#f1f5f9',
+              color: 'var(--text-main)',
+              textDecoration: 'none',
+            }}
+          >
+            ➕ New Purchase
+          </Link>
+          <Link
+            href={`/t/${tenantSlug}/purchase/history`}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '0.5rem',
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: '0.8125rem',
+              background: 'var(--forest-green)',
+              color: '#ffffff',
+              textDecoration: 'none',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            📋 Purchase History
+          </Link>
+        </div>
+
+        {/* Search Bar & Filters Card */}
+        <div className="pwa-card" style={{ margin: '0.5rem 1rem 0.75rem', padding: '0.875rem' }}>
+          {/* Search Input */}
+          <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+            <input
+              type="text"
+              id="purchase-search-input"
+              className="pwa-input"
+              placeholder="🔍 Search vendor, invoice #, or notes..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.55rem 0.75rem',
+                fontSize: '0.8125rem',
+                borderRadius: 10,
+                border: '1.5px solid var(--border)',
+                outline: 'none',
+              }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                style={{
+                  position: 'absolute',
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Quick Date Range Filter */}
           <div
             style={{
               fontWeight: 700,
-              fontSize: '0.8125rem',
+              fontSize: '0.75rem',
               color: 'var(--text-muted)',
-              marginBottom: '0.5rem',
+              marginBottom: '0.375rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
             }}
           >
-            FILTER BY DATE RANGE
+            Date Filter
           </div>
-          <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
+          <div
+            style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}
+          >
             <button
               className={`pwa-btn ${filterType === 'THIS_MONTH' ? 'pwa-btn-primary' : 'pwa-btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
               onClick={() => {
                 setFilterType('THIS_MONTH');
                 setPage(1);
@@ -194,7 +346,7 @@ export default function TenantHistoryPage() {
             </button>
             <button
               className={`pwa-btn ${filterType === 'LAST_MONTH' ? 'pwa-btn-primary' : 'pwa-btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
               onClick={() => {
                 setFilterType('LAST_MONTH');
                 setPage(1);
@@ -204,7 +356,7 @@ export default function TenantHistoryPage() {
             </button>
             <button
               className={`pwa-btn ${filterType === 'LAST_3_MONTHS' ? 'pwa-btn-primary' : 'pwa-btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
               onClick={() => {
                 setFilterType('LAST_3_MONTHS');
                 setPage(1);
@@ -214,7 +366,7 @@ export default function TenantHistoryPage() {
             </button>
             <button
               className={`pwa-btn ${filterType === 'ALL' ? 'pwa-btn-primary' : 'pwa-btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
               onClick={() => {
                 setFilterType('ALL');
                 setPage(1);
@@ -224,7 +376,7 @@ export default function TenantHistoryPage() {
             </button>
             <button
               className={`pwa-btn ${filterType === 'CUSTOM' ? 'pwa-btn-primary' : 'pwa-btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
               onClick={() => {
                 setFilterType('CUSTOM');
                 setPage(1);
@@ -236,42 +388,243 @@ export default function TenantHistoryPage() {
 
           {filterType === 'CUSTOM' && (
             <div
-              style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', alignItems: 'center' }}
+              style={{
+                display: 'flex',
+                gap: '0.5rem',
+                marginBottom: '0.75rem',
+                alignItems: 'center',
+              }}
             >
               <input
                 type="date"
                 className="pwa-input"
                 value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                style={{ fontSize: '0.75rem', padding: '0.35rem' }}
+                onChange={(e) => {
+                  setCustomStartDate(e.target.value);
+                  setPage(1);
+                }}
+                style={{ fontSize: '0.75rem', padding: '0.35rem', flex: 1 }}
               />
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>to</span>
               <input
                 type="date"
                 className="pwa-input"
                 value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                style={{ fontSize: '0.75rem', padding: '0.35rem' }}
+                onChange={(e) => {
+                  setCustomEndDate(e.target.value);
+                  setPage(1);
+                }}
+                style={{ fontSize: '0.75rem', padding: '0.35rem', flex: 1 }}
               />
             </div>
           )}
+
+          {/* Master Filters Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  marginBottom: '0.25rem',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Vendor
+              </label>
+              <select
+                id="vendor-filter-select"
+                className="pwa-select"
+                value={selectedVendorId}
+                onChange={(e) => {
+                  setSelectedVendorId(e.target.value);
+                  setPage(1);
+                }}
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.5rem',
+                  width: '100%',
+                  borderRadius: 8,
+                }}
+              >
+                <option value="">All Vendors</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  marginBottom: '0.25rem',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Category
+              </label>
+              <select
+                id="category-filter-select"
+                className="pwa-select"
+                value={selectedCategoryId}
+                onChange={(e) => {
+                  setSelectedCategoryId(e.target.value);
+                  setPage(1);
+                }}
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.5rem',
+                  width: '100%',
+                  borderRadius: 8,
+                }}
+              >
+                <option value="">All Categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Invoice Filter */}
+          <div style={{ marginTop: '0.5rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.6875rem',
+                fontWeight: 700,
+                color: 'var(--text-muted)',
+                marginBottom: '0.25rem',
+                textTransform: 'uppercase',
+              }}
+            >
+              Invoice Status
+            </label>
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              <button
+                type="button"
+                className={`pwa-btn ${invoiceFilter === 'ALL' ? 'pwa-btn-primary' : 'pwa-btn-secondary'}`}
+                style={{ fontSize: '0.6875rem', padding: '0.25rem 0.5rem', flex: 1 }}
+                onClick={() => {
+                  setInvoiceFilter('ALL');
+                  setPage(1);
+                }}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`pwa-btn ${invoiceFilter === 'WITH_INVOICE' ? 'pwa-btn-primary' : 'pwa-btn-secondary'}`}
+                style={{ fontSize: '0.6875rem', padding: '0.25rem 0.5rem', flex: 1 }}
+                onClick={() => {
+                  setInvoiceFilter('WITH_INVOICE');
+                  setPage(1);
+                }}
+              >
+                📄 With Invoice
+              </button>
+              <button
+                type="button"
+                className={`pwa-btn ${invoiceFilter === 'NO_INVOICE' ? 'pwa-btn-primary' : 'pwa-btn-secondary'}`}
+                style={{ fontSize: '0.6875rem', padding: '0.25rem 0.5rem', flex: 1 }}
+                onClick={() => {
+                  setInvoiceFilter('NO_INVOICE');
+                  setPage(1);
+                }}
+              >
+                No Invoice
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Error Banner */}
+        {error && (
+          <div
+            className="pwa-card"
+            style={{
+              margin: '0 1rem 1rem',
+              padding: '0.875rem',
+              background: '#fef2f2',
+              borderLeft: '4px solid #ef4444',
+              color: '#991b1b',
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+              ⚠️ Unable to load purchase history
+            </div>
+            <div style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>{error}</div>
+            <button
+              type="button"
+              className="pwa-btn pwa-btn-secondary"
+              onClick={() => fetchPurchases()}
+              style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
+            >
+              🔄 Try Again
+            </button>
+          </div>
+        )}
 
         {/* Loading Spinner */}
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '3rem 0',
+            }}
+          >
             <div
               className="pwa-spinner"
               style={{ width: 32, height: 32, borderColor: 'var(--forest-green)' }}
             />
+            <span
+              style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}
+            >
+              Loading purchase records...
+            </span>
           </div>
         ) : purchases.length === 0 ? (
-          <div className="empty-state">
+          <div className="empty-state" style={{ margin: '1rem' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📋</div>
-            <div style={{ fontWeight: 700 }}>No purchase records found</div>
-            <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-              Try selecting a different date range
+            <div style={{ fontWeight: 800, fontSize: '1.0625rem', color: 'var(--text-main)' }}>
+              No purchases yet
             </div>
+            <div
+              style={{
+                fontSize: '0.8125rem',
+                color: 'var(--text-muted)',
+                marginTop: '0.25rem',
+                marginBottom: '1rem',
+              }}
+            >
+              You can create your first purchase from the Purchase screen.
+            </div>
+            <Link
+              href={`/t/${tenantSlug}/purchase`}
+              className="pwa-btn pwa-btn-primary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                fontSize: '0.875rem',
+                padding: '0.5rem 1.25rem',
+                textDecoration: 'none',
+              }}
+            >
+              ➕ New Purchase
+            </Link>
           </div>
         ) : (
           <div
@@ -284,12 +637,13 @@ export default function TenantHistoryPage() {
           >
             {purchases.map((p) => {
               const id = String(p.id);
-              const vendor = p.vendor as
-                { name?: string; category?: { name?: string } } | undefined;
-              const items = (p.items as Array<Record<string, unknown>>) || [];
+              const vendor = p.vendor;
+              const items = p.items || [];
               const grandTotal = Number(p.grandTotal || 0);
               const isExpanded = expandedId === id;
               const purchaseDateStr = p.purchaseDate ? formatDate(String(p.purchaseDate)) : '-';
+              const hasInvoice = Boolean(p.invoiceStoragePath || p.invoiceUrl);
+              const invoiceName = p.invoiceFileName || (p.invoiceUrl ? 'INV-Attached' : null);
 
               return (
                 <div
@@ -306,19 +660,17 @@ export default function TenantHistoryPage() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'flex-start',
-                      cursor: 'pointer',
                     }}
-                    onClick={() => toggleExpand(id)}
                   >
-                    <div>
+                    <div style={{ flex: 1, paddingRight: '0.5rem' }}>
                       <div
                         style={{
                           fontWeight: 800,
-                          fontSize: '1rem',
+                          fontSize: '0.9375rem',
                           color: 'var(--text-main)',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.5rem',
+                          gap: '0.375rem',
                           flexWrap: 'wrap',
                         }}
                       >
@@ -329,13 +681,14 @@ export default function TenantHistoryPage() {
                             style={{
                               fontSize: '0.6875rem',
                               fontWeight: 700,
-                              padding: '0.15rem 0.5rem',
+                              padding: '0.15rem 0.45rem',
                             }}
                           >
                             📁 {vendor.category.name}
                           </span>
                         )}
                       </div>
+
                       <div
                         style={{
                           fontSize: '0.75rem',
@@ -344,12 +697,13 @@ export default function TenantHistoryPage() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.5rem',
+                          flexWrap: 'wrap',
                         }}
                       >
                         <span>
                           📅 {purchaseDateStr} · {items.length} item{items.length === 1 ? '' : 's'}
                         </span>
-                        {Boolean(p.invoiceUrl) && (
+                        {hasInvoice ? (
                           <span
                             style={{
                               fontSize: '0.6875rem',
@@ -360,11 +714,24 @@ export default function TenantHistoryPage() {
                               borderRadius: 4,
                             }}
                           >
-                            📄 Invoice Attached
+                            📄 Invoice: {invoiceName || 'Attached'}
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '0.6875rem',
+                              color: 'var(--text-muted)',
+                              background: '#f1f5f9',
+                              padding: '0.1rem 0.4rem',
+                              borderRadius: 4,
+                            }}
+                          >
+                            No Invoice
                           </span>
                         )}
                       </div>
                     </div>
+
                     <div style={{ textAlign: 'right' }}>
                       <div
                         style={{
@@ -375,19 +742,49 @@ export default function TenantHistoryPage() {
                       >
                         {formatCurrency(grandTotal, tenantCurrency)}
                       </div>
+
                       <div
                         style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--forest-green)',
-                          fontWeight: 700,
-                          marginTop: 2,
+                          marginTop: '0.375rem',
+                          display: 'flex',
+                          gap: '0.375rem',
+                          justifyContent: 'flex-end',
                         }}
                       >
-                        {isExpanded ? '▲ Hide Details' : '▼ View Items'}
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(id)}
+                          style={{
+                            background: '#f1f5f9',
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {isExpanded ? '▲ Hide' : '▼ Items'}
+                        </button>
+                        <Link
+                          href={`/t/${tenantSlug}/purchase/${id}`}
+                          className="pwa-btn pwa-btn-primary"
+                          style={{
+                            fontSize: '0.6875rem',
+                            padding: '0.25rem 0.625rem',
+                            textDecoration: 'none',
+                            borderRadius: 6,
+                            fontWeight: 700,
+                          }}
+                        >
+                          [ View ]
+                        </Link>
                       </div>
                     </div>
                   </div>
 
+                  {/* Inline Expandable Items Preview */}
                   {isExpanded && (
                     <div
                       style={{
@@ -399,19 +796,19 @@ export default function TenantHistoryPage() {
                       <div
                         style={{
                           fontWeight: 700,
-                          fontSize: '0.8125rem',
-                          marginBottom: '0.5rem',
+                          fontSize: '0.75rem',
+                          marginBottom: '0.375rem',
                           color: 'var(--text-muted)',
+                          textTransform: 'uppercase',
                         }}
                       >
-                        LINE ITEMS
+                        Line Items Breakdown
                       </div>
                       {items.map((item, idx) => {
-                        const product = item.product as
-                          { name?: string; unit?: string } | undefined;
+                        const product = item.product;
                         const qty = Number(item.qty || 0);
                         const rate = Number(item.rate || 0);
-                        const total = Number(item.total || 0);
+                        const lineTotal = Number(item.total || 0);
 
                         return (
                           <div
@@ -420,7 +817,7 @@ export default function TenantHistoryPage() {
                               display: 'flex',
                               justifyContent: 'space-between',
                               fontSize: '0.8125rem',
-                              padding: '0.35rem 0',
+                              padding: '0.3rem 0',
                               borderBottom: idx < items.length - 1 ? '1px solid #f1f5f9' : 'none',
                             }}
                           >
@@ -434,16 +831,16 @@ export default function TenantHistoryPage() {
                               </div>
                             </div>
                             <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                              {formatCurrency(total, tenantCurrency)}
+                              {formatCurrency(lineTotal, tenantCurrency)}
                             </div>
                           </div>
                         );
                       })}
 
-                      {p.invoiceUrl && getInvoiceUrl(p.invoiceUrl as string) ? (
+                      {hasInvoice && getInvoiceUrl(p.invoiceUrl || undefined) && (
                         <div style={{ marginTop: '0.75rem' }}>
                           <a
-                            href={getInvoiceUrl(p.invoiceUrl as string)!}
+                            href={getInvoiceUrl(p.invoiceUrl || undefined)!}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="pwa-btn pwa-btn-secondary"
@@ -452,18 +849,58 @@ export default function TenantHistoryPage() {
                               alignItems: 'center',
                               gap: '0.375rem',
                               fontSize: '0.75rem',
-                              padding: '0.4rem 0.75rem',
+                              padding: '0.35rem 0.65rem',
                             }}
                           >
                             📄 View Attached Invoice
                           </a>
                         </div>
-                      ) : null}
+                      )}
                     </div>
                   )}
                 </div>
               );
             })}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '0.75rem',
+                  padding: '0.75rem 1rem',
+                  background: '#ffffff',
+                  borderRadius: 12,
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <button
+                  type="button"
+                  className="pwa-btn pwa-btn-secondary"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  style={{ fontSize: '0.75rem', opacity: page <= 1 ? 0.5 : 1 }}
+                >
+                  ◀ Previous
+                </button>
+
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  Page {page} of {totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  className="pwa-btn pwa-btn-secondary"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  style={{ fontSize: '0.75rem', opacity: page >= totalPages ? 0.5 : 1 }}
+                >
+                  Next ▶
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -479,7 +916,7 @@ export default function TenantHistoryPage() {
           Buy
         </Link>
 
-        <Link href={`/t/${tenantSlug}/history`} className="bottom-nav-item active">
+        <Link href={`/t/${tenantSlug}/purchase/history`} className="bottom-nav-item active">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
             <polyline points="14,2 14,8 20,8" />

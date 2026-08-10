@@ -58,10 +58,12 @@ export class PurchaseRepository {
       take: number;
       search?: string;
       vendorId?: string;
+      categoryId?: string;
       userId?: string;
       startDate?: string;
       endDate?: string;
       status?: PurchaseStatus;
+      invoiceAvailable?: boolean;
     }
   ) {
     const where: Prisma.PurchaseWhereInput = {
@@ -70,6 +72,18 @@ export class PurchaseRepository {
       ...(params.vendorId && { vendorId: params.vendorId }),
       ...(params.userId && { userId: params.userId }),
       ...(params.status && { status: params.status }),
+      ...(params.categoryId && {
+        vendor: { categoryId: params.categoryId },
+      }),
+      ...(params.invoiceAvailable !== undefined &&
+        (params.invoiceAvailable
+          ? {
+              OR: [{ invoiceStoragePath: { not: null } }, { invoiceUrl: { not: null } }],
+            }
+          : {
+              invoiceStoragePath: null,
+              invoiceUrl: null,
+            })),
       ...(params.startDate || params.endDate
         ? {
             purchaseDate: {
@@ -78,6 +92,13 @@ export class PurchaseRepository {
             },
           }
         : {}),
+      ...(params.search && {
+        OR: [
+          { vendor: { name: { contains: params.search, mode: 'insensitive' } } },
+          { invoiceFileName: { contains: params.search, mode: 'insensitive' } },
+          { notes: { contains: params.search, mode: 'insensitive' } },
+        ],
+      }),
     };
 
     const [items, total] = await Promise.all([

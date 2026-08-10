@@ -9,7 +9,7 @@ import {
   PurchaseStatus as DbPurchaseStatus,
 } from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
-import { NotFoundError, ForbiddenError } from '../../shared/errors';
+import { NotFoundError } from '../../shared/errors';
 import { Router, Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendCreated, sendPaginated } from '../../shared/response';
 import type { AuthenticatedRequest } from '../../shared/types';
@@ -52,10 +52,12 @@ class PurchaseRepository {
       take: number;
       search?: string;
       vendorId?: string;
+      categoryId?: string;
       userId?: string;
       startDate?: string;
       endDate?: string;
       status?: string;
+      invoiceAvailable?: boolean;
     }
   ) {
     return dbPurchaseRepository.findAll(tenantId, {
@@ -128,26 +130,28 @@ class PurchaseService {
     userRole: Role,
     page?: number,
     limit?: number,
-    filters?: { vendorId?: string; startDate?: string; endDate?: string; status?: string }
+    filters?: {
+      search?: string;
+      vendorId?: string;
+      categoryId?: string;
+      startDate?: string;
+      endDate?: string;
+      status?: string;
+      invoiceAvailable?: boolean;
+    }
   ) {
     const { page: p, limit: l, skip } = parsePagination(page, limit);
     const { items, total } = await this.repo.findAll(tenantId, {
       skip,
       take: l,
-      ...(userRole === Role.INVENTORY_MANAGER ? { userId } : {}),
       ...filters,
     });
     return { data: items, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
-  async getById(id: string, tenantId: string, userId: string, userRole: Role) {
+  async getById(id: string, tenantId: string, _userId: string, _userRole: Role) {
     const purchase = await this.repo.findById(id, tenantId);
     if (!purchase) throw new NotFoundError('Purchase not found');
-
-    if (userRole === Role.INVENTORY_MANAGER && purchase.userId !== userId) {
-      throw new ForbiddenError('Access denied');
-    }
-
     return purchase;
   }
 
@@ -228,10 +232,20 @@ router.use(
   requireTenant
 );
 
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+const handleListPurchases = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authReq = req as AuthenticatedRequest;
-    const { page, limit, vendorId, startDate, endDate, status } = req.query;
+    const {
+      page,
+      limit,
+      search,
+      vendorId,
+      categoryId,
+      startDate,
+      endDate,
+      status,
+      invoiceAvailable,
+    } = req.query;
     const result = await service.list(
       authReq.tenantId,
       authReq.user.sub,
@@ -239,17 +253,23 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       Number(page),
       Number(limit),
       {
+        search: search as string,
         vendorId: vendorId as string,
+        categoryId: categoryId as string,
         startDate: startDate as string,
         endDate: endDate as string,
         status: status as string,
+        invoiceAvailable: invoiceAvailable !== undefined ? invoiceAvailable === 'true' : undefined,
       }
     );
     sendPaginated(res, result.data, result.total, result.page, result.limit);
   } catch (e) {
     next(e);
   }
-});
+};
+
+router.get('/', handleListPurchases);
+router.get('/history', handleListPurchases);
 
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {

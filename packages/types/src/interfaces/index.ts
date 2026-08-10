@@ -24,6 +24,14 @@ export interface PaginationParams {
   isActive?: boolean;
 }
 
+export interface PurchaseQueryParams extends PaginationParams {
+  vendorId?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  invoiceAvailable?: boolean | string;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;

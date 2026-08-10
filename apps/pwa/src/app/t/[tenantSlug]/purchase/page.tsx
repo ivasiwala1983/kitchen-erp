@@ -536,6 +536,43 @@ export default function TenantPurchaseMobilePage() {
           </div>
         </div>
 
+        {/* Purchase Navigation Tabs */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+          <Link
+            href={`/t/${tenantSlug}/purchase`}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '0.5rem',
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: '0.8125rem',
+              background: 'var(--forest-green)',
+              color: '#ffffff',
+              textDecoration: 'none',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            ➕ New Purchase
+          </Link>
+          <Link
+            href={`/t/${tenantSlug}/purchase/history`}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '0.5rem',
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: '0.8125rem',
+              background: '#f1f5f9',
+              color: 'var(--text-main)',
+              textDecoration: 'none',
+            }}
+          >
+            📋 Purchase History
+          </Link>
+        </div>
+
         {/* 3. Fully Interactive & Working Date Selector Card */}
         <div
           className="date-selector-card"

@@ -32,6 +32,7 @@ import type {
   PurchasePublic,
   CreatePurchaseDto,
   UpdatePurchaseDto,
+  PurchaseQueryParams,
   PaginationParams,
   TokenPair,
   LedgerAccountPublic,
@@ -343,14 +344,7 @@ export class KitchenErpApi {
   };
 
   purchases = {
-    list: (
-      params?: PaginationParams & {
-        vendorId?: string;
-        startDate?: string;
-        endDate?: string;
-        status?: string;
-      }
-    ) =>
+    list: (params?: PurchaseQueryParams) =>
       this.client
         .get<ApiResponse<PaginatedResponse<PurchasePublic>>>('/purchases', { params })
         .then((r) => r.data),

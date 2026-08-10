@@ -12,12 +12,7 @@ import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
 import { uploadInvoice } from '../../middleware/upload.middleware';
 import { sendSuccess } from '../../shared/response';
-import {
-  NotFoundError,
-  BadRequestError,
-  ForbiddenError,
-  InternalServerError,
-} from '../../shared/errors';
+import { NotFoundError, BadRequestError, InternalServerError } from '../../shared/errors';
 import type { AuthenticatedRequest } from '../../shared/types';
 import { Role } from '@kitchen-erp/types';
 import { getStorageProvider } from '../../storage';
@@ -65,13 +60,6 @@ router.post(
       const purchase = await purchaseRepository.findById(purchaseId, authReq.tenantId);
       if (!purchase) {
         throw new NotFoundError('Purchase not found');
-      }
-
-      // Ownership check for Inventory Manager
-      if (authReq.user.role === Role.INVENTORY_MANAGER && purchase.userId !== authReq.user.sub) {
-        throw new ForbiddenError(
-          'Access denied: You can only attach invoices to your own purchases.'
-        );
       }
 
       const oldStoragePath = purchase.invoiceStoragePath;
@@ -188,12 +176,6 @@ router.get(
       const purchase = await purchaseRepository.findById(purchaseId, authReq.tenantId);
       if (!purchase) {
         throw new NotFoundError('Purchase not found');
-      }
-
-      if (authReq.user.role === Role.INVENTORY_MANAGER && purchase.userId !== authReq.user.sub) {
-        throw new ForbiddenError(
-          'Access denied: You can only view invoices for your own purchases.'
-        );
       }
 
       if (!purchase.invoiceStoragePath) {
