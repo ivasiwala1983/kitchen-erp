@@ -26,6 +26,7 @@ export * from './repositories/audit.repository';
 export * from './repositories/report.repository';
 export * from './repositories/ledger.repository';
 export * from './repositories/payment.repository';
+export * from './repositories/feature.repository';
 
 // Database Services
 export * from './services/tenantResolver.service';
@@ -54,4 +55,6 @@ export type {
   LedgerAccount,
   LedgerTransaction,
   VendorPayment,
+  Feature,
+  TenantFeature,
 } from '@prisma/client';

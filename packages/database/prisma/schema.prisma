@@ -90,6 +90,7 @@ model Tenant {
   ledgerAccounts     LedgerAccount[]
   ledgerTransactions LedgerTransaction[]
   vendorPayments     VendorPayment[]
+  tenantFeatures     TenantFeature[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -406,3 +407,42 @@ model VendorPayment {
   @@index([paymentDate])
   @@map("vendor_payments")
 }
+
+// ── Feature Registry & Tenant Feature Entitlements ─────────────
+
+/// Platform feature registry
+model Feature {
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @unique
+  name           String
+  description    String?
+  category       String   @default("GENERAL")
+  defaultEnabled Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenantFeatures TenantFeature[]
+
+  @@map("features")
+}
+
+/// Tenant feature overrides (if no row exists, feature falls back to defaultEnabled)
+model TenantFeature {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  featureId String   @db.Uuid
+  enabled   Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, featureId])
+  @@index([tenantId])
+  @@index([featureId])
+  @@map("tenant_features")
+}
+

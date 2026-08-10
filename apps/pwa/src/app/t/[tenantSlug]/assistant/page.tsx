@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTenant } from '../../../../contexts/TenantContext';
+import { FeatureCode } from '@kitchen-erp/types';
 
 interface ChatMessage {
   id: string;
@@ -29,7 +30,8 @@ export default function ArgusOneAssistantPage() {
   const searchParams = useSearchParams();
   const sourceParam = (searchParams.get('source') || '').toLowerCase().trim();
 
-  const { user, tenantSlug, api, isLoading } = useTenant();
+  const { user, tenantSlug, api, isLoading, isFeatureEnabled } = useTenant();
+  const aiEnabled = isFeatureEnabled(FeatureCode.FEATURE_AI_ASSISTANT);
 
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -96,6 +98,68 @@ export default function ArgusOneAssistantPage() {
     if (selectedCategory === 'ALL') return SUGGESTED_QUESTIONS;
     return SUGGESTED_QUESTIONS.filter((q) => q.category === selectedCategory);
   }, [selectedCategory]);
+
+  if (!isLoading && !aiEnabled) {
+    return (
+      <div
+        style={{
+          minHeight: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          background: 'var(--bg-page)',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            background: '#fee2e2',
+            color: '#ef4444',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2rem',
+            marginBottom: '1rem',
+          }}
+        >
+          🤖
+        </div>
+        <h1
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: 800,
+            color: 'var(--text-main)',
+            marginBottom: '0.5rem',
+          }}
+        >
+          ArgusOne Assistant
+        </h1>
+        <p
+          style={{
+            color: 'var(--text-muted)',
+            maxWidth: 360,
+            marginBottom: '1.5rem',
+            fontSize: '0.875rem',
+            lineHeight: 1.5,
+          }}
+        >
+          😊 ArgusOne Assistant isn&apos;t enabled for your workspace right now.
+        </p>
+        <Link
+          href={`/t/${tenantSlug}`}
+          className="pwa-btn pwa-btn-primary"
+          style={{ maxWidth: 220, textDecoration: 'none' }}
+        >
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   const handleSend = async (textToSend?: string) => {
     const query = (textToSend || inputMessage).trim();

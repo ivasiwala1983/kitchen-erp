@@ -3,7 +3,13 @@
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
-import { Role, type TenantPublic, type UserPublic } from '@kitchen-erp/types';
+import {
+  Role,
+  type TenantPublic,
+  type UserPublic,
+  type EffectiveFeaturesMap,
+  FeatureCode,
+} from '@kitchen-erp/types';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
@@ -13,6 +19,8 @@ export interface TenantContextType {
   user: UserPublic | null;
   tenantSlug: string;
   isLoading: boolean;
+  features: EffectiveFeaturesMap;
+  isFeatureEnabled: (code: string | FeatureCode) => boolean;
   logout: () => void;
   api: KitchenErpApi;
 }
@@ -36,6 +44,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   const [tenant, setTenant] = useState<TenantPublic | null>(null);
   const [user, setUser] = useState<UserPublic | null>(null);
+  const [features, setFeatures] = useState<EffectiveFeaturesMap>({
+    [FeatureCode.FEATURE_DASHBOARD]: true,
+    [FeatureCode.FEATURE_PURCHASES]: true,
+    [FeatureCode.FEATURE_PURCHASE_HISTORY]: true,
+    [FeatureCode.FEATURE_VENDORS]: true,
+    [FeatureCode.FEATURE_PRODUCTS]: true,
+    [FeatureCode.FEATURE_INVENTORY]: true,
+    [FeatureCode.FEATURE_LEDGER]: true,
+    [FeatureCode.FEATURE_REPORTS]: true,
+    [FeatureCode.FEATURE_INVOICE_UPLOAD]: true,
+    [FeatureCode.FEATURE_AI_ASSISTANT]: false,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -85,13 +105,22 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         typeof window !== 'undefined' ? localStorage.getItem('kitchen_erp_access_token') : null;
       if (token) {
         try {
-          const userRes = await api.auth.me();
-          if (isMounted && userRes.data) {
-            if (userRes.data.role !== Role.INVENTORY_MANAGER) {
-              clearTokens();
-              if (isMounted) setUser(null);
-            } else {
-              setUser(userRes.data);
+          const [userRes, featRes] = await Promise.all([
+            api.auth.me().catch(() => null),
+            api.features.getEffective().catch(() => null),
+          ]);
+
+          if (isMounted) {
+            if (userRes && userRes.data) {
+              if (userRes.data.role !== Role.INVENTORY_MANAGER) {
+                clearTokens();
+                setUser(null);
+              } else {
+                setUser(userRes.data);
+              }
+            }
+            if (featRes && featRes.data) {
+              setFeatures(featRes.data);
             }
           }
         } catch {
@@ -109,6 +138,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       isMounted = false;
     };
   }, [tenantSlug]);
+
+  const isFeatureEnabled = (code: string | FeatureCode): boolean => {
+    const key = String(code);
+    if (key in features) {
+      return features[key] !== false;
+    }
+    if (key === FeatureCode.FEATURE_AI_ASSISTANT) return false;
+    return true;
+  };
 
   const logout = () => {
     clearTokens();
@@ -202,7 +240,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <TenantContext.Provider value={{ tenant, user, tenantSlug, isLoading, logout, api }}>
+    <TenantContext.Provider
+      value={{ tenant, user, tenantSlug, isLoading, features, isFeatureEnabled, logout, api }}
+    >
       <main>{children}</main>
     </TenantContext.Provider>
   );

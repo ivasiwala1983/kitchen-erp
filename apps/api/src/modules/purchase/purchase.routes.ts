@@ -16,7 +16,8 @@ import type { AuthenticatedRequest } from '../../shared/types';
 import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
-import { Role, PurchaseStatus } from '@kitchen-erp/types';
+import { requireFeature } from '../../middleware/feature.middleware';
+import { Role, PurchaseStatus, FeatureCode } from '@kitchen-erp/types';
 import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 // ── Validation ────────────────────────────────────────────────
@@ -229,7 +230,8 @@ router.use(
   authenticate,
   authorize(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.INVENTORY_MANAGER),
   resolveTenant,
-  requireTenant
+  requireTenant,
+  requireFeature(FeatureCode.FEATURE_PURCHASES)
 );
 
 const handleListPurchases = async (req: Request, res: Response, next: NextFunction) => {
@@ -269,7 +271,7 @@ const handleListPurchases = async (req: Request, res: Response, next: NextFuncti
 };
 
 router.get('/', handleListPurchases);
-router.get('/history', handleListPurchases);
+router.get('/history', requireFeature(FeatureCode.FEATURE_PURCHASE_HISTORY), handleListPurchases);
 
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {

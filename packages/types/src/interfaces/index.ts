@@ -284,6 +284,37 @@ export interface LedgerSummary {
   netBalance: number;
 }
 
+export interface FeaturePublic {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  category: string;
+  defaultEnabled: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface TenantFeatureStatePublic {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  category: string;
+  defaultEnabled: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  overrideEnabled: boolean | null;
+  effectiveEnabled: boolean;
+  state: 'DEFAULT' | 'ENABLED' | 'DISABLED';
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export type EffectiveFeaturesMap = Record<string, boolean>;
+
 // Convenient type aliases
 export type Category = CategoryPublic;
 export type Vendor = VendorPublic;

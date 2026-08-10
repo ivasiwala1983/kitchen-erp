@@ -26,6 +26,7 @@ import reportsRoutes from './modules/reports/reports.routes';
 import auditLogRoutes from './modules/auditLog/auditLog.routes';
 import ledgerRoutes from './modules/ledger/ledger.routes';
 import aiRoutes from './modules/ai/ai.routes';
+import featureRoutes from './modules/feature/feature.routes';
 
 // ── App Setup ─────────────────────────────────────────────────
 
@@ -137,6 +138,9 @@ mountRoute('/ledger', ledgerRoutes);
 
 // ArgusOne AI Assistant
 mountRoute('/ai', aiRoutes);
+
+// Centralized Tenant Feature Entitlements
+mountRoute('/features', featureRoutes);
 
 // ── Error Handling ────────────────────────────────────────────
 

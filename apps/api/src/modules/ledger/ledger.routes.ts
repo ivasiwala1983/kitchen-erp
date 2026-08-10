@@ -19,7 +19,8 @@ import type { AuthenticatedRequest } from '../../shared/types';
 import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
-import { Role, PaymentMethod } from '@kitchen-erp/types';
+import { requireFeature } from '../../middleware/feature.middleware';
+import { Role, PaymentMethod, FeatureCode } from '@kitchen-erp/types';
 import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 // ── Validation Schemas ─────────────────────────────────────────
@@ -150,7 +151,8 @@ router.use(
   authenticate,
   authorize(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.INVENTORY_MANAGER),
   resolveTenant,
-  requireTenant
+  requireTenant,
+  requireFeature(FeatureCode.FEATURE_LEDGER)
 );
 
 // GET /api/ledger/summary

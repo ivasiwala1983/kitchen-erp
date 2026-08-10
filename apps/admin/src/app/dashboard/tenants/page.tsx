@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../../../lib/api';
 import { formatDate, formatCurrency } from '@kitchen-erp/utils';
-import type { Tenant, TenantPlan } from '@kitchen-erp/types';
+import type { Tenant, TenantPlan, TenantFeatureStatePublic } from '@kitchen-erp/types';
 
 interface TenantDetailsData {
   tenant: {
@@ -69,8 +69,11 @@ export default function TenantsPage() {
   const [selectedDetailTenant, setSelectedDetailTenant] = useState<Tenant | null>(null);
   const [detailData, setDetailData] = useState<TenantDetailsData | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [tenantFeatures, setTenantFeatures] = useState<TenantFeatureStatePublic[]>([]);
+  const [loadingFeatures, setLoadingFeatures] = useState(false);
+  const [updatingFeatureCode, setUpdatingFeatureCode] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<
-    'overview' | 'users' | 'vendors' | 'products' | 'purchases'
+    'overview' | 'features' | 'users' | 'vendors' | 'products' | 'purchases'
   >('overview');
 
   const [error, setError] = useState('');
@@ -234,11 +237,49 @@ export default function TenantsPage() {
     });
   };
 
+  const fetchTenantFeatures = useCallback(async (tenantId: string) => {
+    setLoadingFeatures(true);
+    try {
+      const res = await api.features.getTenantFeatures(tenantId);
+      if (res.success && res.data) {
+        setTenantFeatures(res.data);
+      }
+    } catch (e: unknown) {
+      console.error('Failed to fetch tenant features:', e);
+    } finally {
+      setLoadingFeatures(false);
+    }
+  }, []);
+
+  const handleToggleFeature = async (featureCode: string, targetEnabled: boolean | null) => {
+    if (!selectedDetailTenant) return;
+    setUpdatingFeatureCode(featureCode);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await api.features.updateTenantFeature(selectedDetailTenant.id, {
+        featureCode,
+        enabled: targetEnabled,
+      });
+      if (res.success) {
+        setSuccessMsg(`Feature entitlement updated for ${selectedDetailTenant.name}`);
+        await fetchTenantFeatures(selectedDetailTenant.id);
+      } else {
+        setError(res.message || 'Failed to update feature');
+      }
+    } catch (err: unknown) {
+      setError(formatApiError(err));
+    } finally {
+      setUpdatingFeatureCode(null);
+    }
+  };
+
   const openDetailsModal = async (tenant: Tenant) => {
     setSelectedDetailTenant(tenant);
     setDetailData(null);
     setLoadingDetails(true);
     setDetailTab('overview');
+    fetchTenantFeatures(tenant.id);
     try {
       const res = (await api.tenants.getDetails(tenant.id)) as { data?: TenantDetailsData };
       if (res?.data) {
@@ -921,6 +962,12 @@ export default function TenantsPage() {
                     ℹ️ Overview
                   </button>
                   <button
+                    className={`btn btn-sm ${detailTab === 'features' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setDetailTab('features')}
+                  >
+                    ⚙️ Features ({tenantFeatures.length})
+                  </button>
+                  <button
                     className={`btn btn-sm ${detailTab === 'users' ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => setDetailTab('users')}
                   >
@@ -947,6 +994,192 @@ export default function TenantsPage() {
                 </div>
 
                 {/* Tab Content Panels */}
+                {detailTab === 'features' && (
+                  <div style={{ padding: '0.5rem 0' }}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
+                        Tenant Feature Entitlements
+                      </h4>
+                      <p
+                        style={{
+                          margin: '0.25rem 0 0 0',
+                          fontSize: '0.8rem',
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        Manage feature access for <strong>{selectedDetailTenant?.name}</strong>.
+                        Existing business features default to ON; ArgusOne Assistant defaults to
+                        OFF.
+                      </p>
+                    </div>
+
+                    {loadingFeatures ? (
+                      <div style={{ textAlign: 'center', padding: '2rem' }}>
+                        Loading feature entitlements...
+                      </div>
+                    ) : tenantFeatures.length === 0 ? (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          padding: '2rem',
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        No feature definitions found. Run database seed script.
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table
+                          className="data-table"
+                          style={{ width: '100%', fontSize: '0.875rem' }}
+                        >
+                          <thead>
+                            <tr>
+                              <th>Feature</th>
+                              <th>Category</th>
+                              <th>Current State</th>
+                              <th>Default</th>
+                              <th>Inheritance</th>
+                              <th style={{ textAlign: 'right' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {tenantFeatures.map((f) => {
+                              const isUpdating = updatingFeatureCode === f.code;
+                              return (
+                                <tr key={f.code}>
+                                  <td>
+                                    <div style={{ fontWeight: 600 }}>{f.name}</div>
+                                    <div
+                                      style={{
+                                        fontSize: '0.75rem',
+                                        color: 'var(--color-text-muted)',
+                                      }}
+                                    >
+                                      <code>{f.code}</code> — {f.description}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <span
+                                      className="badge badge-secondary"
+                                      style={{ fontSize: '0.7rem' }}
+                                    >
+                                      {f.category}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    {f.effectiveEnabled ? (
+                                      <span
+                                        style={{
+                                          background: '#dcfce7',
+                                          color: '#15803d',
+                                          padding: '0.2rem 0.5rem',
+                                          borderRadius: 4,
+                                          fontWeight: 700,
+                                          fontSize: '0.75rem',
+                                        }}
+                                      >
+                                        🟢 ON
+                                      </span>
+                                    ) : (
+                                      <span
+                                        style={{
+                                          background: '#fee2e2',
+                                          color: '#b91c1c',
+                                          padding: '0.2rem 0.5rem',
+                                          borderRadius: 4,
+                                          fontWeight: 700,
+                                          fontSize: '0.75rem',
+                                        }}
+                                      >
+                                        🔴 OFF
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <span
+                                      style={{
+                                        fontSize: '0.8rem',
+                                        color: 'var(--color-text-muted)',
+                                      }}
+                                    >
+                                      {f.defaultEnabled ? 'ON' : 'OFF'}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    {f.state === 'DEFAULT' ? (
+                                      <span
+                                        style={{
+                                          fontSize: '0.75rem',
+                                          color: '#64748b',
+                                          fontStyle: 'italic',
+                                        }}
+                                      >
+                                        Inherited Default
+                                      </span>
+                                    ) : (
+                                      <span
+                                        style={{
+                                          fontSize: '0.75rem',
+                                          color: '#0284c7',
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        Explicit Override ({f.state})
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td style={{ textAlign: 'right' }}>
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        gap: '0.35rem',
+                                        justifyContent: 'flex-end',
+                                        alignItems: 'center',
+                                      }}
+                                    >
+                                      {f.effectiveEnabled ? (
+                                        <button
+                                          disabled={isUpdating}
+                                          onClick={() => handleToggleFeature(f.code, false)}
+                                          className="btn btn-sm btn-danger"
+                                          style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                                        >
+                                          Disable (OFF)
+                                        </button>
+                                      ) : (
+                                        <button
+                                          disabled={isUpdating}
+                                          onClick={() => handleToggleFeature(f.code, true)}
+                                          className="btn btn-sm btn-success"
+                                          style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                                        >
+                                          Enable (ON)
+                                        </button>
+                                      )}
+
+                                      {f.state !== 'DEFAULT' && (
+                                        <button
+                                          disabled={isUpdating}
+                                          onClick={() => handleToggleFeature(f.code, null)}
+                                          className="btn btn-sm btn-secondary"
+                                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                                          title="Reset to default inheritance"
+                                        >
+                                          Reset Default
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {detailTab === 'overview' && (
                   <div
                     style={{

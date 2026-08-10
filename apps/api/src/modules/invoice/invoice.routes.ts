@@ -14,7 +14,8 @@ import { uploadInvoice } from '../../middleware/upload.middleware';
 import { sendSuccess } from '../../shared/response';
 import { NotFoundError, BadRequestError, InternalServerError } from '../../shared/errors';
 import type { AuthenticatedRequest } from '../../shared/types';
-import { Role } from '@kitchen-erp/types';
+import { Role, FeatureCode } from '@kitchen-erp/types';
+import { requireFeature } from '../../middleware/feature.middleware';
 import { getStorageProvider } from '../../storage';
 import { recordAuditLog } from '../auditLog/auditLog.routes';
 
@@ -34,6 +35,7 @@ router.post(
   authorize(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.INVENTORY_MANAGER),
   resolveTenant,
   requireTenant,
+  requireFeature(FeatureCode.FEATURE_INVOICE_UPLOAD),
   uploadInvoice,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

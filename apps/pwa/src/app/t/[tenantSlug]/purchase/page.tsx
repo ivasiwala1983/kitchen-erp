@@ -208,6 +208,78 @@ export default function TenantPurchaseMobilePage() {
   const [weight, setWeight] = useState('');
   const [rate, setRate] = useState('');
 
+  // Quick Add Product Modal state
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductUnit, setNewProductUnit] = useState('kg');
+  const [quickAddProductLoading, setQuickAddProductLoading] = useState(false);
+  const [quickAddProductError, setQuickAddProductError] = useState('');
+  const [duplicateProduct, setDuplicateProduct] = useState<Product | null>(null);
+
+  // Quick Add Product Submit Handler
+  const handleQuickAddProduct = async () => {
+    const trimmed = newProductName.trim();
+    if (!trimmed) {
+      setQuickAddProductError('Product name is required');
+      return;
+    }
+    if (!activeCategoryId) {
+      setQuickAddProductError('Please select a category first');
+      return;
+    }
+
+    setQuickAddProductLoading(true);
+    setQuickAddProductError('');
+    setDuplicateProduct(null);
+
+    try {
+      const res = await api.products.quickAdd({
+        name: trimmed,
+        categoryId: activeCategoryId,
+        unit: newProductUnit || 'kg',
+      });
+
+      if (res.data) {
+        const prodData = res.data.product as Product;
+
+        if (res.data.created) {
+          setProducts((prev) => {
+            const exists = prev.some((p) => p.id === prodData.id);
+            return exists ? prev : [...prev, prodData];
+          });
+          setSelectedProductId(prodData.id);
+          setShowAddProductModal(false);
+          setSuccess(`✓ Product "${prodData.name}" created and selected!`);
+          setTimeout(() => setSuccess(''), 3000);
+          setTimeout(() => quantityInputRef.current?.focus(), 50);
+        } else if (res.data.existing) {
+          setDuplicateProduct(prodData);
+          setQuickAddProductError(`"${prodData.name}" already exists in this kitchen.`);
+        }
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      const errMsg =
+        err?.response?.data?.message || err?.message || 'Failed to add product. Please try again.';
+      setQuickAddProductError(errMsg);
+    } finally {
+      setQuickAddProductLoading(false);
+    }
+  };
+
+  const handleUseExistingProduct = () => {
+    if (!duplicateProduct) return;
+    setProducts((prev) => {
+      const exists = prev.some((p) => p.id === duplicateProduct.id);
+      return exists ? prev : [...prev, duplicateProduct];
+    });
+    setSelectedProductId(duplicateProduct.id);
+    setShowAddProductModal(false);
+    setSuccess(`✓ Product "${duplicateProduct.name}" selected!`);
+    setTimeout(() => setSuccess(''), 3000);
+    setTimeout(() => quantityInputRef.current?.focus(), 50);
+  };
+
   // Added Purchase Items List
   const [addedItems, setAddedItems] = useState<
     Array<{
@@ -946,6 +1018,35 @@ export default function TenantPurchaseMobilePage() {
                 </option>
               ))}
             </select>
+
+            {/* Quick Add Product Action Link */}
+            <div style={{ marginTop: '0.5rem', textAlign: 'right' }}>
+              <button
+                type="button"
+                id="quick-add-product-btn"
+                onClick={() => {
+                  setNewProductName('');
+                  setNewProductUnit('kg');
+                  setQuickAddProductError('');
+                  setDuplicateProduct(null);
+                  setShowAddProductModal(true);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--forest-green)',
+                  fontSize: '0.78125rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.2rem 0.4rem',
+                }}
+              >
+                + Add New Product
+              </button>
+            </div>
           </div>
 
           <div className="inputs-row">
@@ -1394,6 +1495,252 @@ export default function TenantPurchaseMobilePage() {
                     }}
                   >
                     {quickAddLoading ? 'Adding...' : 'Add Vendor'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Quick Add Product Modal ───────────────────────────────────── */}
+      {showAddProductModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="pwa-card"
+            style={{
+              width: '100%',
+              maxWidth: 400,
+              background: '#ffffff',
+              borderRadius: 16,
+              padding: '1.25rem',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+              }}
+            >
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>
+                ➕ Quick Add Product
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddProductModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {activeCategoryObj && (
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  marginBottom: '1rem',
+                  background: '#f8fafc',
+                  padding: '0.35rem 0.625rem',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                }}
+              >
+                Category: <strong>{activeCategoryObj.name}</strong>
+              </div>
+            )}
+
+            {quickAddProductError && (
+              <div
+                id="quick-add-product-error-msg"
+                style={{
+                  padding: '0.55rem 0.75rem',
+                  background: duplicateProduct ? '#fef3c7' : '#fee2e2',
+                  color: duplicateProduct ? '#92400e' : '#dc2626',
+                  borderRadius: 8,
+                  fontSize: '0.8125rem',
+                  marginBottom: '0.875rem',
+                  fontWeight: 600,
+                }}
+              >
+                {quickAddProductError}
+              </div>
+            )}
+
+            {duplicateProduct ? (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  id="btn-use-existing-product"
+                  onClick={handleUseExistingProduct}
+                  style={{
+                    flex: 1,
+                    background: 'var(--forest-green)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '0.625rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Use Existing Product
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddProductModal(false)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '0.625rem 1rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    color: '#4b5563',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleQuickAddProduct();
+                }}
+              >
+                <div style={{ marginBottom: '1rem' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      marginBottom: '0.375rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    Product Name
+                  </label>
+                  <input
+                    type="text"
+                    id="quick-product-name-input"
+                    autoFocus
+                    className="pwa-input"
+                    placeholder="e.g. Fresh Tomatoes"
+                    value={newProductName}
+                    onChange={(e) => {
+                      setNewProductName(e.target.value);
+                      if (quickAddProductError) setQuickAddProductError('');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem 0.875rem',
+                      fontSize: '0.875rem',
+                      borderRadius: 10,
+                      border: '1.5px solid var(--border)',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      marginBottom: '0.375rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    Unit of Measurement
+                  </label>
+                  <select
+                    className="pwa-input"
+                    value={newProductUnit}
+                    onChange={(e) => setNewProductUnit(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem 0.875rem',
+                      fontSize: '0.875rem',
+                      borderRadius: 10,
+                      border: '1.5px solid var(--border)',
+                    }}
+                  >
+                    <option value="kg">Kilogram (kg)</option>
+                    <option value="gram">Gram (g)</option>
+                    <option value="liter">Liter (L)</option>
+                    <option value="ml">Milliliter (ml)</option>
+                    <option value="piece">Piece (pcs)</option>
+                    <option value="box">Box</option>
+                    <option value="pkt">Packet (pkt)</option>
+                    <option value="bunch">Bunch</option>
+                    <option value="can">Can</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddProductModal(false)}
+                    style={{
+                      background: '#f1f5f9',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
+                      color: '#475569',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    id="submit-quick-add-product-btn"
+                    disabled={quickAddProductLoading}
+                    style={{
+                      background: 'var(--forest-green)',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '0.5rem 1.25rem',
+                      fontSize: '0.8125rem',
+                      fontWeight: 800,
+                      color: '#ffffff',
+                      cursor: quickAddProductLoading ? 'not-allowed' : 'pointer',
+                      opacity: quickAddProductLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {quickAddProductLoading ? 'Adding...' : 'Add Product'}
                   </button>
                 </div>
               </form>

@@ -39,6 +39,113 @@ async function main() {
     console.log(`ℹ️   Super Admin already exists: ${superAdminEmail}`);
   }
 
+  // ── Feature Registry ─────────────────────────────────────────
+  const DEFAULT_FEATURES = [
+    {
+      code: 'FEATURE_DASHBOARD',
+      name: 'Dashboard',
+      description: 'Main tenant dashboard & summary analytics',
+      category: 'CORE',
+      defaultEnabled: true,
+      sortOrder: 1,
+    },
+    {
+      code: 'FEATURE_PURCHASES',
+      name: 'Purchases',
+      description: 'Procurement entry and purchase order management',
+      category: 'PROCUREMENT',
+      defaultEnabled: true,
+      sortOrder: 2,
+    },
+    {
+      code: 'FEATURE_PURCHASE_HISTORY',
+      name: 'Purchase History',
+      description: 'Historical purchase records and receipts',
+      category: 'PROCUREMENT',
+      defaultEnabled: true,
+      sortOrder: 3,
+    },
+    {
+      code: 'FEATURE_VENDORS',
+      name: 'Vendors',
+      description: 'Supplier directory and vendor management',
+      category: 'DIRECTORY',
+      defaultEnabled: true,
+      sortOrder: 4,
+    },
+    {
+      code: 'FEATURE_PRODUCTS',
+      name: 'Products',
+      description: 'Master product catalog and units',
+      category: 'DIRECTORY',
+      defaultEnabled: true,
+      sortOrder: 5,
+    },
+    {
+      code: 'FEATURE_INVENTORY',
+      name: 'Inventory',
+      description: 'Stock tracking and inventory insights',
+      category: 'INVENTORY',
+      defaultEnabled: true,
+      sortOrder: 6,
+    },
+    {
+      code: 'FEATURE_LEDGER',
+      name: 'Ledger',
+      description: 'Vendor financial accounts and payment history',
+      category: 'FINANCE',
+      defaultEnabled: true,
+      sortOrder: 7,
+    },
+    {
+      code: 'FEATURE_REPORTS',
+      name: 'Reports',
+      description: 'Operational reports and financial summaries',
+      category: 'ANALYTICS',
+      defaultEnabled: true,
+      sortOrder: 8,
+    },
+    {
+      code: 'FEATURE_INVOICE_UPLOAD',
+      name: 'Invoice Upload',
+      description: 'Attach and manage vendor invoice files',
+      category: 'DOCUMENTATION',
+      defaultEnabled: true,
+      sortOrder: 9,
+    },
+    {
+      code: 'FEATURE_AI_ASSISTANT',
+      name: 'ArgusOne Assistant',
+      description: 'AI business operations assistant (Ask ArgusOne)',
+      category: 'INTELLIGENCE',
+      defaultEnabled: false,
+      sortOrder: 10,
+    },
+  ];
+
+  for (const feat of DEFAULT_FEATURES) {
+    await prisma.feature.upsert({
+      where: { code: feat.code },
+      update: {
+        name: feat.name,
+        description: feat.description,
+        category: feat.category,
+        defaultEnabled: feat.defaultEnabled,
+        sortOrder: feat.sortOrder,
+      },
+      create: {
+        code: feat.code,
+        name: feat.name,
+        description: feat.description,
+        category: feat.category,
+        defaultEnabled: feat.defaultEnabled,
+        isActive: true,
+        sortOrder: feat.sortOrder,
+      },
+    });
+  }
+  console.log('✅  Feature Registry seeded (9 business features ON by default, AI OFF by default)');
+
   // ── Sample Tenant ────────────────────────────────────────────
   const tenantSlug = 'demo';
 

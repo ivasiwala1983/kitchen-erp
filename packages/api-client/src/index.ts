@@ -28,6 +28,8 @@ import type {
   UpdateVendorDto,
   ProductPublic,
   CreateProductDto,
+  QuickAddProductDto,
+  QuickAddProductResult,
   UpdateProductDto,
   PurchasePublic,
   CreatePurchaseDto,
@@ -43,6 +45,8 @@ import type {
   LedgerQueryParams,
   InvoiceUploadResponse,
   InvoiceMetadataResponse,
+  TenantFeatureStatePublic,
+  UpdateTenantFeatureDto,
 } from '@kitchen-erp/types';
 
 // ── Token Storage ─────────────────────────────────────────────
@@ -262,6 +266,23 @@ export class KitchenErpApi {
       this.client.delete<ApiResponse<void>>(`/tenants/${id}`).then((r) => r.data),
   };
 
+  features = {
+    getEffective: () =>
+      this.client
+        .get<ApiResponse<Record<string, boolean>>>('/features/effective')
+        .then((r) => r.data),
+
+    getTenantFeatures: (tenantId: string) =>
+      this.client
+        .get<ApiResponse<TenantFeatureStatePublic[]>>(`/features/tenant/${tenantId}`)
+        .then((r) => r.data),
+
+    updateTenantFeature: (tenantId: string, dto: UpdateTenantFeatureDto) =>
+      this.client
+        .put<ApiResponse<unknown>>(`/features/tenant/${tenantId}`, dto)
+        .then((r) => r.data),
+  };
+
   users = {
     list: (params?: PaginationParams) =>
       this.client
@@ -335,6 +356,11 @@ export class KitchenErpApi {
 
     create: (dto: CreateProductDto) =>
       this.client.post<ApiResponse<ProductPublic>>('/products', dto).then((r) => r.data),
+
+    quickAdd: (dto: QuickAddProductDto) =>
+      this.client
+        .post<ApiResponse<QuickAddProductResult>>('/products/quick-add', dto)
+        .then((r) => r.data),
 
     update: (id: string, dto: UpdateProductDto) =>
       this.client.patch<ApiResponse<ProductPublic>>(`/products/${id}`, dto).then((r) => r.data),

@@ -11,7 +11,8 @@ import type { AuthenticatedRequest } from '../../shared/types';
 import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
-import { Role } from '@kitchen-erp/types';
+import { requireFeature } from '../../middleware/feature.middleware';
+import { Role, FeatureCode } from '@kitchen-erp/types';
 
 const router: Router = Router();
 
@@ -184,7 +185,8 @@ router.use(
   authenticate,
   authorize(Role.SUPER_ADMIN, Role.TENANT_ADMIN),
   resolveTenant,
-  requireTenant
+  requireTenant,
+  requireFeature(FeatureCode.FEATURE_REPORTS)
 );
 
 // ── Validation ────────────────────────────────────────────────

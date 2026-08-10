@@ -4,10 +4,11 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTenant } from '../../../contexts/TenantContext';
+import { FeatureCode } from '@kitchen-erp/types';
 
 export default function TenantDashboardPage() {
   const router = useRouter();
-  const { tenant, user, tenantSlug, isLoading, logout } = useTenant();
+  const { tenant, user, tenantSlug, isLoading, logout, isFeatureEnabled } = useTenant();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -83,85 +84,86 @@ export default function TenantDashboardPage() {
         </p>
       </div>
 
-      {/* 🤖 Ask ArgusOne Hero Assistant Entry Card */}
-      <div
-        className="pwa-card"
-        style={{
-          background: '#ffffff',
-          color: 'var(--text-main)',
-          padding: '1.25rem 1.5rem',
-          borderRadius: 16,
-          marginBottom: '1.5rem',
-          border: '1.5px solid var(--border)',
-          boxShadow: 'var(--shadow-card)',
-        }}
-      >
+      {/* 🤖 ArgusOne Assistant Quick Card */}
+      {isFeatureEnabled(FeatureCode.FEATURE_AI_ASSISTANT) && (
         <div
+          className="pwa-card"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '0.5rem',
+            marginBottom: '1.5rem',
+            background: 'linear-gradient(135deg, #ffffff, #f0fdf4)',
+            border: '1.5px solid var(--forest-green)',
+            boxShadow: '0 4px 12px rgba(22, 101, 52, 0.08)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>🤖</span>
-            <h2
-              style={{
-                fontSize: '1.1rem',
-                fontWeight: 800,
-                margin: 0,
-                color: 'var(--forest-green)',
-              }}
-            >
-              Ask ArgusOne
-            </h2>
-          </div>
-          <span
+          <div
             style={{
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              padding: '0.2rem 0.6rem',
-              borderRadius: 999,
-              background: 'var(--mint-light)',
-              color: 'var(--forest-green)',
-              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '0.5rem',
             }}
           >
-            ArgusOne Assistant
-          </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>🤖</span>
+              <h2
+                style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 800,
+                  margin: 0,
+                  color: 'var(--forest-green)',
+                }}
+              >
+                Ask ArgusOne
+              </h2>
+            </div>
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                padding: '0.2rem 0.6rem',
+                borderRadius: 999,
+                background: 'var(--mint-light)',
+                color: 'var(--forest-green)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              ArgusOne Assistant
+            </span>
+          </div>
+          <p
+            style={{
+              fontSize: '0.85rem',
+              color: 'var(--text-muted)',
+              margin: '0 0 1rem 0',
+              lineHeight: 1.4,
+            }}
+          >
+            Ask about purchases, vendors, inventory attention items, or ledger balances.
+          </p>
+          <Link
+            href={`/t/${tenantSlug}/assistant`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.75rem 1rem',
+              borderRadius: 12,
+              background: 'var(--bg-page)',
+              color: 'var(--forest-green)',
+              textDecoration: 'none',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              border: '1px solid var(--border)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <span>Ask ArgusOne...</span>
+            <span style={{ fontSize: '1rem', color: 'var(--forest-green)', fontWeight: 800 }}>
+              →
+            </span>
+          </Link>
         </div>
-        <p
-          style={{
-            fontSize: '0.85rem',
-            color: 'var(--text-muted)',
-            margin: '0 0 1rem 0',
-            lineHeight: 1.4,
-          }}
-        >
-          Ask about purchases, vendors, inventory attention items, or ledger balances.
-        </p>
-        <Link
-          href={`/t/${tenantSlug}/assistant`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.75rem 1rem',
-            borderRadius: 12,
-            background: 'var(--bg-page)',
-            color: 'var(--forest-green)',
-            textDecoration: 'none',
-            fontWeight: 700,
-            fontSize: '0.875rem',
-            border: '1px solid var(--border)',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <span>Ask ArgusOne...</span>
-          <span style={{ fontSize: '1rem', color: 'var(--forest-green)', fontWeight: 800 }}>→</span>
-        </Link>
-      </div>
+      )}
 
       {/* Action Items Section */}
       <h2
@@ -183,74 +185,83 @@ export default function TenantDashboardPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <Link
-          href={`/t/${tenantSlug}/purchase`}
-          style={{ textDecoration: 'none', color: 'inherit' }}
-        >
-          <div
-            className="pwa-card"
-            style={{
-              padding: '1.25rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-              height: '100%',
-            }}
+        {isFeatureEnabled(FeatureCode.FEATURE_PURCHASES) && (
+          <Link
+            href={`/t/${tenantSlug}/purchase`}
+            style={{ textDecoration: 'none', color: 'inherit' }}
           >
-            <div style={{ fontSize: '1.75rem' }}>🛒</div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--forest-green)' }}>
-              New Purchase
+            <div
+              className="pwa-card"
+              style={{
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                height: '100%',
+              }}
+            >
+              <div style={{ fontSize: '1.75rem' }}>🛒</div>
+              <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--forest-green)' }}>
+                New Purchase
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Record daily ingredient purchases
+              </div>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Record daily ingredient purchases
-            </div>
-          </div>
-        </Link>
+          </Link>
+        )}
 
-        <Link
-          href={`/t/${tenantSlug}/history`}
-          style={{ textDecoration: 'none', color: 'inherit' }}
-        >
-          <div
-            className="pwa-card"
-            style={{
-              padding: '1.25rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-              height: '100%',
-            }}
+        {isFeatureEnabled(FeatureCode.FEATURE_PURCHASE_HISTORY) && (
+          <Link
+            href={`/t/${tenantSlug}/history`}
+            style={{ textDecoration: 'none', color: 'inherit' }}
           >
-            <div style={{ fontSize: '1.75rem' }}>📋</div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--forest-green)' }}>
-              Purchase History
+            <div
+              className="pwa-card"
+              style={{
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                height: '100%',
+              }}
+            >
+              <div style={{ fontSize: '1.75rem' }}>📋</div>
+              <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--forest-green)' }}>
+                Purchase History
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                View logs & upload invoices
+              </div>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              View logs & upload invoices
-            </div>
-          </div>
-        </Link>
+          </Link>
+        )}
 
-        <Link href={`/t/${tenantSlug}/ledger`} style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div
-            className="pwa-card"
-            style={{
-              padding: '1.25rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-              height: '100%',
-            }}
+        {isFeatureEnabled(FeatureCode.FEATURE_LEDGER) && (
+          <Link
+            href={`/t/${tenantSlug}/ledger`}
+            style={{ textDecoration: 'none', color: 'inherit' }}
           >
-            <div style={{ fontSize: '1.75rem' }}>📖</div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--forest-green)' }}>
-              Vendor Ledger
+            <div
+              className="pwa-card"
+              style={{
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                height: '100%',
+              }}
+            >
+              <div style={{ fontSize: '1.75rem' }}>📖</div>
+              <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--forest-green)' }}>
+                Vendor Ledger
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Payables, credit & vendor payments
+              </div>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Payables, credit & vendor payments
-            </div>
-          </div>
-        </Link>
+          </Link>
+        )}
 
         <Link
           href={`/t/${tenantSlug}/profile`}

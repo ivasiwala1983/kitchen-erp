@@ -7,13 +7,15 @@ import { useTenant } from '../../../../contexts/TenantContext';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatCurrency } from '@kitchen-erp/utils';
 import type { LedgerAccountPublic, LedgerSummary, CategoryPublic } from '@kitchen-erp/types';
+import { FeatureCode } from '@kitchen-erp/types';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
 
 export default function PwaLedgerListPage() {
   const router = useRouter();
-  const { tenant, tenantSlug, user, isLoading } = useTenant();
+  const { tenant, tenantSlug, user, isLoading, isFeatureEnabled } = useTenant();
+  const ledgerEnabled = isFeatureEnabled(FeatureCode.FEATURE_LEDGER);
 
   const [summary, setSummary] = useState<LedgerSummary | null>(null);
   const [vendors, setVendors] = useState<LedgerAccountPublic[]>([]);
@@ -76,6 +78,68 @@ export default function PwaLedgerListPage() {
       })
       .finally(() => setLoading(false));
   }, [tenantSlug, search, selectedCategory]);
+
+  if (!isLoading && !ledgerEnabled) {
+    return (
+      <div
+        style={{
+          minHeight: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          background: 'var(--bg-page)',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            background: '#fee2e2',
+            color: '#ef4444',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2rem',
+            marginBottom: '1rem',
+          }}
+        >
+          📖
+        </div>
+        <h1
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: 800,
+            color: 'var(--text-main)',
+            marginBottom: '0.5rem',
+          }}
+        >
+          Ledger Feature Disabled
+        </h1>
+        <p
+          style={{
+            color: 'var(--text-muted)',
+            maxWidth: 360,
+            marginBottom: '1.5rem',
+            fontSize: '0.875rem',
+            lineHeight: 1.5,
+          }}
+        >
+          😊 Vendor Ledger isn&apos;t enabled for your workspace right now.
+        </p>
+        <Link
+          href={`/t/${tenantSlug}`}
+          className="pwa-btn pwa-btn-primary"
+          style={{ maxWidth: 220, textDecoration: 'none' }}
+        >
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   const currency = tenant?.currency || 'INR';
 

@@ -8,6 +8,7 @@ import type { ChatMessage } from '../providers/ai.provider';
 import { ARGUSONE_SYSTEM_INSTRUCTIONS } from '../prompts/argusone.instructions';
 import { getRandomFreeLimitFallback } from '../prompts/argusone.fallbacks';
 import { toolRegistry } from '../tools/tool.registry';
+import { featureService } from '../../feature/feature.service';
 
 export interface AgentUserContext {
   tenantId: string;
@@ -74,7 +75,10 @@ export class ArgusOneAgent {
     // Add current user prompt
     messages.push({ role: 'user', content: userMessage });
 
-    const tools = toolRegistry.getOpenRouterToolSpecs();
+    const effectiveFeatures = context.tenantId
+      ? await featureService.getEffectiveFeaturesMap(context.tenantId)
+      : undefined;
+    const tools = toolRegistry.getOpenRouterToolSpecs(effectiveFeatures);
     const dataSourcesCollected = new Set<string>();
 
     try {

@@ -33,6 +33,21 @@ export class ProductRepository {
     });
   }
 
+  async findByName(
+    tenantId: string,
+    name: string
+  ): Promise<(Product & { category?: { id: string; name: string } }) | null> {
+    const cleanName = name.trim();
+    return prisma.product.findFirst({
+      where: {
+        tenantId,
+        deletedAt: null,
+        name: { equals: cleanName, mode: 'insensitive' },
+      },
+      include: { category: true },
+    });
+  }
+
   async findAll(
     tenantId: string,
     params: {

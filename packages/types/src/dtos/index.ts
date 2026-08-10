@@ -105,6 +105,29 @@ export interface QuickAddVendorResult {
   };
 }
 
+export interface QuickAddProductDto {
+  name: string;
+  categoryId: string;
+  unit?: string;
+}
+
+export interface QuickAddProductResult {
+  created: boolean;
+  existing?: boolean;
+  product: {
+    id: string;
+    tenantId: string;
+    categoryId: string;
+    name: string;
+    unit: string;
+    isActive: boolean;
+    category?: {
+      id: string;
+      name: string;
+    };
+  };
+}
+
 export interface UpdateVendorDto {
   categoryId?: string;
   name?: string;
@@ -188,4 +211,9 @@ export interface LedgerQueryParams {
   paymentMethod?: PaymentMethod;
   startDate?: string;
   endDate?: string;
+}
+
+export interface UpdateTenantFeatureDto {
+  featureCode: string;
+  enabled: boolean | null; // null to reset to feature default
 }

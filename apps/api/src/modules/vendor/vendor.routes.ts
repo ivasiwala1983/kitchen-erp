@@ -17,7 +17,8 @@ import type { AuthenticatedRequest } from '../../shared/types';
 import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
-import { Role } from '@kitchen-erp/types';
+import { requireFeature } from '../../middleware/feature.middleware';
+import { Role, FeatureCode } from '@kitchen-erp/types';
 import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 // ── Repository Adapter ────────────────────────────────────────
@@ -174,7 +175,7 @@ class VendorService {
 const service = new VendorService();
 const router: Router = Router();
 
-router.use(authenticate, resolveTenant, requireTenant);
+router.use(authenticate, resolveTenant, requireTenant, requireFeature(FeatureCode.FEATURE_VENDORS));
 
 router.get(
   '/',

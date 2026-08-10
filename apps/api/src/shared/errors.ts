@@ -53,3 +53,17 @@ export class InternalServerError extends AppError {
     super(message, 500);
   }
 }
+
+export class FeatureDisabledError extends AppError {
+  public readonly feature: string;
+  public readonly code = 'FEATURE_DISABLED';
+
+  constructor(feature: string, message?: string) {
+    let defaultMsg = `This feature is not enabled for your tenant.`;
+    if (feature === 'FEATURE_AI_ASSISTANT') {
+      defaultMsg = `😊 ArgusOne Assistant isn't enabled for your workspace right now.`;
+    }
+    super(message || defaultMsg, 403);
+    this.feature = feature;
+  }
+}

@@ -47,8 +47,11 @@ export function errorHandler(
 
   // ── Known Application Errors ─────────────────────────────
   if (error instanceof AppError) {
+    const errObj = error as { code?: string; feature?: string };
     res.status(error.statusCode).json({
       success: false,
+      ...(errObj.code && { code: errObj.code }),
+      ...(errObj.feature && { feature: errObj.feature }),
       message: error.message,
       errors: error.errors,
     });
