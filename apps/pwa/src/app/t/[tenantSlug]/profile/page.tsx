@@ -69,7 +69,7 @@ export default function TenantProfilePage() {
               borderBottom: '1px solid #f1f5f9',
             }}
           >
-            <span style={{ color: 'var(--text-muted)' }}>Assigned Kitchen</span>
+            <span style={{ color: 'var(--text-muted)' }}>Assigned Business</span>
             <span style={{ fontWeight: 700 }}>{tenant?.name || tenantSlug}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>

@@ -68,7 +68,7 @@ export default function TenantLoginPage() {
         if (res.data.user.role !== Role.INVENTORY_MANAGER) {
           clearTokens();
           setError(
-            "👋 Welcome! As an Administrator, you don't have access to the Mobile Kitchen app. Please sign in to the Admin Portal."
+            "👋 Welcome! As an Administrator, you don't have access to the ArgusOne Mobile App. Please sign in to the Admin Portal."
           );
           return;
         }
@@ -159,13 +159,13 @@ export default function TenantLoginPage() {
           {error && <div className="pwa-alert pwa-alert-error">{error}</div>}
 
           <form onSubmit={handleSubmit}>
-            {/* Kitchen Selector Dropdown */}
+            {/* Business Selector Dropdown */}
             <div className="pwa-field">
               <label
                 className="pwa-label"
                 style={{ fontWeight: 700, color: 'var(--forest-green)' }}
               >
-                Select Kitchen / Branch
+                Select Business / Branch
               </label>
               <select
                 className="pwa-input"
@@ -249,7 +249,7 @@ export default function TenantLoginPage() {
                   cursor: 'pointer',
                 }}
               >
-                Remember this Kitchen on this device
+                Remember this Business on this device
               </label>
             </div>
 

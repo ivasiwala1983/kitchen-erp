@@ -17,7 +17,7 @@ export default function TenantSettingsPage() {
           marginBottom: '1rem',
         }}
       >
-        Kitchen Settings
+        Business Settings
       </h1>
 
       <div className="pwa-card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>

@@ -314,7 +314,7 @@ export default function TenantDashboardPage() {
                 letterSpacing: '0.5px',
               }}
             >
-              Active Kitchen
+              Active Business
             </div>
             <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--text-main)' }}>
               {tenant?.name || tenantSlug}

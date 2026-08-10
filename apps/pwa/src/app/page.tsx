@@ -120,7 +120,7 @@ export default function RootPwaPage() {
         if (res.data.user.role !== Role.INVENTORY_MANAGER) {
           clearTokens();
           setError(
-            "👋 Welcome! As an Administrator, you don't have access to the Mobile Kitchen app. Please sign in to the Admin Portal."
+            "👋 Welcome! As an Administrator, you don't have access to the ArgusOne Mobile App. Please sign in to the Admin Portal."
           );
           return;
         }
@@ -225,13 +225,13 @@ export default function RootPwaPage() {
             )}
 
             <form onSubmit={handleSubmit}>
-              {/* Kitchen Selector Dropdown */}
+              {/* Business Selector Dropdown */}
               <div className="pwa-field">
                 <label
                   className="pwa-label"
                   style={{ fontWeight: 700, color: 'var(--forest-green)' }}
                 >
-                  Select Kitchen / Branch
+                  Select Business / Branch
                 </label>
                 <select
                   id="pwa-tenant-select"
@@ -252,7 +252,7 @@ export default function RootPwaPage() {
                     ))
                   ) : (
                     <option value={tenantSlug || 'demo'}>
-                      🍳 Default Kitchen ({tenantSlug || 'demo'})
+                      🏢 Default Business ({tenantSlug || 'demo'})
                     </option>
                   )}
                 </select>
@@ -286,7 +286,7 @@ export default function RootPwaPage() {
                 />
               </div>
 
-              {/* Remember Kitchen Checkbox */}
+              {/* Remember Business Checkbox */}
               <div
                 style={{
                   display: 'flex',
@@ -318,7 +318,7 @@ export default function RootPwaPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Remember this Kitchen on this device
+                  Remember this Business on this device
                 </label>
               </div>
 
