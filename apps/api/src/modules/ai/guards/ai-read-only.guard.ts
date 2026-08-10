@@ -16,9 +16,9 @@ export interface ToolDefinition {
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: (
-    params: Record<string, any>,
+    params: any,
     context: { tenantId: string; userId: string; role: string }
-  ) => Promise<unknown>;
+  ) => Promise<any>;
 }
 
 export class AiReadOnlyGuard {

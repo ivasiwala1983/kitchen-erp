@@ -277,6 +277,33 @@ export default function TenantHistoryPage() {
           </Link>
         </div>
 
+        {/* Contextual AI Entry Point for Purchases */}
+        <div style={{ margin: '0.5rem 1rem 0.25rem' }}>
+          <Link
+            href={`/t/${tenantSlug}/assistant?source=purchases`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.625rem 0.875rem',
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+              color: '#f8fafc',
+              textDecoration: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>🤖</span>
+              <span>Ask ArgusOne about purchases</span>
+            </div>
+            <span style={{ color: '#38bdf8', fontWeight: 800 }}>→</span>
+          </Link>
+        </div>
+
         {/* Search Bar & Filters Card */}
         <div className="pwa-card" style={{ margin: '0.5rem 1rem 0.75rem', padding: '0.875rem' }}>
           {/* Search Input */}

@@ -91,7 +91,7 @@ export default function PwaLedgerListPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '1rem',
+          marginBottom: '0.75rem',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
@@ -128,14 +128,41 @@ export default function PwaLedgerListPage() {
           <button
             className="pwa-btn pwa-btn-primary pwa-btn-sm"
             style={{
-              fontWeight: 800,
               padding: '0.5rem 0.875rem',
-              borderRadius: 10,
               fontSize: '0.8125rem',
+              fontWeight: 800,
+              borderRadius: 10,
             }}
           >
-            + Make Payment
+            + Pay Vendor
           </button>
+        </Link>
+      </div>
+
+      {/* Contextual AI Entry Point for Ledger */}
+      <div style={{ marginBottom: '1rem' }}>
+        <Link
+          href={`/t/${tenantSlug}/assistant?source=ledger`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.625rem 0.875rem',
+            borderRadius: 12,
+            background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+            color: '#f8fafc',
+            textDecoration: 'none',
+            fontSize: '0.8125rem',
+            fontWeight: 700,
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>🤖</span>
+            <span>Ask ArgusOne about your ledger</span>
+          </div>
+          <span style={{ color: '#38bdf8', fontWeight: 800 }}>→</span>
         </Link>
       </div>
 

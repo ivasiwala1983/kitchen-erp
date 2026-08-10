@@ -25,6 +25,43 @@ export default function TenantDashboardPage() {
 
   return (
     <div style={{ padding: '1.25rem', maxWidth: 600, margin: '0 auto' }}>
+      {/* Top Header Navigation Bar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.25rem' }}>🍳</span>
+          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--forest-green)' }}>
+            ArgusOne
+          </span>
+        </div>
+        <Link
+          href={`/t/${tenantSlug}/assistant`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.4rem 0.75rem',
+            borderRadius: 999,
+            background: '#1e293b',
+            color: '#38bdf8',
+            textDecoration: 'none',
+            fontSize: '0.8125rem',
+            fontWeight: 700,
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.15)',
+          }}
+        >
+          <span>🤖</span>
+          <span>Ask ArgusOne</span>
+        </Link>
+      </div>
+
       {/* Welcome Card */}
       <div
         className="pwa-card"
@@ -66,7 +103,7 @@ export default function TenantDashboardPage() {
         </p>
       </div>
 
-      {/* 🤖 Ask ArgusOne AI Assistant Entry Card */}
+      {/* 🤖 Ask ArgusOne Hero Assistant Entry Card */}
       <div
         className="pwa-card"
         style={{
@@ -103,7 +140,7 @@ export default function TenantDashboardPage() {
               border: '1px solid rgba(56, 189, 248, 0.3)',
             }}
           >
-            AI Assistant
+            ArgusOne Assistant
           </span>
         </div>
         <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0 0 1rem 0', lineHeight: 1.4 }}>
@@ -131,7 +168,7 @@ export default function TenantDashboardPage() {
         </Link>
       </div>
 
-      {/* Quick Action Grid */}
+      {/* Action Items Section */}
       <h2
         style={{
           fontSize: '1rem',
@@ -140,7 +177,7 @@ export default function TenantDashboardPage() {
           marginBottom: '0.75rem',
         }}
       >
-        Kitchen Actions
+        Action Items
       </h2>
 
       <div
@@ -221,7 +258,7 @@ export default function TenantDashboardPage() {
         </Link>
 
         <Link
-          href={`/t/${tenantSlug}/profile`}
+          href={`/t/${tenantSlug}/assistant`}
           style={{ textDecoration: 'none', color: 'inherit' }}
         >
           <div
@@ -232,15 +269,46 @@ export default function TenantDashboardPage() {
               flexDirection: 'column',
               gap: '0.5rem',
               height: '100%',
+              background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+              color: '#f8fafc',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
             }}
           >
-            <div style={{ fontSize: '1.75rem' }}>👤</div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>
-              My Profile
+            <div style={{ fontSize: '1.75rem' }}>🤖</div>
+            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#38bdf8' }}>Ask ArgusOne</div>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              Ask about your business data
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Account details & password
+          </div>
+        </Link>
+
+        <Link
+          href={`/t/${tenantSlug}/profile`}
+          style={{ textDecoration: 'none', color: 'inherit', gridColumn: 'span 2' }}
+        >
+          <div
+            className="pwa-card"
+            style={{
+              padding: '1rem 1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ fontSize: '1.5rem' }}>👤</div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--text-main)' }}>
+                  My Profile
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Account details & security settings
+                </div>
+              </div>
             </div>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+              →
+            </span>
           </div>
         </Link>
       </div>

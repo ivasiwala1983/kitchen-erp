@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTenant } from '../../../../contexts/TenantContext';
 
 interface ChatMessage {
@@ -26,11 +26,15 @@ const SUGGESTED_QUESTIONS = [
 
 export default function ArgusOneAssistantPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sourceParam = (searchParams.get('source') || '').toLowerCase().trim();
+
   const { user, tenantSlug, api, isLoading } = useTenant();
 
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
@@ -41,8 +45,57 @@ export default function ArgusOneAssistantPage() {
   }, [user, isLoading, tenantSlug, router]);
 
   useEffect(() => {
+    if (sourceParam === 'purchases') setSelectedCategory('Purchases');
+    else if (sourceParam === 'inventory') setSelectedCategory('Inventory');
+    else if (sourceParam === 'vendors' || sourceParam === 'ledger') setSelectedCategory('Ledger');
+    else if (sourceParam === 'reports') setSelectedCategory('Reports');
+  }, [sourceParam]);
+
+  useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isProcessing]);
+
+  const contextGreeting = useMemo(() => {
+    if (sourceParam === 'purchases') {
+      return {
+        title: '👋 Need help with purchases?',
+        body: 'I can help you understand spending, recent purchases, vendor-wise purchases, or compare periods.',
+      };
+    }
+    if (sourceParam === 'inventory') {
+      return {
+        title: "👋 Let's look at your inventory.",
+        body: 'I can help you find low-stock items, current stock, or inventory trends.',
+      };
+    }
+    if (sourceParam === 'vendors') {
+      return {
+        title: '👋 I can help you explore your vendors.',
+        body: 'I can answer questions about vendor spending, payment history, and active suppliers.',
+      };
+    }
+    if (sourceParam === 'ledger') {
+      return {
+        title: "👋 Let's take a look at your ledger.",
+        body: 'I can help with balances, outstanding amounts and recent activity.',
+      };
+    }
+    if (sourceParam === 'reports') {
+      return {
+        title: '👋 Let’s analyze your reports.',
+        body: 'I can help you understand this report and explore the numbers behind it.',
+      };
+    }
+    return {
+      title: `👋 Good day, ${user?.name || 'there'}!`,
+      body: 'I am ArgusOne Assistant, your read-only business operations companion. Ask me anything about purchases, vendors, inventory, ledger, or reports.',
+    };
+  }, [sourceParam, user?.name]);
+
+  const filteredQuestions = useMemo(() => {
+    if (selectedCategory === 'ALL') return SUGGESTED_QUESTIONS;
+    return SUGGESTED_QUESTIONS.filter((q) => q.category === selectedCategory);
+  }, [selectedCategory]);
 
   const handleSend = async (textToSend?: string) => {
     const query = (textToSend || inputMessage).trim();
@@ -131,8 +184,9 @@ export default function ArgusOneAssistantPage() {
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
-        <Link
-          href={`/t/${tenantSlug}`}
+        <button
+          onClick={() => router.back()}
+          type="button"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -142,14 +196,15 @@ export default function ArgusOneAssistantPage() {
             borderRadius: 10,
             background: 'rgba(255, 255, 255, 0.08)',
             color: '#f8fafc',
-            textDecoration: 'none',
+            border: 'none',
             fontSize: '1.2rem',
             fontWeight: 700,
+            cursor: 'pointer',
           }}
         >
           ←
-        </Link>
-        <div>
+        </button>
+        <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.25rem' }}>🤖</span>
             <h1 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
@@ -173,7 +228,7 @@ export default function ArgusOneAssistantPage() {
           gap: '1rem',
         }}
       >
-        {/* Welcome Card & Prompt Suggestions when conversation is empty */}
+        {/* Context-Aware Welcome Card & Prompt Suggestions */}
         {messages.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div
@@ -181,7 +236,8 @@ export default function ArgusOneAssistantPage() {
                 background: 'linear-gradient(135deg, #1e293b, #334155)',
                 padding: '1.25rem',
                 borderRadius: 16,
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                boxShadow: '0 8px 24px rgba(15, 23, 42, 0.3)',
               }}
             >
               <h2
@@ -192,29 +248,64 @@ export default function ArgusOneAssistantPage() {
                   color: '#38bdf8',
                 }}
               >
-                👋 Hello, {user.name}!
+                {contextGreeting.title}
               </h2>
               <p style={{ fontSize: '0.875rem', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
-                I am your read-only business assistant. I can answer questions about your purchases,
-                vendors, inventory attention items, ledger, and business reports.
+                {contextGreeting.body}
               </p>
             </div>
 
+            {/* Category Filter Chips */}
             <div>
               <div
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   color: '#64748b',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                Explore Topics
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.4rem',
                   marginBottom: '0.75rem',
                 }}
               >
-                Suggested Questions
+                {['ALL', 'Purchases', 'Ledger', 'Inventory', 'Reports'].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    type="button"
+                    style={{
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: 20,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      border:
+                        selectedCategory === cat
+                          ? '1px solid #38bdf8'
+                          : '1px solid rgba(255,255,255,0.1)',
+                      background:
+                        selectedCategory === cat
+                          ? 'rgba(56, 189, 248, 0.2)'
+                          : 'rgba(255,255,255,0.05)',
+                      color: selectedCategory === cat ? '#38bdf8' : '#94a3b8',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {cat === 'ALL' ? 'All Topics' : cat}
+                  </button>
+                ))}
               </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {SUGGESTED_QUESTIONS.map((item, idx) => (
+                {filteredQuestions.map((item, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSend(item.text)}
@@ -420,7 +511,7 @@ export default function ArgusOneAssistantPage() {
           </div>
         ))}
 
-        {/* Processing Indicator */}
+        {/* Friendly Thinking Indicator */}
         {isProcessing && (
           <div
             style={{
@@ -432,8 +523,8 @@ export default function ArgusOneAssistantPage() {
               padding: '0.5rem',
             }}
           >
-            <span style={{ animation: 'pulse 1.5s infinite', fontSize: '1.2rem' }}>🤖</span>
-            <span>ArgusOne is thinking...</span>
+            <span style={{ animation: 'pulse 1.5s infinite', fontSize: '1.2rem' }}>🔎</span>
+            <span>Checking your business data...</span>
           </div>
         )}
 
