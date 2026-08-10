@@ -136,9 +136,10 @@ class VendorService {
         existing: false,
         vendor,
       };
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { code?: string };
       // Race condition protection for unique constraint (P2002)
-      if (e?.code === 'P2002') {
+      if (err?.code === 'P2002') {
         const raceVendor = await this.repo.findByName(tenantId, cleanName);
         if (raceVendor) {
           if (!raceVendor.isActive) {

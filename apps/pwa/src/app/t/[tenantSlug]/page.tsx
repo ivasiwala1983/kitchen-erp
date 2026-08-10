@@ -33,7 +33,7 @@ export default function TenantDashboardPage() {
           color: 'white',
           padding: '1.25rem 1.5rem',
           borderRadius: 16,
-          marginBottom: '1.5rem',
+          marginBottom: '1.25rem',
           boxShadow: '0 8px 24px rgba(31, 78, 56, 0.2)',
         }}
       >
@@ -64,6 +64,71 @@ export default function TenantDashboardPage() {
         >
           🍳 {tenant?.name || tenantSlug}
         </p>
+      </div>
+
+      {/* 🤖 Ask ArgusOne AI Assistant Entry Card */}
+      <div
+        className="pwa-card"
+        style={{
+          background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+          color: 'white',
+          padding: '1.25rem 1.5rem',
+          borderRadius: 16,
+          marginBottom: '1.5rem',
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.2)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '0.5rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>🤖</span>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+              Ask ArgusOne
+            </h2>
+          </div>
+          <span
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              padding: '0.2rem 0.6rem',
+              borderRadius: 999,
+              background: 'rgba(56, 189, 248, 0.15)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+            }}
+          >
+            AI Assistant
+          </span>
+        </div>
+        <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0 0 1rem 0', lineHeight: 1.4 }}>
+          Ask about purchases, vendors, inventory attention items, or ledger balances.
+        </p>
+        <Link
+          href={`/t/${tenantSlug}/assistant`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.75rem 1rem',
+            borderRadius: 12,
+            background: 'rgba(255, 255, 255, 0.08)',
+            color: '#f8fafc',
+            textDecoration: 'none',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <span>Ask ArgusOne...</span>
+          <span style={{ fontSize: '1rem', color: '#38bdf8', fontWeight: 700 }}>→</span>
+        </Link>
       </div>
 
       {/* Quick Action Grid */}

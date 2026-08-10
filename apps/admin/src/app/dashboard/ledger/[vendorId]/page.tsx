@@ -31,12 +31,12 @@ export default function AdminVendorStatementPage() {
         api.ledger.getVendorTransactions(vendorId, { page, limit: LIMIT }),
       ]);
 
-      if (accRes.data) setAccount(accRes.data);
-      const txItems = Array.isArray(txRes?.data) ? txRes.data : (txRes?.data as any)?.data || [];
-      const count =
-        typeof (txRes as any)?.total === 'number'
-          ? (txRes as any).total
-          : (txRes?.data as any)?.total || txItems.length;
+      if (accRes?.data) setAccount(accRes.data);
+      const txPayload = txRes as unknown as { data?: LedgerTransactionPublic[]; total?: number };
+      const txItems: LedgerTransactionPublic[] = Array.isArray(txRes?.data)
+        ? txRes.data
+        : txPayload?.data || [];
+      const count = typeof txPayload?.total === 'number' ? txPayload.total : txItems.length;
       setTransactions(txItems);
       setTotal(count);
     } catch (e: unknown) {

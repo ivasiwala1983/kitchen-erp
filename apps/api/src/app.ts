@@ -25,6 +25,7 @@ import invoiceRoutes from './modules/invoice/invoice.routes';
 import reportsRoutes from './modules/reports/reports.routes';
 import auditLogRoutes from './modules/auditLog/auditLog.routes';
 import ledgerRoutes from './modules/ledger/ledger.routes';
+import aiRoutes from './modules/ai/ai.routes';
 
 // ── App Setup ─────────────────────────────────────────────────
 
@@ -133,6 +134,9 @@ mountRoute('/audit-logs', auditLogRoutes);
 
 // Vendor Ledger & Payments
 mountRoute('/ledger', ledgerRoutes);
+
+// ArgusOne AI Assistant
+mountRoute('/ai', aiRoutes);
 
 // ── Error Handling ────────────────────────────────────────────
 

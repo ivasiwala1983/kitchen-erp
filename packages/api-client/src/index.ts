@@ -460,6 +460,27 @@ export class KitchenErpApi {
         .get<ApiResponse<VendorPaymentPublic>>(`/ledger/payments/${id}`)
         .then((r) => r.data),
   };
+
+  ai = {
+    chat: (message: string, history?: Array<{ role: 'user' | 'assistant'; content: string }>) =>
+      this.client
+        .post<
+          ApiResponse<{
+            message: string;
+            dataSources: string[];
+            quickActions: Array<{ label: string; route: string }>;
+            code?:
+              | 'AI_RATE_LIMITED'
+              | 'AI_PROVIDER_UNAVAILABLE'
+              | 'AI_CONFIGURATION_ERROR'
+              | 'AI_AUTH_ERROR'
+              | 'SUCCESS';
+            userMessage?: string;
+            retryable?: boolean;
+          }>
+        >('/ai/chat', { message, history })
+        .then((r) => r.data),
+  };
 }
 
 export { type ApiResponse, type PaginatedResponse };

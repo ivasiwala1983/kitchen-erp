@@ -14,6 +14,7 @@ export interface TenantContextType {
   tenantSlug: string;
   isLoading: boolean;
   logout: () => void;
+  api: KitchenErpApi;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -201,7 +202,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <TenantContext.Provider value={{ tenant, user, tenantSlug, isLoading, logout }}>
+    <TenantContext.Provider value={{ tenant, user, tenantSlug, isLoading, logout, api }}>
       <main>{children}</main>
     </TenantContext.Provider>
   );

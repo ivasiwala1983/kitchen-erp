@@ -63,4 +63,12 @@ export const config = {
 
   // API
   apiPrefix: '/api',
+
+  // ArgusOne Assistant (OpenRouter AI Integration)
+  openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+  openrouterModel: process.env.OPENROUTER_MODEL || 'openrouter/free',
+  openrouterFreeOnly: (process.env.OPENROUTER_FREE_ONLY ?? 'true') === 'true',
+  openrouterSiteUrl: process.env.OPENROUTER_SITE_URL || '',
+  openrouterSiteName: process.env.OPENROUTER_SITE_NAME || 'ArgusOne',
+  aiReadOnly: (process.env.AI_READ_ONLY ?? 'true') === 'true',
 };

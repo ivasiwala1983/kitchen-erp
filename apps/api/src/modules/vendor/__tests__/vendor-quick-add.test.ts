@@ -7,7 +7,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { prisma, ledgerRepository } from '@kitchen-erp/database';
 import { quickAddVendorSchema } from '../vendor.validation';
-import { Role, PurchaseStatus } from '@kitchen-erp/types';
+import { PurchaseStatus } from '@kitchen-erp/types';
 import { purchaseService } from '../../purchase/purchase.routes';
 
 describe('Quick Add Vendor Feature Test Suite', () => {

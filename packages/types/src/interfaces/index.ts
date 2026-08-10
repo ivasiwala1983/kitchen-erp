@@ -14,6 +14,7 @@ export interface JwtPayload {
   role: Role;
   tenantId?: string | null;
   tenantSlug?: string | null;
+  name?: string;
 }
 
 export interface PaginationParams {

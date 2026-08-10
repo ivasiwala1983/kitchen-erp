@@ -19,7 +19,7 @@ import type { AuthenticatedRequest } from '../../shared/types';
 import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
-import { Role, PaymentMethod, LedgerTransactionType } from '@kitchen-erp/types';
+import { Role, PaymentMethod } from '@kitchen-erp/types';
 import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 // ── Validation Schemas ─────────────────────────────────────────

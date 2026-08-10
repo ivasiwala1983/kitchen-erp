@@ -75,9 +75,12 @@ router.post(
           contentType: req.file.mimetype,
           upsert: true,
         });
-      } catch (err: any) {
-        console.error('❌ Storage upload error:', err);
-        throw new InternalServerError(`Failed to upload invoice to storage: ${err.message}`);
+      } catch (err: unknown) {
+        const error = err as { message?: string };
+        console.error('❌ Storage upload error:', error);
+        throw new InternalServerError(
+          `Failed to upload invoice to storage: ${error.message || 'Unknown error'}`
+        );
       }
 
       const uploadedAt = new Date();
@@ -94,7 +97,7 @@ router.post(
           invoiceUploadedBy: authReq.user.sub,
           invoiceUrl: invoiceApiUrl,
         });
-      } catch (dbErr: any) {
+      } catch (dbErr: unknown) {
         console.error(
           '❌ Database update failed. Attempting compensating cleanup on storage path:',
           storagePath
@@ -243,8 +246,9 @@ router.delete(
       // Delete from storage
       try {
         await storage.delete(purchase.invoiceStoragePath);
-      } catch (err: any) {
-        console.warn('⚠️ Warning during storage file deletion:', err.message);
+      } catch (err: unknown) {
+        const error = err as { message?: string };
+        console.warn('⚠️ Warning during storage file deletion:', error.message);
       }
 
       // Clear metadata in DB

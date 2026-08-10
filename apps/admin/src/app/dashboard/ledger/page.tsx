@@ -37,18 +37,17 @@ export default function AdminLedgerDashboardPage() {
       ]);
 
       if (sumRes.data) setSummary(sumRes.data);
-      const catItems = Array.isArray(catRes?.data)
+      const catPayload = catRes as unknown as { data?: CategoryPublic[] };
+      const catItems: CategoryPublic[] = Array.isArray(catRes?.data)
         ? catRes.data
-        : (catRes?.data as any)?.data || [];
+        : catPayload?.data || [];
       setCategories(catItems);
 
-      const vendItems = Array.isArray(vendRes?.data)
+      const vendPayload = vendRes as unknown as { data?: LedgerAccountPublic[]; total?: number };
+      const vendItems: LedgerAccountPublic[] = Array.isArray(vendRes?.data)
         ? vendRes.data
-        : (vendRes?.data as any)?.data || [];
-      const count =
-        typeof (vendRes as any)?.total === 'number'
-          ? (vendRes as any).total
-          : (vendRes?.data as any)?.total || vendItems.length;
+        : vendPayload?.data || [];
+      const count = typeof vendPayload?.total === 'number' ? vendPayload.total : vendItems.length;
       setVendors(vendItems);
       setTotal(count);
     } catch (e: unknown) {

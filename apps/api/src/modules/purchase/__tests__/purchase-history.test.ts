@@ -274,7 +274,7 @@ describe('Purchase History Feature Test Suite', () => {
           Role.INVENTORY_MANAGER
         );
       },
-      (err: any) => err.message === 'Purchase not found'
+      (err: unknown) => (err as { message?: string }).message === 'Purchase not found'
     );
   });
 
