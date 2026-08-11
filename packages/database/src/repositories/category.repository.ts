@@ -3,12 +3,13 @@
  * Encapsulates all Category Master data access queries.
  */
 
-import { Prisma, Category } from '@prisma/client';
+import { Prisma, Category, CategoryType } from '@prisma/client';
 import { prisma } from '../client/prisma';
 
 export interface CreateCategoryDto {
   tenantId: string;
   name: string;
+  type?: CategoryType;
   displayOrder?: number;
   icon?: string;
   color?: string;
@@ -18,6 +19,7 @@ export interface CreateCategoryDto {
 
 export interface UpdateCategoryDto {
   name?: string;
+  type?: CategoryType;
   displayOrder?: number;
   icon?: string | null;
   color?: string | null;
@@ -75,6 +77,7 @@ export class CategoryRepository {
       data: {
         tenantId: dto.tenantId,
         name: dto.name.trim(),
+        type: dto.type ?? CategoryType.PRODUCT,
         displayOrder: dto.displayOrder ?? 0,
         icon: dto.icon || null,
         color: dto.color || null,
@@ -90,6 +93,7 @@ export class CategoryRepository {
       where: { id },
       data: {
         ...(dto.name && { name: dto.name.trim() }),
+        ...(dto.type && { type: dto.type }),
         ...(dto.displayOrder !== undefined && { displayOrder: dto.displayOrder }),
         ...(dto.icon !== undefined && { icon: dto.icon }),
         ...(dto.color !== undefined && { color: dto.color }),

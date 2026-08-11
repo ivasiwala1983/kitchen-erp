@@ -1,5 +1,6 @@
 import {
   Role,
+  CategoryType,
   TenantPlan,
   PurchaseStatus,
   LedgerTransactionType,
@@ -79,6 +80,7 @@ export interface CategoryPublic {
   id: string;
   tenantId: string;
   name: string;
+  type?: CategoryType;
   displayOrder: number;
   icon?: string | null;
   color?: string | null;
@@ -145,9 +147,14 @@ export interface PurchasePublic {
   tenantId: string;
   vendorId: string;
   vendor?: VendorPublic;
+  categoryId?: string | null;
+  category?: CategoryPublic | null;
   userId: string;
   user?: UserPublic;
+  purchaseType?: CategoryType;
   grandTotal: number;
+  billMonth?: string | null;
+  billAmount?: number | null;
   invoiceUrl?: string | null;
   invoiceFid?: string | null;
   invoiceStoragePath?: string | null;

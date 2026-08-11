@@ -25,6 +25,11 @@ enum Role {
   INVENTORY_MANAGER
 }
 
+enum CategoryType {
+  PRODUCT
+  UTILITY_BILL
+}
+
 enum PurchaseStatus {
   DRAFT
   CONFIRMED
@@ -132,14 +137,15 @@ model User {
 
 /// Unified Category Master used across the platform for both Vendors and Products
 model Category {
-  id           String  @id @default(uuid()) @db.Uuid
-  tenantId     String  @db.Uuid
+  id           String       @id @default(uuid()) @db.Uuid
+  tenantId     String       @db.Uuid
   name         String
-  displayOrder Int     @default(0)
+  type         CategoryType @default(PRODUCT)
+  displayOrder Int          @default(0)
   icon         String?
   color        String?
   description  String?
-  isActive     Boolean @default(true)
+  isActive     Boolean      @default(true)
 
   // Audit fields
   createdAt DateTime  @default(now())
@@ -149,9 +155,10 @@ model Category {
   updatedBy String?   @db.Uuid
 
   // Relations
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  vendors  Vendor[]
-  products Product[]
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  vendors   Vendor[]
+  products  Product[]
+  purchases Purchase[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -229,11 +236,15 @@ model Product {
 
 /// A purchase/procurement record created by an Inventory Manager or Tenant Admin
 model Purchase {
-  id           String         @id @default(uuid()) @db.Uuid
-  tenantId     String         @db.Uuid
-  vendorId     String         @db.Uuid
-  userId       String         @db.Uuid
-  grandTotal   Decimal        @db.Decimal(12, 2)
+  id                 String         @id @default(uuid()) @db.Uuid
+  tenantId           String         @db.Uuid
+  vendorId           String         @db.Uuid
+  categoryId         String?        @db.Uuid
+  userId             String         @db.Uuid
+  purchaseType       CategoryType   @default(PRODUCT)
+  grandTotal         Decimal        @db.Decimal(12, 2)
+  billMonth          String?
+  billAmount         Decimal?       @db.Decimal(12, 2)
   invoiceUrl         String?
   invoiceFid         String?
   invoiceStoragePath String?
@@ -254,13 +265,15 @@ model Purchase {
   updatedBy String?   @db.Uuid
 
   // Relations
-  tenant Tenant         @relation(fields: [tenantId], references: [id])
-  vendor Vendor         @relation(fields: [vendorId], references: [id])
-  user   User           @relation(fields: [userId], references: [id])
-  items  PurchaseItem[]
+  tenant   Tenant         @relation(fields: [tenantId], references: [id])
+  vendor   Vendor         @relation(fields: [vendorId], references: [id])
+  category Category?      @relation(fields: [categoryId], references: [id])
+  user     User           @relation(fields: [userId], references: [id])
+  items    PurchaseItem[]
 
   @@index([tenantId])
   @@index([vendorId])
+  @@index([categoryId])
   @@index([userId])
   @@index([purchaseDate])
   @@index([deletedAt])

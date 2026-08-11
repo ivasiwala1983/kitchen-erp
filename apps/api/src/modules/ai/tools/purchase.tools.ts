@@ -81,6 +81,10 @@ export const purchaseTools: ToolDefinition[] = [
         purchases: items.map((p) => ({
           id: p.id,
           vendorName: p.vendor?.name || 'Unknown',
+          categoryName: p.category?.name || p.vendor?.category?.name || 'Unknown',
+          purchaseType: p.purchaseType || (p.vendor?.category?.type ?? 'PRODUCT'),
+          billMonth: p.billMonth || null,
+          billAmount: p.billAmount ? Number(p.billAmount) : null,
           purchaseDate: p.purchaseDate,
           grandTotal: Number(p.grandTotal),
           status: p.status,
@@ -111,6 +115,10 @@ export const purchaseTools: ToolDefinition[] = [
         purchase: {
           id: purchase.id,
           vendorName: purchase.vendor?.name,
+          categoryName: purchase.category?.name || purchase.vendor?.category?.name,
+          purchaseType: purchase.purchaseType,
+          billMonth: purchase.billMonth,
+          billAmount: purchase.billAmount ? Number(purchase.billAmount) : null,
           purchaseDate: purchase.purchaseDate,
           grandTotal: Number(purchase.grandTotal),
           status: purchase.status,

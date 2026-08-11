@@ -322,11 +322,24 @@ export default function TenantPurchaseMobilePage() {
     updatedAt?: string;
   } | null>(null);
 
+  // Utility Bill state
+  const getCurrentYearMonth = (): string => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  };
+
+  const [billMonth, setBillMonth] = useState<string>(getCurrentYearMonth());
+  const [billAmount, setBillAmount] = useState<string>('');
+
   // Running Grand Total calculation
   const grandTotal = addedItems.reduce((sum, item) => sum + item.total, 0);
 
   // Active Category Object
   const activeCategoryObj = categories.find((c) => c.id === activeCategoryId);
+  const isUtilityBillCategory = activeCategoryObj?.type === 'UTILITY_BILL';
+  const displayGrandTotal = isUtilityBillCategory ? parseFloat(billAmount) || 0 : grandTotal;
 
   // Tenant Currency State
   const [tenantCurrency, setTenantCurrency] = useState<string>('INR');
@@ -525,6 +538,54 @@ export default function TenantPurchaseMobilePage() {
       setError('Please select a vendor for this category');
       return;
     }
+
+    if (isUtilityBillCategory) {
+      const amtNum = parseFloat(billAmount) || 0;
+      if (!billMonth) {
+        setError('Please select a Bill Month');
+        return;
+      }
+      if (amtNum <= 0) {
+        setError('Please enter a valid Bill Amount');
+        return;
+      }
+
+      setSaving(true);
+      setError('');
+      setSuccess('⚡ Utility bill submitted! Saving to cloud...');
+
+      try {
+        const purchaseRes = await api.purchases.create({
+          vendorId: activeVendor.id,
+          categoryId: activeCategoryId,
+          billMonth,
+          billAmount: amtNum,
+          purchaseDate: selectedDate.toISOString(),
+        });
+
+        if (purchaseRes.data && invoiceFile) {
+          setSuccess('⚡ Uploading attached invoice receipt...');
+          await api.purchases.uploadInvoice(purchaseRes.data.id, invoiceFile);
+        }
+
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(DRAFT_KEY);
+        }
+        setSavedDraft(null);
+        setSuccess('🎉 Utility bill saved successfully!');
+        setBillAmount('');
+        setInvoiceFile(null);
+        setTimeout(() => setSuccess(''), 4000);
+      } catch (e: unknown) {
+        const err = e as { response?: { data?: { message?: string } } };
+        const errMsg = err?.response?.data?.message || 'Network connection or server error';
+        setError(`⚠️ ${errMsg}`);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     if (addedItems.length === 0) {
       setError('Please add at least one item before saving');
       return;
@@ -553,6 +614,7 @@ export default function TenantPurchaseMobilePage() {
     try {
       const purchaseRes = await api.purchases.create({
         vendorId: vendorSnapshot.id,
+        categoryId: activeCategoryId,
         items: itemsSnapshot.map((i) => ({ productId: i.productId, qty: i.qty, rate: i.rate })),
         purchaseDate: dateSnapshot.toISOString(),
       });
@@ -953,204 +1015,308 @@ export default function TenantPurchaseMobilePage() {
           </div>
         )}
 
-        {/* 6. Product Selection & Quick Entry Card */}
-        <div className="add-item-card">
-          <div style={{ marginBottom: '0.75rem' }}>
+        {/* 6. Product Selection & Quick Entry Card or Utility Bill Entry Card */}
+        {isUtilityBillCategory ? (
+          <div
+            className="add-item-card"
+            style={{ background: '#fffbeb', border: '1.5px solid #fcd34d' }}
+          >
             <div
               style={{
+                fontWeight: 800,
+                fontSize: '0.9375rem',
+                color: '#b45309',
+                marginBottom: '1rem',
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 6,
+                gap: '0.5rem',
               }}
             >
+              <span>⚡</span>
+              <span>Add Utility Bill — {activeCategoryObj?.name}</span>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
               <label
                 style={{
+                  display: 'block',
                   fontSize: '0.75rem',
+                  fontWeight: 800,
+                  color: 'var(--forest-green)',
+                  marginBottom: '0.375rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Bill Month *
+              </label>
+              <input
+                type="month"
+                className="pwa-input"
+                value={billMonth}
+                onChange={(e) => setBillMonth(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 0.875rem',
+                  fontSize: '0.9375rem',
                   fontWeight: 700,
+                  borderRadius: 10,
+                  border: '1.5px solid var(--border)',
+                  background: '#ffffff',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  color: 'var(--forest-green)',
+                  marginBottom: '0.375rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Bill Amount * ({currencySymbol})
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 12,
+                    fontWeight: 800,
+                    fontSize: '1.125rem',
+                    color: 'var(--forest-green)',
+                  }}
+                >
+                  {currencySymbol}
+                </span>
+                <input
+                  type="number"
+                  className="pwa-input"
+                  placeholder="e.g. 12450"
+                  value={billAmount}
+                  onChange={(e) => setBillAmount(e.target.value)}
+                  step="0.01"
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.875rem 0.625rem 2.25rem',
+                    fontSize: '1.125rem',
+                    fontWeight: 800,
+                    color: 'var(--forest-green)',
+                    borderRadius: 10,
+                    border: '1.5px solid var(--border)',
+                    background: '#ffffff',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="add-item-card">
+              <div style={{ marginBottom: '0.75rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 6,
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    Select Product
+                  </label>
+                  {products.length > 5 && (
+                    <span
+                      style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 600 }}
+                    >
+                      {filteredProducts.length} of {products.length} products
+                    </span>
+                  )}
+                </div>
+
+                {products.length > 5 && (
+                  <input
+                    type="text"
+                    className="pwa-input"
+                    placeholder={`🔍 Filter ${activeCategoryObj?.name || 'items'}...`}
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    style={{
+                      marginBottom: '0.5rem',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.8125rem',
+                      borderRadius: 10,
+                    }}
+                  />
+                )}
+
+                <select
+                  className="item-search-input"
+                  value={selectedProductId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedProductId(val);
+                    if (val) {
+                      setTimeout(() => quantityInputRef.current?.focus(), 50);
+                    }
+                  }}
+                >
+                  <option value="">{getCategoryPlaceholder(activeCategoryObj?.name)}</option>
+                  {filteredProducts.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.unit || 'unit'})
+                    </option>
+                  ))}
+                </select>
+
+                {/* Quick Add Product Action Link */}
+                <div style={{ marginTop: '0.5rem', textAlign: 'right' }}>
+                  <button
+                    type="button"
+                    id="quick-add-product-btn"
+                    onClick={() => {
+                      setNewProductName('');
+                      setNewProductUnit('kg');
+                      setQuickAddProductError('');
+                      setDuplicateProduct(null);
+                      setShowAddProductModal(true);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--forest-green)',
+                      fontSize: '0.78125rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '0.2rem 0.4rem',
+                    }}
+                  >
+                    + Add New Product
+                  </button>
+                </div>
+              </div>
+
+              <div className="inputs-row">
+                <div className="input-pill-box">
+                  <span className="input-pill-label">{isWeightUnit ? 'Quantity' : 'Qty'}</span>
+                  <div className="input-pill-flex">
+                    <input
+                      ref={quantityInputRef}
+                      type="number"
+                      className="pill-input-field"
+                      placeholder="0"
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                      step="0.01"
+                    />
+                    <span className="pill-suffix">{currentUnit}</span>
+                  </div>
+                </div>
+
+                <div className="input-pill-box">
+                  <span className="input-pill-label">Rate</span>
+                  <div className="input-pill-flex">
+                    <span
+                      style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-muted)' }}
+                    >
+                      {currencySymbol}
+                    </span>
+                    <input
+                      type="number"
+                      className="pill-input-field"
+                      placeholder="0"
+                      value={rate}
+                      onChange={(e) => setRate(e.target.value)}
+                      step="0.01"
+                    />
+                    <span className="pill-suffix">/{currentUnit}</span>
+                  </div>
+                </div>
+
+                <button className="btn-add-plus" onClick={handleAddItem}>
+                  +
+                </button>
+              </div>
+
+              {/* Instant Qty * Rate Preview */}
+              {weight && rate && (
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    color: 'var(--forest-green)',
+                    textAlign: 'right',
+                  }}
+                >
+                  Subtotal: {formatCurrency(parseFloat(weight) * parseFloat(rate), tenantCurrency)}
+                </div>
+              )}
+            </div>
+
+            {/* 7. Added Purchase Items (Receipt Rows) */}
+            {addedItems.length > 0 && (
+              <div
+                style={{
+                  margin: '1rem 0 0.5rem 0',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
                   color: 'var(--text-muted)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                 }}
               >
-                Select Product
-              </label>
-              {products.length > 5 && (
-                <span
-                  style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 600 }}
-                >
-                  {filteredProducts.length} of {products.length} products
-                </span>
-              )}
-            </div>
-
-            {products.length > 5 && (
-              <input
-                type="text"
-                className="pwa-input"
-                placeholder={`🔍 Filter ${activeCategoryObj?.name || 'items'}...`}
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                style={{
-                  marginBottom: '0.5rem',
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.8125rem',
-                  borderRadius: 10,
-                }}
-              />
+                Purchase Items ({addedItems.length})
+              </div>
             )}
 
-            <select
-              className="item-search-input"
-              value={selectedProductId}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSelectedProductId(val);
-                if (val) {
-                  setTimeout(() => quantityInputRef.current?.focus(), 50);
-                }
-              }}
-            >
-              <option value="">{getCategoryPlaceholder(activeCategoryObj?.name)}</option>
-              {filteredProducts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.unit || 'unit'})
-                </option>
-              ))}
-            </select>
+            {addedItems.map((item, index) => (
+              <div key={index} className="added-item-card">
+                <div className="added-item-header">
+                  <div>
+                    <span className="added-item-title">{item.name}</span>
+                    <span className="added-item-sub">Item #{index + 1}</span>
+                  </div>
+                  <button className="btn-remove-item" onClick={() => handleRemoveItem(index)}>
+                    ×
+                  </button>
+                </div>
 
-            {/* Quick Add Product Action Link */}
-            <div style={{ marginTop: '0.5rem', textAlign: 'right' }}>
-              <button
-                type="button"
-                id="quick-add-product-btn"
-                onClick={() => {
-                  setNewProductName('');
-                  setNewProductUnit('kg');
-                  setQuickAddProductError('');
-                  setDuplicateProduct(null);
-                  setShowAddProductModal(true);
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--forest-green)',
-                  fontSize: '0.78125rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  padding: '0.2rem 0.4rem',
-                }}
-              >
-                + Add New Product
-              </button>
-            </div>
-          </div>
+                <div className="added-item-row">
+                  <div className="added-pill-box">
+                    <span>{item.qty}</span>
+                    <span className="pill-suffix">{item.unit}</span>
+                  </div>
 
-          <div className="inputs-row">
-            <div className="input-pill-box">
-              <span className="input-pill-label">{isWeightUnit ? 'Quantity' : 'Qty'}</span>
-              <div className="input-pill-flex">
-                <input
-                  ref={quantityInputRef}
-                  type="number"
-                  className="pill-input-field"
-                  placeholder="0"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  step="0.01"
-                />
-                <span className="pill-suffix">{currentUnit}</span>
+                  <div className="added-pill-box">
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                      {currencySymbol}
+                    </span>
+                    <span>{item.rate}</span>
+                    <span className="pill-suffix">/{item.unit}</span>
+                  </div>
+
+                  <div className="item-row-total">{formatCurrency(item.total, tenantCurrency)}</div>
+                </div>
               </div>
-            </div>
-
-            <div className="input-pill-box">
-              <span className="input-pill-label">Rate</span>
-              <div className="input-pill-flex">
-                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                  {currencySymbol}
-                </span>
-                <input
-                  type="number"
-                  className="pill-input-field"
-                  placeholder="0"
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
-                  step="0.01"
-                />
-                <span className="pill-suffix">/{currentUnit}</span>
-              </div>
-            </div>
-
-            <button className="btn-add-plus" onClick={handleAddItem}>
-              +
-            </button>
-          </div>
-
-          {/* Instant Qty * Rate Preview */}
-          {weight && rate && (
-            <div
-              style={{
-                marginTop: '0.5rem',
-                fontSize: '0.8125rem',
-                fontWeight: 700,
-                color: 'var(--forest-green)',
-                textAlign: 'right',
-              }}
-            >
-              Subtotal: {formatCurrency(parseFloat(weight) * parseFloat(rate), tenantCurrency)}
-            </div>
-          )}
-        </div>
-
-        {/* 7. Added Purchase Items (Receipt Rows) */}
-        {addedItems.length > 0 && (
-          <div
-            style={{
-              margin: '1rem 0 0.5rem 0',
-              fontWeight: 700,
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}
-          >
-            Purchase Items ({addedItems.length})
-          </div>
+            ))}
+          </>
         )}
-
-        {addedItems.map((item, index) => (
-          <div key={index} className="added-item-card">
-            <div className="added-item-header">
-              <div>
-                <span className="added-item-title">{item.name}</span>
-                <span className="added-item-sub">Item #{index + 1}</span>
-              </div>
-              <button className="btn-remove-item" onClick={() => handleRemoveItem(index)}>
-                ×
-              </button>
-            </div>
-
-            <div className="added-item-row">
-              <div className="added-pill-box">
-                <span>{item.qty}</span>
-                <span className="pill-suffix">{item.unit}</span>
-              </div>
-
-              <div className="added-pill-box">
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  {currencySymbol}
-                </span>
-                <span>{item.rate}</span>
-                <span className="pill-suffix">/{item.unit}</span>
-              </div>
-
-              <div className="item-row-total">{formatCurrency(item.total, tenantCurrency)}</div>
-            </div>
-          </div>
-        ))}
 
         {/* Subtle, Low-Priority Invoice Receipt Attachment */}
         <div style={{ margin: '0.75rem 0 1.25rem', textAlign: 'center' }}>
@@ -1228,10 +1394,14 @@ export default function TenantPurchaseMobilePage() {
               <div className="ticket-sub">
                 {saving
                   ? 'Saving Purchase...'
-                  : `${addedItems.length} item${addedItems.length === 1 ? '' : 's'} (Tap to Submit Purchase)`}
+                  : isUtilityBillCategory
+                    ? `Bill Month: ${billMonth || 'Current'} (Tap to Save Bill)`
+                    : `${addedItems.length} item${addedItems.length === 1 ? '' : 's'} (Tap to Submit Purchase)`}
               </div>
             </div>
-            <div className="ticket-badge-total">{formatCurrency(grandTotal, tenantCurrency)}</div>
+            <div className="ticket-badge-total">
+              {formatCurrency(displayGrandTotal, tenantCurrency)}
+            </div>
           </div>
         </div>
       </div>

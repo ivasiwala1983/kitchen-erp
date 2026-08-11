@@ -14,7 +14,7 @@ import type { AuthenticatedRequest } from '../../shared/types';
 import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
-import { Role } from '@kitchen-erp/types';
+import { Role, CategoryType } from '@kitchen-erp/types';
 import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 // ── Repository Adapter ────────────────────────────────────────
@@ -39,6 +39,7 @@ export class CategoryRepository {
   async create(data: {
     tenantId: string;
     name: string;
+    type?: CategoryType;
     displayOrder?: number;
     icon?: string | null;
     color?: string | null;
@@ -49,6 +50,7 @@ export class CategoryRepository {
     return dbCategoryRepository.create({
       tenantId: data.tenantId,
       name: data.name,
+      type: data.type,
       displayOrder: data.displayOrder,
       icon: data.icon || undefined,
       color: data.color || undefined,
@@ -61,6 +63,7 @@ export class CategoryRepository {
     id: string,
     data: {
       name?: string;
+      type?: CategoryType;
       displayOrder?: number;
       icon?: string | null;
       color?: string | null;
@@ -104,6 +107,7 @@ export class CategoryService {
     return this.repo.create({
       tenantId,
       name: dto.name,
+      type: dto.type,
       displayOrder: dto.displayOrder,
       icon: dto.icon,
       color: dto.color,

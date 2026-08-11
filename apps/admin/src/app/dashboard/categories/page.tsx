@@ -16,6 +16,7 @@ export default function CategoryMasterPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    type: 'PRODUCT' as 'PRODUCT' | 'UTILITY_BILL',
     displayOrder: 0,
     icon: '🥕',
     color: '#22c55e',
@@ -47,6 +48,7 @@ export default function CategoryMasterPage() {
     setEditingCategory(null);
     setFormData({
       name: '',
+      type: 'PRODUCT',
       displayOrder: categories.length + 1,
       icon: '📦',
       color: '#6366f1',
@@ -60,6 +62,7 @@ export default function CategoryMasterPage() {
     setEditingCategory(cat);
     setFormData({
       name: cat.name,
+      type: (cat.type as 'PRODUCT' | 'UTILITY_BILL') || 'PRODUCT',
       displayOrder: cat.displayOrder ?? 0,
       icon: cat.icon || '',
       color: cat.color || '#6366f1',
@@ -129,7 +132,7 @@ export default function CategoryMasterPage() {
               fontSize: '0.875rem',
             }}
           >
-            Unified categories used across Vendors and Products.
+            Unified categories used across Vendors, Products, and Utility Bills.
           </p>
         </div>
         <button className="btn btn-primary" onClick={handleOpenCreateModal}>
@@ -168,6 +171,7 @@ export default function CategoryMasterPage() {
             <tr>
               <th style={{ width: 60 }}>Order</th>
               <th>Category</th>
+              <th>Type</th>
               <th>Description</th>
               <th>Vendors</th>
               <th>Products</th>
@@ -178,14 +182,14 @@ export default function CategoryMasterPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>
                   Loading categories...
                 </td>
               </tr>
             ) : categories.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}
                 >
                   No categories found.
@@ -223,6 +227,20 @@ export default function CategoryMasterPage() {
                         </div>
                       </div>
                     </div>
+                  </td>
+                  <td>
+                    {cat.type === 'UTILITY_BILL' ? (
+                      <span
+                        className="badge"
+                        style={{ backgroundColor: '#fef3c7', color: '#b45309', fontWeight: 600 }}
+                      >
+                        ⚡ Utility Bill
+                      </span>
+                    ) : (
+                      <span className="badge badge-blue" style={{ fontWeight: 600 }}>
+                        📦 Product
+                      </span>
+                    )}
                   </td>
                   <td style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
                     {cat.description || '—'}
@@ -292,8 +310,24 @@ export default function CategoryMasterPage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Vegetable, Dairy, Gas"
+                  placeholder="e.g. Vegetables, Electricity, Gas"
                 />
+              </div>
+
+              <div className="form-group">
+                <label className="label">Category Type *</label>
+                <select
+                  className="input"
+                  value={formData.type}
+                  onChange={(e) =>
+                    setFormData({ ...formData, type: e.target.value as 'PRODUCT' | 'UTILITY_BILL' })
+                  }
+                >
+                  <option value="PRODUCT">Product (Inventory / Goods Purchase)</option>
+                  <option value="UTILITY_BILL">
+                    Utility Bill (Electricity, Gas, Internet, etc.)
+                  </option>
+                </select>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>

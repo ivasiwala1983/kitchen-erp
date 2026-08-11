@@ -35,7 +35,7 @@ export default function TenantHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [_total, setTotal] = useState(0);
+  const [, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -715,7 +715,15 @@ export default function TenantHistoryPage() {
                         }}
                       >
                         <span>
-                          📅 {purchaseDateStr} · {items.length} item{items.length === 1 ? '' : 's'}
+                          📅 {purchaseDateStr} ·{' '}
+                          {p.purchaseType === 'UTILITY_BILL' ||
+                          (vendor?.category as { type?: string })?.type === 'UTILITY_BILL' ? (
+                            <strong style={{ color: '#b45309' }}>
+                              ⚡ Bill: {p.billMonth || 'Utility'}
+                            </strong>
+                          ) : (
+                            `${items.length} item${items.length === 1 ? '' : 's'}`
+                          )}
                         </span>
                         {hasInvoice ? (
                           <span
@@ -779,7 +787,12 @@ export default function TenantHistoryPage() {
                             cursor: 'pointer',
                           }}
                         >
-                          {isExpanded ? '▲ Hide' : '▼ Items'}
+                          {isExpanded
+                            ? '▲ Hide'
+                            : p.purchaseType === 'UTILITY_BILL' ||
+                                (vendor?.category as { type?: string })?.type === 'UTILITY_BILL'
+                              ? '▼ Details'
+                              : '▼ Items'}
                         </button>
                         <Link
                           href={`/t/${tenantSlug}/purchase/${id}`}
@@ -798,7 +811,7 @@ export default function TenantHistoryPage() {
                     </div>
                   </div>
 
-                  {/* Inline Expandable Items Preview */}
+                  {/* Inline Expandable Items / Utility Bill Preview */}
                   {isExpanded && (
                     <div
                       style={{
@@ -807,49 +820,86 @@ export default function TenantHistoryPage() {
                         borderTop: '1px dashed #e2e8f0',
                       }}
                     >
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          marginBottom: '0.375rem',
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        Line Items Breakdown
-                      </div>
-                      {items.map((item, idx) => {
-                        const product = item.product;
-                        const qty = Number(item.qty || 0);
-                        const rate = Number(item.rate || 0);
-                        const lineTotal = Number(item.total || 0);
-
-                        return (
+                      {p.purchaseType === 'UTILITY_BILL' ||
+                      (vendor?.category as { type?: string })?.type === 'UTILITY_BILL' ? (
+                        <>
                           <div
-                            key={idx}
+                            style={{
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              marginBottom: '0.375rem',
+                              color: 'var(--text-muted)',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            ⚡ Utility Bill Breakdown
+                          </div>
+                          <div
                             style={{
                               display: 'flex',
                               justifyContent: 'space-between',
                               fontSize: '0.8125rem',
                               padding: '0.3rem 0',
-                              borderBottom: idx < items.length - 1 ? '1px solid #f1f5f9' : 'none',
                             }}
                           >
                             <div>
-                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                                {product?.name || 'Item'}
-                              </div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {qty} {product?.unit || 'unit'} ×{' '}
-                                {formatCurrency(rate, tenantCurrency)}
+                              <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                                Bill Month: {p.billMonth || '—'}
                               </div>
                             </div>
-                            <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                              {formatCurrency(lineTotal, tenantCurrency)}
+                            <div style={{ fontWeight: 800, color: 'var(--forest-green)' }}>
+                              {formatCurrency(p.billAmount || grandTotal, tenantCurrency)}
                             </div>
                           </div>
-                        );
-                      })}
+                        </>
+                      ) : (
+                        <>
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              marginBottom: '0.375rem',
+                              color: 'var(--text-muted)',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            Line Items Breakdown
+                          </div>
+                          {items.map((item, idx) => {
+                            const product = item.product;
+                            const qty = Number(item.qty || 0);
+                            const rate = Number(item.rate || 0);
+                            const lineTotal = Number(item.total || 0);
+
+                            return (
+                              <div
+                                key={idx}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  fontSize: '0.8125rem',
+                                  padding: '0.3rem 0',
+                                  borderBottom:
+                                    idx < items.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                }}
+                              >
+                                <div>
+                                  <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                                    {product?.name || 'Item'}
+                                  </div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                    {qty} {product?.unit || 'unit'} ×{' '}
+                                    {formatCurrency(rate, tenantCurrency)}
+                                  </div>
+                                </div>
+                                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                                  {formatCurrency(lineTotal, tenantCurrency)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </>
+                      )}
 
                       {hasInvoice && getInvoiceUrl(p.invoiceUrl || undefined) && (
                         <div style={{ marginTop: '0.75rem' }}>

@@ -3,9 +3,11 @@
  */
 
 import { z } from 'zod';
+import { CategoryType } from '@kitchen-erp/types';
 
 export const createCategorySchema = z.object({
   name: z.string().min(1, 'Category name is required').max(100),
+  type: z.nativeEnum(CategoryType).optional(),
   displayOrder: z.number().int().min(0).optional(),
   icon: z.string().optional().nullable(),
   color: z.string().optional().nullable(),

@@ -1,4 +1,11 @@
-import { Role, TenantPlan, PurchaseStatus, PaymentMethod, LedgerTransactionType } from '../enums';
+import {
+  Role,
+  TenantPlan,
+  PurchaseStatus,
+  PaymentMethod,
+  LedgerTransactionType,
+  CategoryType,
+} from '../enums';
 
 export interface LoginDto {
   email: string;
@@ -159,14 +166,22 @@ export interface CreatePurchaseItemDto {
 
 export interface CreatePurchaseDto {
   vendorId: string;
+  categoryId?: string;
+  purchaseType?: CategoryType;
+  billMonth?: string;
+  billAmount?: number;
   notes?: string;
   invoiceUrl?: string;
   purchaseDate?: string;
-  items: CreatePurchaseItemDto[];
+  items?: CreatePurchaseItemDto[];
 }
 
 export interface UpdatePurchaseDto {
   vendorId?: string;
+  categoryId?: string;
+  purchaseType?: CategoryType;
+  billMonth?: string;
+  billAmount?: number;
   notes?: string;
   status?: PurchaseStatus;
 }

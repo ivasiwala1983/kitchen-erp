@@ -3,7 +3,13 @@
  * Encapsulates all Purchase data access queries.
  */
 
-import { Prisma, Purchase, PurchaseStatus, LedgerTransactionType } from '@prisma/client';
+import {
+  Prisma,
+  Purchase,
+  PurchaseStatus,
+  CategoryType,
+  LedgerTransactionType,
+} from '@prisma/client';
 import { prisma } from '../client/prisma';
 import { ledgerRepository } from './ledger.repository';
 
@@ -17,7 +23,11 @@ export interface CreatePurchaseDto {
   tenantId: string;
   vendorId: string;
   userId: string;
-  items: PurchaseItemInput[];
+  categoryId?: string;
+  purchaseType?: CategoryType;
+  items?: PurchaseItemInput[];
+  billMonth?: string;
+  billAmount?: number;
   notes?: string;
   purchaseDate?: Date;
   status?: PurchaseStatus;
@@ -25,7 +35,11 @@ export interface CreatePurchaseDto {
 
 export interface UpdatePurchaseDto {
   vendorId?: string;
+  categoryId?: string;
+  purchaseType?: CategoryType;
   items?: PurchaseItemInput[];
+  billMonth?: string | null;
+  billAmount?: number | null;
   notes?: string | null;
   status?: PurchaseStatus;
   invoiceUrl?: string | null;
@@ -45,6 +59,7 @@ export class PurchaseRepository {
       where: { id, tenantId, deletedAt: null },
       include: {
         vendor: { include: { category: true } },
+        category: true,
         user: { select: { id: true, name: true, email: true, role: true } },
         items: { include: { product: { include: { category: true } } } },
       },
@@ -73,7 +88,7 @@ export class PurchaseRepository {
       ...(params.userId && { userId: params.userId }),
       ...(params.status && { status: params.status }),
       ...(params.categoryId && {
-        vendor: { categoryId: params.categoryId },
+        OR: [{ categoryId: params.categoryId }, { vendor: { categoryId: params.categoryId } }],
       }),
       ...(params.invoiceAvailable !== undefined &&
         (params.invoiceAvailable
@@ -97,6 +112,7 @@ export class PurchaseRepository {
           { vendor: { name: { contains: params.search, mode: 'insensitive' } } },
           { invoiceFileName: { contains: params.search, mode: 'insensitive' } },
           { notes: { contains: params.search, mode: 'insensitive' } },
+          { billMonth: { contains: params.search, mode: 'insensitive' } },
         ],
       }),
     };
@@ -109,6 +125,7 @@ export class PurchaseRepository {
         orderBy: { purchaseDate: 'desc' },
         include: {
           vendor: { include: { category: true } },
+          category: true,
           user: { select: { id: true, name: true, email: true, role: true } },
           items: { include: { product: { include: { category: true } } } },
         },
@@ -120,36 +137,61 @@ export class PurchaseRepository {
   }
 
   async create(dto: CreatePurchaseDto) {
-    const preparedItems = dto.items.map((item) => ({
-      productId: item.productId,
-      qty: item.qty,
-      rate: item.rate,
-      total: item.qty * item.rate,
-    }));
+    const isUtilityBill = dto.purchaseType === CategoryType.UTILITY_BILL;
 
-    const grandTotal = preparedItems.reduce((acc, curr) => acc + curr.total, 0);
+    let preparedItems: Array<{ productId: string; qty: number; rate: number; total: number }> = [];
+    let grandTotal = 0;
+
+    if (isUtilityBill) {
+      grandTotal = dto.billAmount ?? 0;
+    } else {
+      preparedItems = (dto.items || []).map((item) => ({
+        productId: item.productId,
+        qty: item.qty,
+        rate: item.rate,
+        total: item.qty * item.rate,
+      }));
+      grandTotal = preparedItems.reduce((acc, curr) => acc + curr.total, 0);
+    }
 
     return prisma.$transaction(async (tx) => {
-      // 1. Create Purchase record with items
+      // If categoryId was not explicitly passed, fallback to vendor's categoryId
+      let resolvedCategoryId = dto.categoryId;
+      if (!resolvedCategoryId && dto.vendorId) {
+        const vendorObj = await tx.vendor.findUnique({
+          where: { id: dto.vendorId },
+          select: { categoryId: true },
+        });
+        if (vendorObj) resolvedCategoryId = vendorObj.categoryId;
+      }
+
+      // 1. Create Purchase record
       const purchase = await tx.purchase.create({
         data: {
           tenantId: dto.tenantId,
           vendorId: dto.vendorId,
+          categoryId: resolvedCategoryId || null,
           userId: dto.userId,
+          purchaseType: isUtilityBill ? CategoryType.UTILITY_BILL : CategoryType.PRODUCT,
           grandTotal,
+          billMonth: isUtilityBill ? dto.billMonth || null : null,
+          billAmount: isUtilityBill && dto.billAmount !== undefined ? dto.billAmount : null,
           notes: dto.notes || null,
           status: dto.status || PurchaseStatus.CONFIRMED,
           purchaseDate: dto.purchaseDate || new Date(),
           createdBy: dto.userId,
           updatedBy: dto.userId,
-          items: {
-            createMany: {
-              data: preparedItems,
+          ...(preparedItems.length > 0 && {
+            items: {
+              createMany: {
+                data: preparedItems,
+              },
             },
-          },
+          }),
         },
         include: {
           vendor: { include: { category: true } },
+          category: true,
           user: { select: { id: true, name: true, email: true, role: true } },
           items: { include: { product: { include: { category: true } } } },
         },
@@ -196,13 +238,19 @@ export class PurchaseRepository {
         grandTotal = preparedItems.reduce((acc, curr) => acc + curr.total, 0);
 
         await tx.purchaseItem.createMany({ data: preparedItems });
+      } else if (dto.billAmount !== undefined && dto.billAmount !== null) {
+        grandTotal = dto.billAmount;
       }
 
       return tx.purchase.update({
         where: { id },
         data: {
           ...(dto.vendorId && { vendorId: dto.vendorId }),
+          ...(dto.categoryId && { categoryId: dto.categoryId }),
+          ...(dto.purchaseType && { purchaseType: dto.purchaseType }),
           ...(grandTotal !== undefined && { grandTotal }),
+          ...(dto.billMonth !== undefined && { billMonth: dto.billMonth }),
+          ...(dto.billAmount !== undefined && { billAmount: dto.billAmount }),
           ...(dto.notes !== undefined && { notes: dto.notes }),
           ...(dto.status && { status: dto.status }),
           ...(dto.invoiceUrl !== undefined && { invoiceUrl: dto.invoiceUrl }),
@@ -219,6 +267,7 @@ export class PurchaseRepository {
         },
         include: {
           vendor: { include: { category: true } },
+          category: true,
           user: { select: { id: true, name: true, email: true, role: true } },
           items: { include: { product: { include: { category: true } } } },
         },

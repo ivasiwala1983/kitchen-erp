@@ -127,7 +127,23 @@ export default function PurchasesPage() {
                             {vendorObj?.category?.name || '—'}
                           </span>
                         </td>
-                        <td>{itemsList?.length || 0} items</td>
+                        <td>
+                          {p.purchaseType === 'UTILITY_BILL' ||
+                          (vendorObj?.category as { type?: string })?.type === 'UTILITY_BILL' ? (
+                            <span
+                              className="badge"
+                              style={{
+                                backgroundColor: '#fef3c7',
+                                color: '#b45309',
+                                fontWeight: 600,
+                              }}
+                            >
+                              ⚡ Bill: {(p.billMonth as string) || 'Utility'}
+                            </span>
+                          ) : (
+                            `${itemsList?.length || 0} items`
+                          )}
+                        </td>
                         <td style={{ fontWeight: 700, color: 'var(--color-accent-green)' }}>
                           {formatCurrency(p.grandTotal as number)}
                         </td>
@@ -332,58 +348,135 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            {/* Items Table */}
-            <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-              Items Breakdown
-            </div>
-            <div className="table-container" style={{ marginBottom: '1.25rem' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Product</th>
-                    <th>Unit</th>
-                    <th style={{ textAlign: 'right' }}>Qty</th>
-                    <th style={{ textAlign: 'right' }}>Rate</th>
-                    <th style={{ textAlign: 'right' }}>Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(
-                    ((selected as unknown as Record<string, unknown>).items as Record<
-                      string,
-                      unknown
-                    >[]) || []
-                  ).map((item, idx: number) => {
-                    const prodObj = item.product as { name?: string; unit?: string } | undefined;
-                    return (
-                      <tr key={(item.id as string) || idx}>
-                        <td>{idx + 1}</td>
-                        <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          {prodObj?.name}
-                        </td>
-                        <td>
-                          <span className="badge badge-purple">{prodObj?.unit || 'kg'}</span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>{item.qty as number}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          {formatCurrency(item.rate as number)}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: 'right',
-                            fontWeight: 700,
-                            color: 'var(--color-accent-green)',
-                          }}
-                        >
-                          {formatCurrency(item.total as number)}
-                        </td>
+            {/* Items or Utility Bill Breakdown */}
+            {(selected as unknown as Record<string, unknown>).purchaseType === 'UTILITY_BILL' ||
+            (
+              (selected as unknown as Record<string, unknown>).vendor as {
+                category?: { type?: string };
+              }
+            )?.category?.type === 'UTILITY_BILL' ? (
+              <div
+                style={{
+                  padding: '1rem',
+                  background: 'var(--color-bg-tertiary)',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: '1.25rem',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: '0.9375rem',
+                    color: 'var(--color-text-primary)',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  ⚡ Utility Bill Breakdown
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        display: 'block',
+                      }}
+                    >
+                      Bill Month
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        color: 'var(--color-text-primary)',
+                      }}
+                    >
+                      {((selected as unknown as Record<string, unknown>).billMonth as string) ||
+                        '—'}
+                    </span>
+                  </div>
+                  <div>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        display: 'block',
+                      }}
+                    >
+                      Bill Amount
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 800,
+                        fontSize: '1.125rem',
+                        color: 'var(--color-accent-green)',
+                      }}
+                    >
+                      {formatCurrency(
+                        ((selected as unknown as Record<string, unknown>).billAmount ||
+                          selected.grandTotal) as number
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                  Items Breakdown
+                </div>
+                <div className="table-container" style={{ marginBottom: '1.25rem' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Product</th>
+                        <th>Unit</th>
+                        <th style={{ textAlign: 'right' }}>Qty</th>
+                        <th style={{ textAlign: 'right' }}>Rate</th>
+                        <th style={{ textAlign: 'right' }}>Total Amount</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {(
+                        ((selected as unknown as Record<string, unknown>).items as Record<
+                          string,
+                          unknown
+                        >[]) || []
+                      ).map((item, idx: number) => {
+                        const prodObj = item.product as
+                          { name?: string; unit?: string } | undefined;
+                        return (
+                          <tr key={(item.id as string) || idx}>
+                            <td>{idx + 1}</td>
+                            <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                              {prodObj?.name}
+                            </td>
+                            <td>
+                              <span className="badge badge-purple">{prodObj?.unit || 'kg'}</span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>{item.qty as number}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              {formatCurrency(item.rate as number)}
+                            </td>
+                            <td
+                              style={{
+                                textAlign: 'right',
+                                fontWeight: 700,
+                                color: 'var(--color-accent-green)',
+                              }}
+                            >
+                              {formatCurrency(item.total as number)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
 
             {/* Grand Total Bar */}
             <div
@@ -400,14 +493,15 @@ export default function PurchasesPage() {
             >
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                  TOTAL ORDER VALUE
+                  {(selected as unknown as Record<string, unknown>).purchaseType === 'UTILITY_BILL'
+                    ? 'TOTAL BILL AMOUNT'
+                    : 'TOTAL ORDER VALUE'}
                 </div>
                 <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-                  {
-                    (((selected as unknown as Record<string, unknown>).items as unknown[]) || [])
-                      .length
-                  }{' '}
-                  items
+                  {(selected as unknown as Record<string, unknown>).purchaseType === 'UTILITY_BILL'
+                    ? ((selected as unknown as Record<string, unknown>).billMonth as string) ||
+                      'Utility Bill'
+                    : `${(((selected as unknown as Record<string, unknown>).items as unknown[]) || []).length} items`}
                 </div>
               </div>
               <span

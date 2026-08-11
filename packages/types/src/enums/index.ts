@@ -4,6 +4,11 @@ export enum Role {
   INVENTORY_MANAGER = 'INVENTORY_MANAGER',
 }
 
+export enum CategoryType {
+  PRODUCT = 'PRODUCT',
+  UTILITY_BILL = 'UTILITY_BILL',
+}
+
 export enum PurchaseStatus {
   DRAFT = 'DRAFT',
   CONFIRMED = 'CONFIRMED',

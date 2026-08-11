@@ -6,10 +6,12 @@
 import { z } from 'zod';
 import {
   purchaseRepository as dbPurchaseRepository,
+  vendorRepository as dbVendorRepository,
+  categoryRepository as dbCategoryRepository,
   PurchaseStatus as DbPurchaseStatus,
 } from '@kitchen-erp/database';
 import { parsePagination } from '@kitchen-erp/utils';
-import { NotFoundError } from '../../shared/errors';
+import { NotFoundError, BadRequestError } from '../../shared/errors';
 import { Router, Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendCreated, sendPaginated } from '../../shared/response';
 import type { AuthenticatedRequest } from '../../shared/types';
@@ -17,7 +19,7 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { authorize } from '../../middleware/role.middleware';
 import { resolveTenant, requireTenant } from '../../middleware/tenant.middleware';
 import { requireFeature } from '../../middleware/feature.middleware';
-import { Role, PurchaseStatus, FeatureCode } from '@kitchen-erp/types';
+import { Role, PurchaseStatus, CategoryType, FeatureCode } from '@kitchen-erp/types';
 import { recordAuditLog } from '../auditLog/auditLog.routes';
 
 // ── Validation ────────────────────────────────────────────────
@@ -30,7 +32,10 @@ const purchaseItemSchema = z.object({
 
 const createPurchaseSchema = z.object({
   vendorId: z.string().uuid('Invalid vendor ID'),
-  items: z.array(purchaseItemSchema).min(1, 'At least one item is required'),
+  categoryId: z.string().uuid('Invalid category ID').optional(),
+  items: z.array(purchaseItemSchema).optional(),
+  billMonth: z.string().max(50).optional(),
+  billAmount: z.number().positive('Bill amount must be positive').optional(),
   notes: z.string().max(1000).optional(),
   purchaseDate: z.string().datetime().optional(),
   status: z.nativeEnum(PurchaseStatus).optional(),
@@ -38,7 +43,10 @@ const createPurchaseSchema = z.object({
 
 const updatePurchaseSchema = z.object({
   vendorId: z.string().uuid().optional(),
+  categoryId: z.string().uuid().optional(),
   items: z.array(purchaseItemSchema).min(1).optional(),
+  billMonth: z.string().max(50).optional(),
+  billAmount: z.number().positive().optional(),
   notes: z.string().max(1000).optional(),
   status: z.nativeEnum(PurchaseStatus).optional(),
 });
@@ -74,17 +82,25 @@ class PurchaseRepository {
   async create(data: {
     tenantId: string;
     vendorId: string;
+    categoryId?: string;
     userId: string;
+    purchaseType?: CategoryType;
+    billMonth?: string;
+    billAmount?: number;
     notes?: string;
     purchaseDate?: Date;
     status: PurchaseStatus;
     createdBy: string;
-    items: Array<{ productId: string; qty: number; rate: number }>;
+    items?: Array<{ productId: string; qty: number; rate: number }>;
   }) {
     return dbPurchaseRepository.create({
       tenantId: data.tenantId,
       vendorId: data.vendorId,
+      categoryId: data.categoryId,
       userId: data.userId,
+      purchaseType: data.purchaseType as CategoryType,
+      billMonth: data.billMonth,
+      billAmount: data.billAmount,
       items: data.items,
       notes: data.notes,
       purchaseDate: data.purchaseDate,
@@ -96,6 +112,10 @@ class PurchaseRepository {
     id: string,
     data: {
       vendorId?: string;
+      categoryId?: string;
+      purchaseType?: CategoryType;
+      billMonth?: string;
+      billAmount?: number;
       notes?: string;
       status?: string;
       invoiceUrl?: string;
@@ -106,6 +126,10 @@ class PurchaseRepository {
   ) {
     return dbPurchaseRepository.update(id, '', {
       vendorId: data.vendorId,
+      categoryId: data.categoryId,
+      purchaseType: data.purchaseType as CategoryType,
+      billMonth: data.billMonth,
+      billAmount: data.billAmount,
       notes: data.notes,
       status: data.status as DbPurchaseStatus,
       invoiceUrl: data.invoiceUrl,
@@ -157,20 +181,62 @@ class PurchaseService {
   }
 
   async create(tenantId: string, dto: z.infer<typeof createPurchaseSchema>, userId: string) {
-    return this.repo.create({
-      tenantId,
-      vendorId: dto.vendorId,
-      userId,
-      notes: dto.notes,
-      purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : new Date(),
-      status: dto.status || PurchaseStatus.CONFIRMED,
-      createdBy: userId,
-      items: dto.items.map((item) => ({
-        productId: item.productId,
-        qty: item.qty,
-        rate: item.rate,
-      })),
-    });
+    const vendor = await dbVendorRepository.findById(dto.vendorId, tenantId);
+    if (!vendor) throw new NotFoundError('Vendor not found');
+
+    let categoryType =
+      ((vendor.category as unknown as { type?: CategoryType })?.type as CategoryType) ||
+      CategoryType.PRODUCT;
+    let categoryId = vendor.categoryId;
+
+    if (dto.categoryId) {
+      const cat = await dbCategoryRepository.findById(dto.categoryId, tenantId);
+      if (cat) {
+        categoryType = (cat.type as CategoryType) || CategoryType.PRODUCT;
+        categoryId = cat.id;
+      }
+    }
+
+    if (categoryType === CategoryType.UTILITY_BILL) {
+      if (!dto.billMonth || dto.billAmount === undefined || dto.billAmount <= 0) {
+        throw new BadRequestError(
+          'Bill Month and valid Bill Amount are required for utility bill purchases'
+        );
+      }
+      return this.repo.create({
+        tenantId,
+        vendorId: dto.vendorId,
+        categoryId,
+        userId,
+        purchaseType: CategoryType.UTILITY_BILL,
+        billMonth: dto.billMonth,
+        billAmount: dto.billAmount,
+        notes: dto.notes,
+        purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : new Date(),
+        status: dto.status || PurchaseStatus.CONFIRMED,
+        createdBy: userId,
+      });
+    } else {
+      if (!dto.items || dto.items.length === 0) {
+        throw new BadRequestError('At least one purchase item is required for product purchases');
+      }
+      return this.repo.create({
+        tenantId,
+        vendorId: dto.vendorId,
+        categoryId,
+        userId,
+        purchaseType: CategoryType.PRODUCT,
+        notes: dto.notes,
+        purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : new Date(),
+        status: dto.status || PurchaseStatus.CONFIRMED,
+        createdBy: userId,
+        items: dto.items.map((item) => ({
+          productId: item.productId,
+          qty: item.qty,
+          rate: item.rate,
+        })),
+      });
+    }
   }
 
   async update(
