@@ -334,6 +334,15 @@ importers:
 
   packages/ui:
     dependencies:
+      '@kitchen-erp/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      '@kitchen-erp/types':
+        specifier: workspace:*
+        version: link:../types
+      '@kitchen-erp/utils':
+        specifier: workspace:*
+        version: link:../utils
       react:
         specifier: ^19.0.0 || ^18.0.0
         version: 19.2.8
@@ -1571,6 +1580,14 @@ packages:
         integrity: sha512-Jh+pTGXLNz8+1tkUU13TI/f+ZOI+OvC4YbHi1H+57iSpLt5DR3xgptd+4sA07RdjdRR/RX/01uQQu2OkbzIefA==,
       }
     cpu: [x64]
+    os: [darwin]
+
+  '@turbo/darwin-arm64@2.10.9':
+    resolution:
+      {
+        integrity: sha512-aqtpPkiIC4IUas8Vv27oJ3aDfTuP1d5wofd01dZ7gfhHRrIKuFdqQb4imvNnVFahcOViF9Jh8Oi7feDoz8/ciA==,
+      }
+    cpu: [arm64]
     os: [darwin]
 
   '@turbo/linux-64@2.10.9':
@@ -6294,6 +6311,9 @@ snapshots:
   '@turbo/darwin-64@2.10.9':
     optional: true
 
+  '@turbo/darwin-arm64@2.10.9':
+    optional: true
+
   '@turbo/linux-64@2.10.9':
     optional: true
 
@@ -8817,6 +8837,7 @@ snapshots:
   turbo@2.10.9:
     optionalDependencies:
       '@turbo/darwin-64': 2.10.9
+      '@turbo/darwin-arm64': 2.10.9
       '@turbo/linux-64': 2.10.9
       '@turbo/linux-arm64': 2.10.9
       '@turbo/windows-64': 2.10.9
