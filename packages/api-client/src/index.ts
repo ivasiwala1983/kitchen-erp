@@ -404,6 +404,16 @@ export class KitchenErpApi {
 
     deleteInvoice: (id: string) =>
       this.client.delete<ApiResponse<void>>(`/purchases/${id}/invoice`).then((r) => r.data),
+
+    processInvoiceIntelligence: (file: File) => {
+      const formData = new FormData();
+      formData.append('invoice', file);
+      return this.client
+        .post<ApiResponse<any>>('/purchases/invoice-intelligence/process', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then((r) => r.data);
+    },
   };
 
   reports = {

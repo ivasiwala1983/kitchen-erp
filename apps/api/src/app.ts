@@ -27,6 +27,7 @@ import auditLogRoutes from './modules/auditLog/auditLog.routes';
 import ledgerRoutes from './modules/ledger/ledger.routes';
 import aiRoutes from './modules/ai/ai.routes';
 import featureRoutes from './modules/feature/feature.routes';
+import invoiceIntelligenceRoutes from './modules/ai/routes/invoice-intelligence.routes';
 
 // ── App Setup ─────────────────────────────────────────────────
 
@@ -123,6 +124,9 @@ mountRoute('/products', productRoutes);
 
 // Purchases (all roles)
 mountRoute('/purchases', purchaseRoutes);
+
+// Invoice Intelligence processing
+mountRoute('/purchases/invoice-intelligence', invoiceIntelligenceRoutes);
 
 // Invoice upload/download (nested under purchases)
 mountRoute('/purchases/:id', invoiceRoutes);

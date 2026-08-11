@@ -7,6 +7,8 @@ import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatCurrency, getCurrencySymbol } from '@kitchen-erp/utils';
 import { VendorSelector, ProductSelector } from '@kitchen-erp/ui';
 import type { Category, Vendor, Product } from '@kitchen-erp/types';
+import { FeatureCode } from '@kitchen-erp/types';
+import { useTenant } from '../../../../contexts/TenantContext';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
@@ -268,6 +270,204 @@ export default function TenantPurchaseMobilePage() {
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const [tenantName, setTenantName] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('');
+
+  // Tenant Context & Feature Flags
+  const tenantCtx = useTenant();
+  const isInvoiceUploadEnabled = tenantCtx.isFeatureEnabled(FeatureCode.FEATURE_INVOICE_UPLOAD);
+
+  // AI Invoice Intelligence States
+  const aiFileInputRef = useRef<HTMLInputElement>(null);
+  const [isAiUploadMode, setIsAiUploadMode] = useState(false);
+  const [aiProcessingStep, setAiProcessingStep] = useState<
+    'idle' | 'uploading' | 'reading' | 'finding_products' | 'review' | 'failed'
+  >('idle');
+  const [aiStatusMessage, setAiStatusMessage] = useState('');
+  const [aiExtractedData, setAiExtractedData] = useState<any>(null);
+  const [aiInvoiceNumber, setAiInvoiceNumber] = useState('');
+  const [aiInvoiceDate, setAiInvoiceDate] = useState('');
+  const [aiDiscrepancyMessage, setAiDiscrepancyMessage] = useState<string | null>(null);
+  const [aiDuplicateWarning, setAiDuplicateWarning] = useState<string | null>(null);
+  const [aiTempStoragePath, setAiTempStoragePath] = useState<string | null>(null);
+  const [aiItems, setAiItems] = useState<
+    Array<{
+      extractedName: string;
+      description?: string | null;
+      matchedProductId: string | null;
+      matchedProductName: string | null;
+      quantity: number;
+      unit: string;
+      unitPrice: number;
+      lineTotal: number;
+      confidence: number;
+      matchStatus: 'matched' | 'recommended' | 'needs_review';
+      candidates: Array<{ id: string; name: string; unit: string; score: number }>;
+      isUserCorrected: boolean;
+    }>
+  >([]);
+
+  const handleProcessAiInvoice = async (file: File) => {
+    if (!file) return;
+    setInvoiceFile(file);
+    setIsAiUploadMode(true);
+    setAiProcessingStep('uploading');
+    setAiStatusMessage('Uploading invoice file...');
+    setError('');
+    setSuccess('');
+
+    const t1 = setTimeout(() => {
+      setAiProcessingStep('reading');
+      setAiStatusMessage('🔍 Reading your invoice...');
+    }, 600);
+
+    const t2 = setTimeout(() => {
+      setAiProcessingStep('finding_products');
+      setAiStatusMessage('🤖 ArgusOne is extracting details and matching products...');
+    }, 1800);
+
+    try {
+      const res = await api.purchases.processInvoiceIntelligence(file);
+      clearTimeout(t1);
+      clearTimeout(t2);
+
+      if (res?.data) {
+        const data = res.data;
+        setAiExtractedData(data);
+        setAiInvoiceNumber(data.header?.invoiceNumber || '');
+        if (data.header?.invoiceDate) {
+          setAiInvoiceDate(data.header.invoiceDate);
+        }
+
+        if (data.vendorMatch?.matchedVendorId) {
+          const found = vendors.find((v) => v.id === data.vendorMatch.matchedVendorId);
+          if (found) setActiveVendor(found);
+        }
+
+        if (data.isUtilityBill) {
+          const utilCat = categories.find((c) => c.type === 'UTILITY_BILL');
+          if (utilCat) setActiveCategoryId(utilCat.id);
+          if (data.billMonth) setBillMonth(data.billMonth);
+          if (data.billAmount) setBillAmount(String(data.billAmount));
+        }
+
+        setAiItems(
+          (data.items || []).map((it: any) => ({
+            extractedName: it.extractedName,
+            description: it.description || null,
+            matchedProductId: it.matchedProductId || null,
+            matchedProductName: it.matchedProductName || null,
+            quantity: Number(it.quantity || 1),
+            unit: it.matchedUnit || it.unit || 'kg',
+            unitPrice: Number(it.unitPrice || 0),
+            lineTotal: Number(it.lineTotal || Number(it.quantity || 1) * Number(it.unitPrice || 0)),
+            confidence: Number(it.confidence || 0),
+            matchStatus: it.matchStatus || 'needs_review',
+            candidates: it.candidates || [],
+            isUserCorrected: false,
+          }))
+        );
+
+        setAiDiscrepancyMessage(data.totalsValidation?.discrepancyMessage || null);
+        setAiDuplicateWarning(data.duplicateCheck?.warningMessage || null);
+        setAiTempStoragePath(data.tempStoragePath || null);
+        setAiProcessingStep('review');
+        setSuccess('🤖 Invoice processed successfully! Please review the extracted data below.');
+        setTimeout(() => setSuccess(''), 4000);
+      }
+    } catch (e: any) {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      const errMsg =
+        e?.response?.data?.message || e?.message || 'Failed to read invoice automatically.';
+      setAiProcessingStep('failed');
+      setAiStatusMessage(
+        `😅 ArgusOne is taking a little AI break right now. (${errMsg}) You can enter the purchase manually or try again.`
+      );
+    }
+  };
+
+  const handleCancelAiUpload = () => {
+    setIsAiUploadMode(false);
+    setAiProcessingStep('idle');
+    setAiExtractedData(null);
+    setAiItems([]);
+    setAiDiscrepancyMessage(null);
+    setAiDuplicateWarning(null);
+  };
+
+  const handleConfirmAiPurchase = async () => {
+    if (!activeVendor) {
+      setError('Please select a vendor');
+      return;
+    }
+
+    if (isUtilityBillCategory) {
+      if (!billMonth || !billAmount || parseFloat(billAmount) <= 0) {
+        setError('Please enter a valid Bill Month and Bill Amount');
+        return;
+      }
+    } else {
+      if (aiItems.length === 0) {
+        setError('At least one item is required');
+        return;
+      }
+      const unselected = aiItems.find((it) => !it.matchedProductId);
+      if (unselected) {
+        setError(`Please select a matching product for "${unselected.extractedName}"`);
+        return;
+      }
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      let res;
+      if (isUtilityBillCategory) {
+        res = await api.purchases.create({
+          vendorId: activeVendor.id,
+          categoryId: activeCategoryId,
+          billMonth,
+          billAmount: parseFloat(billAmount),
+          notes: `AI Extracted Utility Bill ${aiInvoiceNumber ? `(Inv #${aiInvoiceNumber})` : ''}`,
+          purchaseDate: selectedDate.toISOString(),
+        });
+      } else {
+        res = await api.purchases.create({
+          vendorId: activeVendor.id,
+          categoryId: activeCategoryId,
+          items: aiItems.map((it) => ({
+            productId: it.matchedProductId!,
+            qty: it.quantity,
+            rate: it.unitPrice,
+          })),
+          notes: `AI Extracted Invoice ${aiInvoiceNumber ? `(Inv #${aiInvoiceNumber})` : ''}`,
+          purchaseDate: selectedDate.toISOString(),
+        });
+      }
+
+      if (res?.data?.id && invoiceFile) {
+        try {
+          await api.purchases.uploadInvoice(res.data.id, invoiceFile);
+        } catch (uploadErr) {
+          console.warn('Invoice file attachment warning:', uploadErr);
+        }
+      }
+
+      setSuccess('🎉 Purchase created successfully from invoice!');
+      setIsAiUploadMode(false);
+      setAiProcessingStep('idle');
+      setAiItems([]);
+      setInvoiceFile(null);
+      setTimeout(() => {
+        router.push(`/t/${tenantSlug}/purchase/history`);
+      }, 1200);
+    } catch (e: any) {
+      const errMsg = e?.response?.data?.message || e?.message || 'Failed to save purchase.';
+      setError(`Your invoice was read successfully, but I couldn't save the purchase: ${errMsg}`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Loading & Feedback States
   const [saving, setSaving] = useState(false);
@@ -841,6 +1041,559 @@ export default function TenantPurchaseMobilePage() {
                 🗑️ Clear
               </button>
             </div>
+          </div>
+        )}
+
+        {/* AI Invoice Intelligence Action & Review Card */}
+        {isInvoiceUploadEnabled && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            {/* 1. Upload Banner */}
+            {aiProcessingStep === 'idle' && (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)',
+                  border: '1.5px solid #a5b4fc',
+                  borderRadius: 16,
+                  padding: '1rem 1.25rem',
+                  boxShadow: '0 2px 8px rgba(79, 70, 229, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.625rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🤖</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9375rem', color: '#3730a3' }}>
+                    ArgusOne Invoice Intelligence
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78125rem', color: '#4338ca', textAlign: 'center' }}>
+                  Upload a supplier invoice (PDF or Photo) and ArgusOne will automatically extract
+                  details, line items, and match products.
+                </div>
+                <div style={{ display: 'flex', gap: '0.625rem', marginTop: '0.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => aiFileInputRef.current?.click()}
+                    className="pwa-btn pwa-btn-primary"
+                    style={{
+                      background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                      borderColor: '#3730a3',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.8125rem',
+                      padding: '0.55rem 1.125rem',
+                      borderRadius: 10,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      boxShadow: '0 2px 6px rgba(67, 56, 202, 0.25)',
+                    }}
+                  >
+                    <span>📷 Scan / Upload Invoice</span>
+                  </button>
+                </div>
+                <input
+                  ref={aiFileInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  capture="environment"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleProcessAiInvoice(file);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* 2. Processing States */}
+            {['uploading', 'reading', 'finding_products'].includes(aiProcessingStep) && (
+              <div
+                className="pwa-card"
+                style={{
+                  padding: '1.75rem 1.25rem',
+                  textAlign: 'center',
+                  background: '#f8fafc',
+                  border: '1.5px solid #cbd5e1',
+                }}
+              >
+                <div style={{ fontSize: '2.25rem', marginBottom: '0.5rem' }}>
+                  {aiProcessingStep === 'uploading'
+                    ? '📤'
+                    : aiProcessingStep === 'reading'
+                      ? '🔍'
+                      : '🤖'}
+                </div>
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    color: '#1e293b',
+                    marginBottom: '0.25rem',
+                  }}
+                >
+                  {aiStatusMessage}
+                </div>
+                <div style={{ fontSize: '0.78125rem', color: '#64748b' }}>
+                  Extracting header, items, rates, and candidate products...
+                </div>
+              </div>
+            )}
+
+            {/* 3. Failed State */}
+            {aiProcessingStep === 'failed' && (
+              <div
+                className="pwa-card"
+                style={{
+                  padding: '1.25rem',
+                  background: '#fff1f2',
+                  border: '1.5px solid #fecdd3',
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: '0.9375rem',
+                    color: '#9f1239',
+                    marginBottom: '0.375rem',
+                  }}
+                >
+                  Couldn't read this invoice automatically
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: '#be123c', marginBottom: '0.875rem' }}>
+                  {aiStatusMessage}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => aiFileInputRef.current?.click()}
+                    className="pwa-btn pwa-btn-secondary pwa-btn-sm"
+                  >
+                    🔄 Try Again
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelAiUpload}
+                    className="pwa-btn pwa-btn-primary pwa-btn-sm"
+                  >
+                    ✍️ Enter Purchase Manually
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 4. Review Required Screen */}
+            {aiProcessingStep === 'review' && (
+              <div
+                className="pwa-card"
+                style={{
+                  padding: '1.25rem',
+                  background: '#ffffff',
+                  border: '2px solid #6366f1',
+                  borderRadius: 16,
+                  boxShadow: '0 4px 16px rgba(99, 102, 241, 0.12)',
+                }}
+              >
+                {/* Header Banner */}
+                <div
+                  style={{
+                    background: '#e0e7ff',
+                    borderRadius: 12,
+                    padding: '0.75rem 1rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.875rem', color: '#3730a3' }}>
+                      🤖 Invoice Extracted & Matched ✓
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#4338ca', marginTop: 2 }}>
+                      {aiItems.length} items found ·{' '}
+                      {aiItems.filter((i) => i.matchStatus === 'matched').length} matched
+                      automatically, {aiItems.filter((i) => i.matchStatus !== 'matched').length}{' '}
+                      need review.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCancelAiUpload}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: '#4f46e5',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel AI Review
+                  </button>
+                </div>
+
+                {/* Duplicate Invoice Warning */}
+                {aiDuplicateWarning && (
+                  <div
+                    style={{
+                      background: '#fffbe6',
+                      border: '1.5px solid #ffe58f',
+                      borderRadius: 10,
+                      padding: '0.625rem 0.875rem',
+                      marginBottom: '0.875rem',
+                      fontSize: '0.78125rem',
+                      color: '#d48806',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {aiDuplicateWarning}
+                  </div>
+                )}
+
+                {/* Totals Discrepancy Warning */}
+                {aiDiscrepancyMessage && (
+                  <div
+                    style={{
+                      background: '#fff1f0',
+                      border: '1.5px solid #ffa39e',
+                      borderRadius: 10,
+                      padding: '0.625rem 0.875rem',
+                      marginBottom: '0.875rem',
+                      fontSize: '0.78125rem',
+                      color: '#cf1322',
+                      fontWeight: 700,
+                    }}
+                  >
+                    ⚠️ {aiDiscrepancyMessage}
+                  </div>
+                )}
+
+                {/* Extracted Header Details (Invoice No, Date, Vendor) */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    borderRadius: 12,
+                    padding: '0.875rem',
+                    marginBottom: '1rem',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      color: '#475569',
+                      marginBottom: '0.5rem',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Extracted Header Details
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: '#64748b',
+                        }}
+                      >
+                        Invoice Number
+                      </label>
+                      <input
+                        type="text"
+                        value={aiInvoiceNumber}
+                        onChange={(e) => setAiInvoiceNumber(e.target.value)}
+                        placeholder="e.g. INV-1002"
+                        style={{
+                          width: '100%',
+                          padding: '0.4rem 0.6rem',
+                          fontSize: '0.8125rem',
+                          borderRadius: 8,
+                          border: '1px solid #cbd5e1',
+                          marginTop: 2,
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: '#64748b',
+                        }}
+                      >
+                        Invoice Date
+                      </label>
+                      <input
+                        type="date"
+                        value={aiInvoiceDate}
+                        onChange={(e) => setAiInvoiceDate(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.4rem 0.6rem',
+                          fontSize: '0.8125rem',
+                          borderRadius: 8,
+                          border: '1px solid #cbd5e1',
+                          marginTop: 2,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Items Review Section */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      color: '#475569',
+                      marginBottom: '0.5rem',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Review Matched Items ({aiItems.length})
+                  </div>
+
+                  {aiItems.map((item, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 12,
+                        padding: '0.875rem',
+                        marginBottom: '0.75rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                      }}
+                    >
+                      {/* Row 1: Extracted Name & Confidence Badge */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '0.5rem',
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, fontSize: '0.875rem', color: '#1e293b' }}>
+                          📄 "{item.extractedName}"
+                        </div>
+                        <div>
+                          {item.confidence >= 90 ? (
+                            <span
+                              style={{
+                                background: '#dcfce7',
+                                color: '#15803d',
+                                fontSize: '0.71875rem',
+                                fontWeight: 800,
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: 12,
+                              }}
+                            >
+                              ✓ {item.confidence}% Match
+                            </span>
+                          ) : item.confidence >= 70 ? (
+                            <span
+                              style={{
+                                background: '#fef3c7',
+                                color: '#b45309',
+                                fontSize: '0.71875rem',
+                                fontWeight: 800,
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: 12,
+                              }}
+                            >
+                              ⚠️ Possible match {item.confidence}%
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                background: '#fee2e2',
+                                color: '#b91c1c',
+                                fontSize: '0.71875rem',
+                                fontWeight: 800,
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: 12,
+                              }}
+                            >
+                              Needs Review
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Row 2: ProductSelector for matching */}
+                      <div style={{ marginBottom: '0.625rem' }}>
+                        <ProductSelector
+                          tenantId={tenantSlug}
+                          categoryId={activeCategoryId}
+                          value={item.matchedProductId}
+                          onChange={(val, prodObj) => {
+                            setAiItems((prev) =>
+                              prev.map((it, i) =>
+                                i === idx
+                                  ? {
+                                      ...it,
+                                      matchedProductId: val,
+                                      matchedProductName: prodObj?.name || null,
+                                      unit: prodObj?.unit || it.unit,
+                                      isUserCorrected: true,
+                                    }
+                                  : it
+                              )
+                            );
+                          }}
+                          products={products}
+                          apiClient={api}
+                          variant="pwa"
+                          placeholder="Search or select catalog product..."
+                        />
+                      </div>
+
+                      {/* Row 3: Qty, Unit Price, Line Total */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr 1fr',
+                          gap: '0.5rem',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div>
+                          <label
+                            style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#64748b' }}
+                          >
+                            Qty ({item.unit})
+                          </label>
+                          <input
+                            type="number"
+                            step="0.001"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const q = parseFloat(e.target.value) || 0;
+                              setAiItems((prev) =>
+                                prev.map((it, i) =>
+                                  i === idx
+                                    ? {
+                                        ...it,
+                                        quantity: q,
+                                        lineTotal: q * it.unitPrice,
+                                        isUserCorrected: true,
+                                      }
+                                    : it
+                                )
+                              );
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.35rem 0.5rem',
+                              fontSize: '0.8125rem',
+                              borderRadius: 6,
+                              border: '1px solid #cbd5e1',
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label
+                            style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#64748b' }}
+                          >
+                            Rate ({currencySymbol})
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={item.unitPrice}
+                            onChange={(e) => {
+                              const r = parseFloat(e.target.value) || 0;
+                              setAiItems((prev) =>
+                                prev.map((it, i) =>
+                                  i === idx
+                                    ? {
+                                        ...it,
+                                        unitPrice: r,
+                                        lineTotal: it.quantity * r,
+                                        isUserCorrected: true,
+                                      }
+                                    : it
+                                )
+                              );
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.35rem 0.5rem',
+                              fontSize: '0.8125rem',
+                              borderRadius: 6,
+                              border: '1px solid #cbd5e1',
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#64748b' }}>
+                            Total
+                          </div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0f172a' }}>
+                            {formatCurrency(item.quantity * item.unitPrice, tenantCurrency)}
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.625rem',
+                              color: item.isUserCorrected ? '#2563eb' : '#64748b',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {item.isUserCorrected ? 'Manually corrected' : 'Extracted'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Final Confirmation Buttons */}
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleConfirmAiPurchase}
+                    disabled={saving}
+                    className="pwa-btn pwa-btn-primary"
+                    style={{
+                      flex: 1,
+                      background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                      borderColor: '#15803d',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.875rem',
+                      padding: '0.65rem 1rem',
+                      borderRadius: 10,
+                    }}
+                  >
+                    {saving ? 'Saving Purchase...' : `✓ Add ${aiItems.length} Items to Purchase`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelAiUpload}
+                    className="pwa-btn pwa-btn-secondary"
+                    style={{
+                      fontWeight: 700,
+                      fontSize: '0.8125rem',
+                      padding: '0.65rem 0.875rem',
+                      borderRadius: 10,
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
