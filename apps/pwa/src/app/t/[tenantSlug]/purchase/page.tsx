@@ -174,7 +174,7 @@ export default function TenantPurchaseMobilePage() {
 
   // Products filtered by selected Category
   const [products, setProducts] = useState<Product[]>([]);
-  const [productSearch, setProductSearch] = useState('');
+  const [_productSearch, setProductSearch] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
   const [weight, setWeight] = useState('');
   const [rate, setRate] = useState('');
@@ -277,17 +277,18 @@ export default function TenantPurchaseMobilePage() {
 
   // AI Invoice Intelligence States
   const aiFileInputRef = useRef<HTMLInputElement>(null);
-  const [isAiUploadMode, setIsAiUploadMode] = useState(false);
+  const [_isAiUploadMode, setIsAiUploadMode] = useState(false);
+  const [isAiCardExpanded, setIsAiCardExpanded] = useState(false);
   const [aiProcessingStep, setAiProcessingStep] = useState<
     'idle' | 'uploading' | 'reading' | 'finding_products' | 'review' | 'failed'
   >('idle');
   const [aiStatusMessage, setAiStatusMessage] = useState('');
-  const [aiExtractedData, setAiExtractedData] = useState<any>(null);
+  const [_aiExtractedData, setAiExtractedData] = useState<any>(null);
   const [aiInvoiceNumber, setAiInvoiceNumber] = useState('');
   const [aiInvoiceDate, setAiInvoiceDate] = useState('');
   const [aiDiscrepancyMessage, setAiDiscrepancyMessage] = useState<string | null>(null);
   const [aiDuplicateWarning, setAiDuplicateWarning] = useState<string | null>(null);
-  const [aiTempStoragePath, setAiTempStoragePath] = useState<string | null>(null);
+  const [_aiTempStoragePath, setAiTempStoragePath] = useState<string | null>(null);
   const [aiItems, setAiItems] = useState<
     Array<{
       extractedName: string;
@@ -814,9 +815,9 @@ export default function TenantPurchaseMobilePage() {
   return (
     <div className="app-shell">
       {/* ── Scrollable Mobile Content ─────────────────────────────────── */}
-      <div className="pwa-content">
-        {/* 1. Header Bar */}
-        <div className="mock-header" style={{ alignItems: 'center' }}>
+      <div className="pwa-content" style={{ paddingTop: '0.75rem' }}>
+        {/* 1. COMPACT Header */}
+        <div className="mock-header" style={{ marginBottom: '0.5rem', alignItems: 'center' }}>
           <div>
             <div className="mock-title">ArgusOne</div>
             <div
@@ -836,12 +837,12 @@ export default function TenantPurchaseMobilePage() {
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',
-              padding: '0.45rem 0.85rem',
+              padding: '0.35rem 0.7rem',
               borderRadius: 999,
               background: 'var(--mint-light)',
               color: 'var(--forest-green)',
               textDecoration: 'none',
-              fontSize: '0.8125rem',
+              fontSize: '0.75rem',
               fontWeight: 800,
               border: '1px solid var(--border)',
               boxShadow: 'var(--shadow-sm)',
@@ -852,17 +853,17 @@ export default function TenantPurchaseMobilePage() {
           </Link>
         </div>
 
-        {/* Purchase Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        {/* 2. COMPACT Purchase Navigation Tabs */}
+        <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.5rem' }}>
           <Link
             href={`/t/${tenantSlug}/purchase`}
             style={{
               flex: 1,
               textAlign: 'center',
-              padding: '0.5rem',
+              padding: '0.375rem',
               borderRadius: 10,
               fontWeight: 700,
-              fontSize: '0.8125rem',
+              fontSize: '0.75rem',
               background: 'var(--forest-green)',
               color: '#ffffff',
               textDecoration: 'none',
@@ -876,10 +877,10 @@ export default function TenantPurchaseMobilePage() {
             style={{
               flex: 1,
               textAlign: 'center',
-              padding: '0.5rem',
+              padding: '0.375rem',
               borderRadius: 10,
               fontWeight: 700,
-              fontSize: '0.8125rem',
+              fontSize: '0.75rem',
               background: '#f1f5f9',
               color: 'var(--text-main)',
               textDecoration: 'none',
@@ -889,7 +890,7 @@ export default function TenantPurchaseMobilePage() {
           </Link>
         </div>
 
-        {/* 3. Fully Interactive & Working Date Selector Card */}
+        {/* 3. COMPACT Date Selector */}
         <div
           className="date-selector-card"
           style={{
@@ -897,10 +898,10 @@ export default function TenantPurchaseMobilePage() {
             alignItems: 'center',
             justifyContent: 'space-between',
             background: '#ffffff',
-            padding: '0.625rem 0.875rem',
-            borderRadius: 14,
+            padding: '0.375rem 0.75rem',
+            borderRadius: 12,
             boxShadow: 'var(--shadow-sm)',
-            marginBottom: '1rem',
+            marginBottom: '0.5rem',
           }}
         >
           <button
@@ -910,13 +911,13 @@ export default function TenantPurchaseMobilePage() {
             title="Previous Day"
             aria-label="Previous Day"
             style={{
-              width: 40,
-              height: 40,
+              width: 34,
+              height: 34,
               border: 'none',
-              borderRadius: 10,
+              borderRadius: 8,
               background: '#f0f4e8',
               color: 'var(--forest-green)',
-              fontSize: '1.25rem',
+              fontSize: '1.125rem',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
@@ -927,34 +928,51 @@ export default function TenantPurchaseMobilePage() {
             ‹
           </button>
 
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
+          <div
+            onClick={() => {
+              try {
+                dateInputRef.current?.showPicker?.();
+              } catch (err) {
+                void err;
+              }
+            }}
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              background: '#f8fafc',
+              border: '1.5px solid var(--border)',
+              borderRadius: 8,
+              padding: '0.3rem 0.75rem',
+              gap: '0.375rem',
+            }}
+          >
+            <span style={{ pointerEvents: 'none' }}>📅</span>
+            <span
               style={{
                 fontFamily: 'inherit',
-                fontSize: '0.875rem',
+                fontSize: '0.8125rem',
                 fontWeight: 800,
                 color: 'var(--forest-green)',
-                background: '#f8fafc',
-                border: '1.5px solid var(--border)',
-                borderRadius: 10,
-                padding: '0.45rem 0.875rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
+                pointerEvents: 'none',
               }}
             >
-              <span>📅</span>
-              <span>{formatDateDisplay(selectedDate)}</span>
-            </button>
+              {formatDateDisplay(selectedDate)}
+            </span>
             <input
               ref={dateInputRef}
               type="date"
               className="pwa-date-input"
               value={formatDateYMD(selectedDate)}
               onChange={handleDateInputChange}
+              onClick={(e) => {
+                try {
+                  (e.target as HTMLInputElement).showPicker?.();
+                } catch (err) {
+                  void err;
+                }
+              }}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -963,6 +981,7 @@ export default function TenantPurchaseMobilePage() {
                 height: '100%',
                 opacity: 0,
                 cursor: 'pointer',
+                zIndex: 10,
               }}
             />
           </div>
@@ -974,13 +993,13 @@ export default function TenantPurchaseMobilePage() {
             title="Next Day"
             aria-label="Next Day"
             style={{
-              width: 40,
-              height: 40,
+              width: 34,
+              height: 34,
               border: 'none',
-              borderRadius: 10,
+              borderRadius: 8,
               background: '#f0f4e8',
               color: 'var(--forest-green)',
-              fontSize: '1.25rem',
+              fontSize: '1.125rem',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
@@ -998,34 +1017,34 @@ export default function TenantPurchaseMobilePage() {
             style={{
               background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
               border: '1px solid #93c5fd',
-              borderRadius: 14,
-              padding: '0.875rem 1rem',
-              marginBottom: '1rem',
+              borderRadius: 12,
+              padding: '0.5rem 0.875rem',
+              marginBottom: '0.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '0.75rem',
+              gap: '0.625rem',
               flexWrap: 'wrap',
             }}
           >
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.875rem', color: '#1e40af' }}>
-                📝 Saved Draft Found ({savedDraft.items?.length || 0} item
+              <div style={{ fontWeight: 800, fontSize: '0.8125rem', color: '#1e40af' }}>
+                📝 Draft Found ({savedDraft.items?.length || 0} item
                 {(savedDraft.items?.length || 0) === 1 ? '' : 's'})
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#1e3a8a', marginTop: 2 }}>
+              <div style={{ fontSize: '0.6875rem', color: '#1e3a8a', marginTop: 1 }}>
                 Saved at {savedDraft.updatedAt || 'earlier'}{' '}
-                {savedDraft.vendorName ? `for ${savedDraft.vendorName}` : ''}
+                {savedDraft.vendorName ? `· ${savedDraft.vendorName}` : ''}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
               <button
                 type="button"
                 onClick={handleRestoreDraft}
                 className="pwa-btn pwa-btn-primary pwa-btn-sm"
-                style={{ fontWeight: 800, fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+                style={{ fontWeight: 800, fontSize: '0.71875rem', padding: '0.25rem 0.625rem' }}
               >
-                📥 Restore Draft
+                📥 Restore
               </button>
               <button
                 type="button"
@@ -1033,67 +1052,121 @@ export default function TenantPurchaseMobilePage() {
                 className="pwa-btn pwa-btn-secondary pwa-btn-sm"
                 style={{
                   fontWeight: 700,
-                  fontSize: '0.75rem',
-                  padding: '0.35rem 0.5rem',
+                  fontSize: '0.71875rem',
+                  padding: '0.25rem 0.375rem',
                   color: '#4b5563',
                 }}
               >
-                🗑️ Clear
+                🗑️
               </button>
             </div>
           </div>
         )}
 
-        {/* AI Invoice Intelligence Action & Review Card */}
+        {/* 4. COMPACT Invoice Intelligence (collapsible when idle) */}
         {isInvoiceUploadEnabled && (
-          <div style={{ marginBottom: '1.25rem' }}>
-            {/* 1. Upload Banner */}
+          <div style={{ marginBottom: '0.5rem' }}>
+            {/* Idle: collapsed compact single-row card */}
             {aiProcessingStep === 'idle' && (
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)',
-                  border: '1.5px solid #a5b4fc',
-                  borderRadius: 16,
-                  padding: '1rem 1.25rem',
-                  boxShadow: '0 2px 8px rgba(79, 70, 229, 0.08)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.625rem',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.25rem' }}>🤖</span>
-                  <span style={{ fontWeight: 800, fontSize: '0.9375rem', color: '#3730a3' }}>
-                    ArgusOne Invoice Intelligence
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.78125rem', color: '#4338ca', textAlign: 'center' }}>
-                  Upload a supplier invoice (PDF or Photo) and ArgusOne will automatically extract
-                  details, line items, and match products.
-                </div>
-                <div style={{ display: 'flex', gap: '0.625rem', marginTop: '0.25rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => aiFileInputRef.current?.click()}
-                    className="pwa-btn pwa-btn-primary"
+              <div className="ai-card-compact">
+                <div className="ai-card-collapsed-row">
+                  <div
                     style={{
-                      background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
-                      borderColor: '#3730a3',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.8125rem',
-                      padding: '0.55rem 1.125rem',
-                      borderRadius: 10,
-                      display: 'inline-flex',
+                      display: 'flex',
                       alignItems: 'center',
                       gap: '0.375rem',
-                      boxShadow: '0 2px 6px rgba(67, 56, 202, 0.25)',
+                      flex: 1,
+                      minWidth: 0,
                     }}
                   >
-                    <span>📷 Scan / Upload Invoice</span>
-                  </button>
+                    <span style={{ fontSize: '1rem', flexShrink: 0 }}>🤖</span>
+                    <span
+                      style={{
+                        fontWeight: 800,
+                        fontSize: '0.75rem',
+                        color: '#3730a3',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Invoice Intelligence
+                    </span>
+                    <span
+                      style={{
+                        background: '#e0e7ff',
+                        color: '#4338ca',
+                        fontSize: '0.5rem',
+                        fontWeight: 800,
+                        padding: '0.1rem 0.3rem',
+                        borderRadius: 100,
+                        letterSpacing: '0.5px',
+                        flexShrink: 0,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      AI
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.375rem',
+                      alignItems: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => aiFileInputRef.current?.click()}
+                      style={{
+                        background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '0.3rem 0.625rem',
+                        fontSize: '0.6875rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        boxShadow: '0 1px 4px rgba(67, 56, 202, 0.2)',
+                        fontFamily: 'inherit',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      📷 Scan Invoice
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsAiCardExpanded((v) => !v)}
+                      aria-label={
+                        isAiCardExpanded
+                          ? 'Collapse Invoice Intelligence'
+                          : 'Expand Invoice Intelligence'
+                      }
+                      style={{
+                        background: 'rgba(165, 180, 252, 0.25)',
+                        border: 'none',
+                        borderRadius: 6,
+                        padding: '0.25rem 0.375rem',
+                        cursor: 'pointer',
+                        fontSize: '0.5625rem',
+                        color: '#4338ca',
+                        fontFamily: 'inherit',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {isAiCardExpanded ? '▲' : '▼'}
+                    </button>
+                  </div>
                 </div>
+                {isAiCardExpanded && (
+                  <div className="ai-card-expanded-body">
+                    Upload a supplier invoice (PDF or Photo) and ArgusOne will automatically extract
+                    products, quantities and prices — then add them to your cart.
+                  </div>
+                )}
                 <input
                   ref={aiFileInputRef}
                   type="file"
@@ -1597,14 +1670,15 @@ export default function TenantPurchaseMobilePage() {
           </div>
         )}
 
-        {/* 4. Category & Vendor Selection Card */}
-        <div className="pwa-card" style={{ padding: '1.125rem', marginBottom: '1rem' }}>
-          {/* Category Chips Scroll Row strictly bounded inside card */}
-          <div className="category-chips-row" style={{ marginBottom: '0.875rem' }}>
+        {/* 5. COMPACT Purchase Context Card (Category + Vendor) */}
+        <div className="purchase-context-card">
+          {/* Category Chips */}
+          <div className="category-chips-row" style={{ marginBottom: '0.4375rem' }}>
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 className={`chip-btn ${cat.id === activeCategoryId ? 'active' : 'inactive'}`}
+                style={{ padding: '0.35rem 0.875rem', fontSize: '0.8125rem' }}
                 onClick={(e) => {
                   setActiveCategoryId(cat.id);
                   e.currentTarget.scrollIntoView({
@@ -1620,30 +1694,17 @@ export default function TenantPurchaseMobilePage() {
             ))}
           </div>
 
-          {/* Vendor Selection Row */}
+          {/* Vendor + Add Vendor Row */}
           <div
             style={{
-              paddingTop: '0.75rem',
+              paddingTop: '0.4375rem',
               borderTop: '1px dashed var(--border)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
               gap: '0.5rem',
             }}
           >
-            <div
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                color: 'var(--forest-green)',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Vendor / Supplier:
-            </div>
-            <div style={{ flex: 1, maxWidth: '65%' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <VendorSelector
                 tenantId={tenantSlug}
                 categoryId={activeCategoryObj?.id}
@@ -1654,6 +1715,8 @@ export default function TenantPurchaseMobilePage() {
                 }}
                 vendors={vendors}
                 apiClient={api}
+                placeholder="Select Vendor"
+                quickAddLabel="+ Add"
                 onQuickAdd={
                   userRole !== 'STAFF'
                     ? () => {
@@ -1667,10 +1730,6 @@ export default function TenantPurchaseMobilePage() {
                 variant="pwa"
               />
             </div>
-          </div>
-
-          {/* Quick Add Vendor Action Link */}
-          <div style={{ marginTop: '0.625rem', textAlign: 'right' }}>
             <button
               type="button"
               id="quick-add-vendor-btn"
@@ -1682,18 +1741,22 @@ export default function TenantPurchaseMobilePage() {
               }}
               style={{
                 background: 'none',
-                border: 'none',
+                border: '1px solid var(--border)',
                 color: 'var(--forest-green)',
-                fontSize: '0.78125rem',
+                fontSize: '0.6875rem',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.25rem',
-                padding: '0.2rem 0.4rem',
+                gap: '0.2rem',
+                padding: '0.25rem 0.5rem',
+                borderRadius: 8,
+                whiteSpace: 'nowrap',
+                fontFamily: 'inherit',
+                flexShrink: 0,
               }}
             >
-              + Add New Vendor
+              + Add
             </button>
           </div>
         </div>
@@ -1701,12 +1764,12 @@ export default function TenantPurchaseMobilePage() {
         {error && (
           <div
             style={{
-              padding: '0.625rem 0.875rem',
+              padding: '0.4375rem 0.75rem',
               background: '#fee2e2',
               color: '#dc2626',
               borderRadius: 10,
               fontSize: '0.8125rem',
-              marginBottom: '0.75rem',
+              marginBottom: '0.5rem',
               fontWeight: 600,
             }}
           >
@@ -1716,12 +1779,12 @@ export default function TenantPurchaseMobilePage() {
         {success && (
           <div
             style={{
-              padding: '0.625rem 0.875rem',
+              padding: '0.4375rem 0.75rem',
               background: '#d1fae5',
               color: '#059669',
               borderRadius: 10,
               fontSize: '0.8125rem',
-              marginBottom: '0.75rem',
+              marginBottom: '0.5rem',
               fontWeight: 600,
             }}
           >
@@ -1827,250 +1890,276 @@ export default function TenantPurchaseMobilePage() {
                 />
               </div>
             </div>
+
+            {/* Invoice Attachment for Utility Bills */}
+            <div style={{ margin: '0.5rem 0 0.25rem', textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px dashed var(--border)',
+                  borderRadius: 10,
+                  padding: '0.375rem 0.875rem',
+                  fontSize: '0.71875rem',
+                  fontWeight: 700,
+                  color: invoiceFile ? 'var(--forest-green)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3125rem',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                📎{' '}
+                {invoiceFile ? (
+                  <>
+                    <span>
+                      ✓ {invoiceFile.name.slice(0, 18)}
+                      {invoiceFile.name.length > 18 ? '...' : ''}
+                    </span>
+                    <span
+                      style={{ color: '#dc2626', marginLeft: 4, fontWeight: 800 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInvoiceFile(null);
+                      }}
+                    >
+                      ×
+                    </span>
+                  </>
+                ) : (
+                  <span>Attach Bill (Optional)</span>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                style={{ display: 'none' }}
+                onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+              />
+            </div>
           </div>
         ) : (
-          <>
-            <div className="add-item-card">
-              <div style={{ marginBottom: '0.75rem' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 6,
-                  }}
+          /* 7. CART HERO SECTION — Primary Focus (regular purchases) */
+          <div className="cart-hero-section">
+            {/* Cart Header Row */}
+            <div className="cart-hero-header">
+              <div className="cart-hero-title">
+                🛒 Cart Items
+                <span className="cart-hero-count">{addedItems.length}</span>
+              </div>
+              {addedItems.length > 0 && (
+                <button
+                  type="button"
+                  className="cart-clear-btn"
+                  onClick={() => setAddedItems([])}
+                  aria-label="Clear all cart items"
                 >
-                  <label
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
+                  Clear All 🗑
+                </button>
+              )}
+            </div>
+
+            {/* Product Add Zone — always visible at top of cart */}
+            <div className="cart-add-zone">
+              <div className="cart-add-selector-row">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <ProductSelector
+                    tenantId={tenantSlug}
+                    categoryId={activeCategoryObj?.id}
+                    value={selectedProductId}
+                    onChange={(val, prodObj) => {
+                      setSelectedProductId(val || '');
+                      if (prodObj && !products.some((p) => p.id === prodObj.id)) {
+                        setProducts((prev) => [...prev, prodObj]);
+                      }
+                      if (val) {
+                        setTimeout(() => quantityInputRef.current?.focus(), 50);
+                      }
                     }}
-                  >
-                    Select Product
-                  </label>
-                </div>
-
-                <ProductSelector
-                  tenantId={tenantSlug}
-                  categoryId={activeCategoryObj?.id}
-                  value={selectedProductId}
-                  onChange={(val) => {
-                    setSelectedProductId(val || '');
-                    if (val) {
-                      setTimeout(() => quantityInputRef.current?.focus(), 50);
-                    }
-                  }}
-                  products={products}
-                  apiClient={api}
-                  onQuickAdd={() => {
-                    setNewProductName('');
-                    setNewProductUnit('kg');
-                    setQuickAddProductError('');
-                    setDuplicateProduct(null);
-                    setShowAddProductModal(true);
-                  }}
-                  variant="pwa"
-                />
-
-                {/* Quick Add Product Action Link */}
-                <div style={{ marginTop: '0.5rem', textAlign: 'right' }}>
-                  <button
-                    type="button"
-                    id="quick-add-product-btn"
-                    onClick={() => {
+                    products={products}
+                    apiClient={api}
+                    onQuickAdd={() => {
                       setNewProductName('');
                       setNewProductUnit('kg');
                       setQuickAddProductError('');
                       setDuplicateProduct(null);
                       setShowAddProductModal(true);
                     }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--forest-green)',
-                      fontSize: '0.78125rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.2rem 0.4rem',
-                    }}
+                    variant="pwa"
+                    placeholder="Select Product"
+                    quickAddLabel="+ Add"
+                  />
+                </div>
+              </div>
+
+              {/* Qty + Rate inputs + Add (+) button — revealed when a product is selected */}
+              {selectedProductId && (
+                <div
+                  className="cart-add-inputs-row"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <div className="input-pill-box" style={{ flex: 1, padding: '0.375rem 0.625rem' }}>
+                    <span className="input-pill-label">{isWeightUnit ? 'Quantity' : 'Qty'}</span>
+                    <div className="input-pill-flex">
+                      <input
+                        ref={quantityInputRef}
+                        type="number"
+                        className="pill-input-field"
+                        placeholder="0"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        step="0.01"
+                      />
+                      <span className="pill-suffix">{currentUnit}</span>
+                    </div>
+                  </div>
+                  <div className="input-pill-box" style={{ flex: 1, padding: '0.375rem 0.625rem' }}>
+                    <span className="input-pill-label">Rate</span>
+                    <div className="input-pill-flex">
+                      <span
+                        style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 700,
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        {currencySymbol}
+                      </span>
+                      <input
+                        type="number"
+                        className="pill-input-field"
+                        placeholder="0"
+                        value={rate}
+                        onChange={(e) => setRate(e.target.value)}
+                        step="0.01"
+                      />
+                      <span className="pill-suffix">/{currentUnit}</span>
+                    </div>
+                  </div>
+                  <button
+                    className="btn-add-product"
+                    id="quick-add-product-btn"
+                    onClick={handleAddItem}
+                    aria-label="Add product to cart"
+                    title="Add product to cart"
                   >
-                    + Add New Product
+                    +
                   </button>
                 </div>
-              </div>
+              )}
 
-              <div className="inputs-row">
-                <div className="input-pill-box">
-                  <span className="input-pill-label">{isWeightUnit ? 'Quantity' : 'Qty'}</span>
-                  <div className="input-pill-flex">
-                    <input
-                      ref={quantityInputRef}
-                      type="number"
-                      className="pill-input-field"
-                      placeholder="0"
-                      value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
-                      step="0.01"
-                    />
-                    <span className="pill-suffix">{currentUnit}</span>
-                  </div>
-                </div>
-
-                <div className="input-pill-box">
-                  <span className="input-pill-label">Rate</span>
-                  <div className="input-pill-flex">
-                    <span
-                      style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-muted)' }}
-                    >
-                      {currencySymbol}
-                    </span>
-                    <input
-                      type="number"
-                      className="pill-input-field"
-                      placeholder="0"
-                      value={rate}
-                      onChange={(e) => setRate(e.target.value)}
-                      step="0.01"
-                    />
-                    <span className="pill-suffix">/{currentUnit}</span>
-                  </div>
-                </div>
-
-                <button className="btn-add-plus" onClick={handleAddItem}>
-                  +
-                </button>
-              </div>
-
-              {/* Instant Qty * Rate Preview */}
+              {/* Instant subtotal preview */}
               {weight && rate && (
-                <div
-                  style={{
-                    marginTop: '0.5rem',
-                    fontSize: '0.8125rem',
-                    fontWeight: 700,
-                    color: 'var(--forest-green)',
-                    textAlign: 'right',
-                  }}
-                >
-                  Subtotal: {formatCurrency(parseFloat(weight) * parseFloat(rate), tenantCurrency)}
+                <div className="cart-add-preview">
+                  Preview: {formatCurrency(parseFloat(weight) * parseFloat(rate), tenantCurrency)}
                 </div>
               )}
             </div>
 
-            {/* 7. Added Purchase Items (Receipt Rows) */}
-            {addedItems.length > 0 && (
-              <div
-                style={{
-                  margin: '1rem 0 0.5rem 0',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
-                Purchase Items ({addedItems.length})
-              </div>
-            )}
-
-            {addedItems.map((item, index) => (
-              <div key={index} className="added-item-card">
-                <div className="added-item-header">
-                  <div>
-                    <span className="added-item-title">{item.name}</span>
-                    <span className="added-item-sub">Item #{index + 1}</span>
-                  </div>
-                  <button className="btn-remove-item" onClick={() => handleRemoveItem(index)}>
-                    ×
-                  </button>
-                </div>
-
-                <div className="added-item-row">
-                  <div className="added-pill-box">
-                    <span>{item.qty}</span>
-                    <span className="pill-suffix">{item.unit}</span>
-                  </div>
-
-                  <div className="added-pill-box">
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                      {currencySymbol}
-                    </span>
-                    <span>{item.rate}</span>
-                    <span className="pill-suffix">/{item.unit}</span>
-                  </div>
-
-                  <div className="item-row-total">{formatCurrency(item.total, tenantCurrency)}</div>
+            {/* Cart Item Rows or Empty State */}
+            {addedItems.length === 0 ? (
+              <div className="cart-empty-state">
+                <div className="cart-empty-icon">🛒</div>
+                <div className="cart-empty-text">
+                  No items yet. Search or tap <strong>+</strong> to add.
                 </div>
               </div>
-            ))}
-          </>
-        )}
-
-        {/* Subtle, Low-Priority Invoice Receipt Attachment */}
-        <div style={{ margin: '0.75rem 0 1.25rem', textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              background: '#f8fafc',
-              border: '1.5px dashed var(--border)',
-              borderRadius: 10,
-              padding: '0.45rem 0.875rem',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              color: invoiceFile ? 'var(--forest-green)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <svg
-              width="15"
-              height="15"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-            {invoiceFile ? (
-              <>
-                <span>
-                  ✓ {invoiceFile.name.slice(0, 20)}
-                  {invoiceFile.name.length > 20 ? '...' : ''}
-                </span>
-                <span
-                  style={{ color: '#dc2626', marginLeft: 4, fontWeight: 800 }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setInvoiceFile(null);
-                  }}
-                >
-                  ×
-                </span>
-              </>
             ) : (
-              <span>📎 Attach Invoice (Optional)</span>
+              <div>
+                {addedItems.map((item, index) => (
+                  <div key={index} className="cart-item-compact">
+                    <div className="cart-item-top-row">
+                      <span className="cart-item-name">{item.name}</span>
+                      <button
+                        className="btn-remove-compact"
+                        onClick={() => handleRemoveItem(index)}
+                        aria-label={`Remove ${item.name}`}
+                        title={`Remove ${item.name}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="cart-item-bottom-row">
+                      <span className="cart-item-pill">
+                        {item.qty} {item.unit}
+                      </span>
+                      <span style={{ color: 'var(--text-light)', fontSize: '0.625rem' }}>×</span>
+                      <span className="cart-item-pill">
+                        {currencySymbol}
+                        {item.rate}/{item.unit}
+                      </span>
+                      <span className="cart-item-amount">
+                        {formatCurrency(item.total, tenantCurrency)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,.pdf"
-            style={{ display: 'none' }}
-            onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
-          />
-        </div>
+
+            {/* Cart Totals */}
+            {addedItems.length > 0 && (
+              <div className="cart-totals-section">
+                <div className="cart-totals-row">
+                  <span>
+                    {addedItems.length} {addedItems.length === 1 ? 'item' : 'items'}
+                  </span>
+                  <span style={{ fontWeight: 700 }}>
+                    {formatCurrency(grandTotal, tenantCurrency)}
+                  </span>
+                </div>
+                <div className="cart-totals-row">
+                  <span>Tax (0%)</span>
+                  <span>{formatCurrency(0, tenantCurrency)}</span>
+                </div>
+                <div className="cart-totals-grand">
+                  <span>TOTAL</span>
+                  <span>{formatCurrency(grandTotal, tenantCurrency)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Attach Invoice — inside cart card, below totals */}
+            <div className="cart-attach-row">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={`cart-attach-btn${invoiceFile ? ' attached' : ''}`}
+              >
+                📎{' '}
+                {invoiceFile ? (
+                  <>
+                    <span>
+                      ✓ {invoiceFile.name.slice(0, 20)}
+                      {invoiceFile.name.length > 20 ? '...' : ''}
+                    </span>
+                    <span
+                      style={{ color: '#dc2626', marginLeft: 4, fontWeight: 800 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInvoiceFile(null);
+                      }}
+                    >
+                      ×
+                    </span>
+                  </>
+                ) : (
+                  <span>Attach Invoice (Optional)</span>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                style={{ display: 'none' }}
+                onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── 9. Sticky Sawtooth Bottom Grand Total Bar ─────────────────────── */}
@@ -2083,7 +2172,7 @@ export default function TenantPurchaseMobilePage() {
           <div className="ticket-flex">
             <div>
               <div className="ticket-label">
-                VENDOR · {activeVendor?.name ? activeVendor.name.toUpperCase() : 'NONE'}
+                {activeVendor?.name ? activeVendor.name.toUpperCase() : '—'}
               </div>
               <div className="ticket-sub">
                 {saving
@@ -2193,7 +2282,7 @@ export default function TenantPurchaseMobilePage() {
                   margin: 0,
                 }}
               >
-                Add Vendor
+                Add
               </h3>
               <button
                 type="button"
@@ -2263,7 +2352,7 @@ export default function TenantPurchaseMobilePage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Use Existing Vendor
+                  Use Existing
                 </button>
                 <button
                   type="button"
@@ -2301,7 +2390,7 @@ export default function TenantPurchaseMobilePage() {
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Vendor Name
+                    Name
                   </label>
                   <input
                     type="text"
@@ -2358,7 +2447,7 @@ export default function TenantPurchaseMobilePage() {
                       opacity: quickAddLoading ? 0.7 : 1,
                     }}
                   >
-                    {quickAddLoading ? 'Adding...' : 'Add Vendor'}
+                    {quickAddLoading ? 'Adding...' : 'Add'}
                   </button>
                 </div>
               </form>
@@ -2401,9 +2490,7 @@ export default function TenantPurchaseMobilePage() {
                 marginBottom: '1rem',
               }}
             >
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>
-                ➕ Quick Add Product
-              </h3>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>➕ Quick Add</h3>
               <button
                 type="button"
                 onClick={() => setShowAddProductModal(false)}
@@ -2471,7 +2558,7 @@ export default function TenantPurchaseMobilePage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Use Existing Product
+                  Use Existing
                 </button>
                 <button
                   type="button"
@@ -2509,7 +2596,7 @@ export default function TenantPurchaseMobilePage() {
                       letterSpacing: '0.5px',
                     }}
                   >
-                    Product Name
+                    Name
                   </label>
                   <input
                     type="text"
@@ -2604,7 +2691,7 @@ export default function TenantPurchaseMobilePage() {
                       opacity: quickAddProductLoading ? 0.7 : 1,
                     }}
                   >
-                    {quickAddProductLoading ? 'Adding...' : 'Add Product'}
+                    {quickAddProductLoading ? 'Adding...' : 'Add'}
                   </button>
                 </div>
               </form>

@@ -112,11 +112,27 @@ export function SmartSelect<T = string>({
     );
   }, [onSearch, internalOptions, searchTerm, minSearchCharacters, options]);
 
+  const [cachedOptionMap, setCachedOptionMap] = useState<Map<string, SmartSelectOption<T>>>(
+    () => new Map()
+  );
+
   const activeOptions = displayOptions();
+  const cachedOpt =
+    value !== null && value !== undefined && value !== ''
+      ? cachedOptionMap.get(String(value))
+      : null;
+  const foundOpt =
+    value !== null && value !== undefined && value !== ''
+      ? options.find((o) => o.value === value) ||
+        internalOptions.find((o) => o.value === value) ||
+        cachedOpt
+      : null;
+
   const selectedOption =
-    options.find((o) => o.value === value) ||
-    internalOptions.find((o) => o.value === value) ||
-    (value !== null && value !== undefined ? { value, label: String(value) } : null);
+    foundOpt ||
+    (value !== null && value !== undefined && value !== '' && !String(value).includes('-')
+      ? { value, label: String(value) }
+      : null);
 
   // Execute debounced search when user types
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,6 +264,11 @@ export function SmartSelect<T = string>({
 
   // Handle selection action
   const handleSelectOption = (opt: SmartSelectOption<T>) => {
+    setCachedOptionMap((prev) => {
+      const next = new Map(prev);
+      next.set(String(opt.value), opt);
+      return next;
+    });
     onChange(opt.value, opt);
     setIsOpen(false);
     setShowBrowseAll(false);
@@ -362,7 +383,7 @@ export function SmartSelect<T = string>({
               ref={searchInputRef}
               type="text"
               className="smart-select-input"
-              placeholder={`🔍 Search ${label || 'options'}...`}
+              placeholder={`🔍 ${placeholder || (label ? `Search ${label}...` : 'Search...')}`}
               value={searchTerm}
               onChange={handleSearchChange}
               style={{
@@ -590,7 +611,7 @@ export function SmartSelect<T = string>({
                 ref={searchInputRef}
                 type="text"
                 className="pwa-input"
-                placeholder={`🔍 Search ${label || 'options'}...`}
+                placeholder={`🔍 ${placeholder || (label ? `Search ${label}...` : 'Search...')}`}
                 value={searchTerm}
                 onChange={handleSearchChange}
                 style={{

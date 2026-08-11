@@ -11,26 +11,27 @@ const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
 const API_URL = rawApiUrl.replace(/\/+$/, '');
 
 function getCategoryPlaceholder(catName?: string): string {
-  if (!catName) return '-- Select product --';
+  if (!catName) return 'Select Product';
   const lower = catName.toLowerCase();
-  if (lower.includes('veg')) return '-- e.g. Potato, Tomato, Onion... --';
-  if (lower.includes('fruit')) return '-- e.g. Banana, Mango, Apple... --';
+  if (lower.includes('veg')) return 'Select Product (e.g. Potato, Tomato, Onion...)';
+  if (lower.includes('fruit')) return 'Select Product (e.g. Banana, Mango, Apple...)';
   if (lower.includes('dairy') || lower.includes('milk'))
-    return '-- e.g. Milk, Cheese, Paneer... --';
+    return 'Select Product (e.g. Milk, Cheese, Paneer...)';
   if (lower.includes('spice') || lower.includes('masala'))
-    return '-- e.g. Turmeric, Cumin, Chili... --';
+    return 'Select Product (e.g. Turmeric, Cumin, Chili...)';
   if (
     lower.includes('meat') ||
     lower.includes('chicken') ||
     lower.includes('fish') ||
     lower.includes('poultry')
   )
-    return '-- e.g. Chicken, Mutton, Fish... --';
+    return 'Select Product (e.g. Chicken, Mutton, Fish...)';
   if (lower.includes('bakery') || lower.includes('bread'))
-    return '-- e.g. Bread, Buns, Butter... --';
+    return 'Select Product (e.g. Bread, Buns, Butter...)';
   if (lower.includes('beverage') || lower.includes('drink'))
-    return '-- e.g. Tea, Coffee, Juice... --';
-  if (lower.includes('oil') || lower.includes('ghee')) return '-- e.g. Cooking Oil, Ghee... --';
+    return 'Select Product (e.g. Tea, Coffee, Juice...)';
+  if (lower.includes('oil') || lower.includes('ghee'))
+    return 'Select Product (e.g. Cooking Oil, Ghee...)';
   if (
     lower.includes('grain') ||
     lower.includes('rice') ||
@@ -38,8 +39,8 @@ function getCategoryPlaceholder(catName?: string): string {
     lower.includes('flour') ||
     lower.includes('dal')
   )
-    return '-- e.g. Basmati, Dal, Wheat Flour... --';
-  return `-- e.g. Select product... --`;
+    return 'Select Product (e.g. Basmati, Dal, Wheat Flour...)';
+  return `Select Product`;
 }
 
 export default function PurchaseMobilePage() {
@@ -499,34 +500,51 @@ export default function PurchaseMobilePage() {
             ‹
           </button>
 
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
+          <div
+            onClick={() => {
+              try {
+                dateInputRef.current?.showPicker?.();
+              } catch (err) {
+                void err;
+              }
+            }}
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              background: '#f8fafc',
+              border: '1.5px solid var(--border)',
+              borderRadius: 10,
+              padding: '0.45rem 0.875rem',
+              gap: '0.5rem',
+            }}
+          >
+            <span style={{ pointerEvents: 'none' }}>📅</span>
+            <span
               style={{
                 fontFamily: 'inherit',
                 fontSize: '0.875rem',
                 fontWeight: 800,
                 color: 'var(--forest-green)',
-                background: '#f8fafc',
-                border: '1.5px solid var(--border)',
-                borderRadius: 10,
-                padding: '0.45rem 0.875rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
+                pointerEvents: 'none',
               }}
             >
-              <span>📅</span>
-              <span>{formatDateDisplay(selectedDate)}</span>
-            </button>
+              {formatDateDisplay(selectedDate)}
+            </span>
             <input
               ref={dateInputRef}
               type="date"
               className="pwa-date-input"
               value={formatDateYMD(selectedDate)}
               onChange={handleDateInputChange}
+              onClick={(e) => {
+                try {
+                  (e.target as HTMLInputElement).showPicker?.();
+                } catch (err) {
+                  void err;
+                }
+              }}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -535,6 +553,7 @@ export default function PurchaseMobilePage() {
                 height: '100%',
                 opacity: 0,
                 cursor: 'pointer',
+                zIndex: 10,
               }}
             />
           </div>
@@ -650,18 +669,6 @@ export default function PurchaseMobilePage() {
               gap: '0.5rem',
             }}
           >
-            <div
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                color: 'var(--forest-green)',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Vendor / Supplier:
-            </div>
             {vendors.length > 0 ? (
               <select
                 style={{
@@ -680,8 +687,10 @@ export default function PurchaseMobilePage() {
                 onChange={(e) => {
                   const v = vendors.find((x) => x.id === e.target.value);
                   if (v) setActiveVendor(v);
+                  else setActiveVendor(null);
                 }}
               >
+                <option value="">Select Vendor</option>
                 {vendors.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
@@ -690,7 +699,7 @@ export default function PurchaseMobilePage() {
               </select>
             ) : (
               <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>
-                No vendors for category
+                None for this category
               </span>
             )}
           </div>
@@ -747,13 +756,13 @@ export default function PurchaseMobilePage() {
                   letterSpacing: '0.5px',
                 }}
               >
-                Select Product
+                Select
               </label>
               {products.length > 5 && (
                 <span
                   style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 600 }}
                 >
-                  {filteredProducts.length} of {products.length} products
+                  {filteredProducts.length} of {products.length}
                 </span>
               )}
             </div>
@@ -968,7 +977,7 @@ export default function PurchaseMobilePage() {
           <div className="ticket-flex">
             <div>
               <div className="ticket-label">
-                VENDOR · {activeVendor?.name ? activeVendor.name.toUpperCase() : 'NONE'}
+                {activeVendor?.name ? activeVendor.name.toUpperCase() : '—'}
               </div>
               <div className="ticket-sub">
                 {saving

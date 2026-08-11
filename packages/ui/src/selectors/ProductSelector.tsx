@@ -29,12 +29,12 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
   onChange,
   products: initialProducts = [],
   apiClient,
-  label = 'Product',
-  placeholder = 'Select product...',
+  label = '',
+  placeholder = 'Select Product',
   disabled = false,
   required = false,
   onQuickAdd,
-  quickAddLabel = '+ Add New Product',
+  quickAddLabel = '+ Add New',
   variant = 'auto',
 }) => {
   const [items, setItems] = useState<ProductPublic[]>(initialProducts);
@@ -123,7 +123,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
       disabled={disabled}
       required={required}
       variant={variant}
-      title="Select Product"
+      title=""
     />
   );
 };

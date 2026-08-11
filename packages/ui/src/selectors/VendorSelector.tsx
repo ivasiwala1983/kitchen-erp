@@ -29,12 +29,12 @@ export const VendorSelector: React.FC<VendorSelectorProps> = ({
   onChange,
   vendors: initialVendors = [],
   apiClient,
-  label = 'Vendor',
-  placeholder = 'Select vendor...',
+  label = '',
+  placeholder = 'Select Vendor',
   disabled = false,
   required = false,
   onQuickAdd,
-  quickAddLabel = '+ Add New Vendor',
+  quickAddLabel = '+ Add New',
   variant = 'auto',
 }) => {
   const [items, setItems] = useState<VendorPublic[]>(initialVendors);
@@ -112,7 +112,7 @@ export const VendorSelector: React.FC<VendorSelectorProps> = ({
       disabled={disabled}
       required={required}
       variant={variant}
-      title="Select Vendor"
+      title=""
     />
   );
 };
