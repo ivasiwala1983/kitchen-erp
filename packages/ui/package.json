@@ -18,6 +18,11 @@
     "react": "^19.0.0 || ^18.0.0",
     "react-dom": "^19.0.0 || ^18.0.0"
   },
+  "dependencies": {
+    "@kitchen-erp/api-client": "workspace:*",
+    "@kitchen-erp/types": "workspace:*",
+    "@kitchen-erp/utils": "workspace:*"
+  },
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

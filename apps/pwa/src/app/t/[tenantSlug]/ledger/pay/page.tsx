@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTenant } from '../../../../../contexts/TenantContext';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatCurrency } from '@kitchen-erp/utils';
+import { VendorSelector } from '@kitchen-erp/ui';
 import { PaymentMethod, type VendorPublic, type LedgerAccountPublic } from '@kitchen-erp/types';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -40,12 +41,16 @@ export default function PwaMakePaymentPage() {
     }
   }, [user, isLoading, tenantSlug, router]);
 
+  const apiRef = useRef<KitchenErpApi | null>(null);
+  if (!apiRef.current && tenantSlug) {
+    apiRef.current = new KitchenErpApi({ baseURL: API_URL, tenantSlug });
+  }
+
   useEffect(() => {
-    if (!tenantSlug) return;
-    const api = new KitchenErpApi({ baseURL: API_URL, tenantSlug });
+    if (!tenantSlug || !apiRef.current) return;
 
     // Load active vendors
-    api.vendors
+    apiRef.current.vendors
       .list({ isActive: true, limit: 100 })
       .then((res) => {
         const r = res as { data?: unknown };
@@ -173,23 +178,15 @@ export default function PwaMakePaymentPage() {
         <form onSubmit={handleSubmit}>
           {/* Vendor Selector */}
           <div className="pwa-field">
-            <label className="pwa-label" style={{ fontWeight: 700 }}>
-              Select Vendor *
-            </label>
-            <select
+            <VendorSelector
+              tenantId={tenant?.id || tenantSlug}
               value={selectedVendorId}
-              onChange={(e) => setSelectedVendorId(e.target.value)}
-              className="pwa-input"
+              onChange={(val) => setSelectedVendorId(val || '')}
+              vendors={vendors}
+              apiClient={apiRef.current || undefined}
               required
-              style={{ fontWeight: 700, cursor: 'pointer' }}
-            >
-              <option value="">-- Choose Vendor --</option>
-              {vendors.map((v) => (
-                <option key={v.id} value={v.id}>
-                  🏢 {v.name}
-                </option>
-              ))}
-            </select>
+              variant="pwa"
+            />
           </div>
 
           {/* Current Outstanding Box */}

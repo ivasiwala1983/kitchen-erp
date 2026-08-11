@@ -5,42 +5,11 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatCurrency, getCurrencySymbol } from '@kitchen-erp/utils';
+import { VendorSelector, ProductSelector } from '@kitchen-erp/ui';
 import type { Category, Vendor, Product } from '@kitchen-erp/types';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
-
-function getCategoryPlaceholder(catName?: string): string {
-  if (!catName) return '-- Select product --';
-  const lower = catName.toLowerCase();
-  if (lower.includes('veg')) return '-- e.g. Potato, Tomato, Onion... --';
-  if (lower.includes('fruit')) return '-- e.g. Banana, Mango, Apple... --';
-  if (lower.includes('dairy') || lower.includes('milk'))
-    return '-- e.g. Milk, Cheese, Paneer... --';
-  if (lower.includes('spice') || lower.includes('masala'))
-    return '-- e.g. Turmeric, Cumin, Chili... --';
-  if (
-    lower.includes('meat') ||
-    lower.includes('chicken') ||
-    lower.includes('fish') ||
-    lower.includes('poultry')
-  )
-    return '-- e.g. Chicken, Mutton, Fish... --';
-  if (lower.includes('bakery') || lower.includes('bread'))
-    return '-- e.g. Bread, Buns, Butter... --';
-  if (lower.includes('beverage') || lower.includes('drink'))
-    return '-- e.g. Tea, Coffee, Juice... --';
-  if (lower.includes('oil') || lower.includes('ghee')) return '-- e.g. Cooking Oil, Ghee... --';
-  if (
-    lower.includes('grain') ||
-    lower.includes('rice') ||
-    lower.includes('pulse') ||
-    lower.includes('flour') ||
-    lower.includes('dal')
-  )
-    return '-- e.g. Basmati, Dal, Wheat Flour... --';
-  return `-- e.g. Select product... --`;
-}
 
 export default function TenantPurchaseMobilePage() {
   const params = useParams();
@@ -298,6 +267,7 @@ export default function TenantPurchaseMobilePage() {
   const dateInputRef = useRef<HTMLInputElement>(null);
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const [tenantName, setTenantName] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('');
 
   // Loading & Feedback States
   const [saving, setSaving] = useState(false);
@@ -356,6 +326,9 @@ export default function TenantPurchaseMobilePage() {
 
         const meData = meRes?.data as
           { role?: string; tenant?: { name?: string; currency?: string } } | undefined;
+        if (meData?.role) {
+          setUserRole(meData.role);
+        }
         if (meData?.tenant?.name) {
           setTenantName(meData.tenant.name);
         }
@@ -483,11 +456,6 @@ export default function TenantPurchaseMobilePage() {
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const currentUnit = selectedProduct?.unit || 'kg';
   const isWeightUnit = ['kg', 'gram', 'g', 'lbs'].includes(currentUnit.toLowerCase());
-
-  // Filter products by search text
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase())
-  );
 
   // Add Item Handler
   const handleAddItem = () => {
@@ -922,37 +890,30 @@ export default function TenantPurchaseMobilePage() {
             >
               Vendor / Supplier:
             </div>
-            {vendors.length > 0 ? (
-              <select
-                style={{
-                  background: '#f8fafc',
-                  border: '1.5px solid var(--border)',
-                  borderRadius: 10,
-                  padding: '0.4rem 0.75rem',
-                  fontSize: '0.8125rem',
-                  fontWeight: 700,
-                  color: 'var(--forest-green)',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  maxWidth: '65%',
+            <div style={{ flex: 1, maxWidth: '65%' }}>
+              <VendorSelector
+                tenantId={tenantSlug}
+                categoryId={activeCategoryObj?.id}
+                value={activeVendor?.id || null}
+                onChange={(val, vendorObj) => {
+                  if (vendorObj) setActiveVendor(vendorObj);
+                  else if (!val) setActiveVendor(null);
                 }}
-                value={activeVendor?.id || ''}
-                onChange={(e) => {
-                  const v = vendors.find((x) => x.id === e.target.value);
-                  if (v) setActiveVendor(v);
-                }}
-              >
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>
-                No vendors for category
-              </span>
-            )}
+                vendors={vendors}
+                apiClient={api}
+                onQuickAdd={
+                  userRole !== 'STAFF'
+                    ? () => {
+                        setNewVendorName('');
+                        setQuickAddError('');
+                        setDuplicateVendor(null);
+                        setShowAddVendorModal(true);
+                      }
+                    : undefined
+                }
+                variant="pwa"
+              />
+            </div>
           </div>
 
           {/* Quick Add Vendor Action Link */}
@@ -1137,49 +1098,29 @@ export default function TenantPurchaseMobilePage() {
                   >
                     Select Product
                   </label>
-                  {products.length > 5 && (
-                    <span
-                      style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 600 }}
-                    >
-                      {filteredProducts.length} of {products.length} products
-                    </span>
-                  )}
                 </div>
 
-                {products.length > 5 && (
-                  <input
-                    type="text"
-                    className="pwa-input"
-                    placeholder={`🔍 Filter ${activeCategoryObj?.name || 'items'}...`}
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    style={{
-                      marginBottom: '0.5rem',
-                      padding: '0.5rem 0.75rem',
-                      fontSize: '0.8125rem',
-                      borderRadius: 10,
-                    }}
-                  />
-                )}
-
-                <select
-                  className="item-search-input"
+                <ProductSelector
+                  tenantId={tenantSlug}
+                  categoryId={activeCategoryObj?.id}
                   value={selectedProductId}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedProductId(val);
+                  onChange={(val) => {
+                    setSelectedProductId(val || '');
                     if (val) {
                       setTimeout(() => quantityInputRef.current?.focus(), 50);
                     }
                   }}
-                >
-                  <option value="">{getCategoryPlaceholder(activeCategoryObj?.name)}</option>
-                  {filteredProducts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.unit || 'unit'})
-                    </option>
-                  ))}
-                </select>
+                  products={products}
+                  apiClient={api}
+                  onQuickAdd={() => {
+                    setNewProductName('');
+                    setNewProductUnit('kg');
+                    setQuickAddProductError('');
+                    setDuplicateProduct(null);
+                    setShowAddProductModal(true);
+                  }}
+                  variant="pwa"
+                />
 
                 {/* Quick Add Product Action Link */}
                 <div style={{ marginTop: '0.5rem', textAlign: 'right' }}>

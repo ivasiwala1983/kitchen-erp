@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
+import { SmartSelect } from '@kitchen-erp/ui';
 import type { Category } from '@kitchen-erp/types';
 
 export default function CategoryMasterPage() {
@@ -315,19 +316,21 @@ export default function CategoryMasterPage() {
               </div>
 
               <div className="form-group">
-                <label className="label">Category Type *</label>
-                <select
-                  className="input"
+                <SmartSelect<'PRODUCT' | 'UTILITY_BILL'>
+                  label="Category Type"
                   value={formData.type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, type: e.target.value as 'PRODUCT' | 'UTILITY_BILL' })
-                  }
-                >
-                  <option value="PRODUCT">Product (Inventory / Goods Purchase)</option>
-                  <option value="UTILITY_BILL">
-                    Utility Bill (Electricity, Gas, Internet, etc.)
-                  </option>
-                </select>
+                  onChange={(val) => setFormData({ ...formData, type: val || 'PRODUCT' })}
+                  options={[
+                    { value: 'PRODUCT', label: 'Product (Inventory / Goods Purchase)', icon: '📦' },
+                    {
+                      value: 'UTILITY_BILL',
+                      label: 'Utility Bill (Electricity, Gas, Internet, etc.)',
+                      icon: '⚡',
+                    },
+                  ]}
+                  required
+                  variant="admin"
+                />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>

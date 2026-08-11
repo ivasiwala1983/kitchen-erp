@@ -510,3 +510,11 @@ export class KitchenErpApi {
 }
 
 export { type ApiResponse, type PaginatedResponse };
+
+const defaultApiUrl =
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||
+  'http://localhost:4000/api';
+
+export const api = new KitchenErpApi({
+  baseURL: defaultApiUrl,
+});

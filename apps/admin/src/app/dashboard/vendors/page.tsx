@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../../../lib/api';
+import { CategorySelector } from '@kitchen-erp/ui';
 import type { Vendor, Category } from '@kitchen-erp/types';
 
 export default function VendorsPage() {
@@ -224,23 +225,15 @@ export default function VendorsPage() {
               style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
             >
               <div className="form-group">
-                <label className="form-label">Category *</label>
-                <select
-                  className="input"
+                <CategorySelector
+                  label="Category"
                   value={form.categoryId}
-                  onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
+                  onChange={(val) => setForm((f) => ({ ...f, categoryId: val || '' }))}
+                  categories={categories.filter((c) => c.isActive)}
+                  apiClient={api}
                   required
-                >
-                  <option value="">Select category...</option>
-                  {(categories || [])
-                    .filter((c) => c.isActive)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.icon ? `${c.icon} ` : ''}
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
+                  variant="admin"
+                />
               </div>
               <div className="form-group">
                 <label className="form-label">Vendor Name *</label>
@@ -335,21 +328,15 @@ export default function VendorsPage() {
               style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
             >
               <div className="form-group">
-                <label className="form-label">Category *</label>
-                <select
-                  className="input"
+                <CategorySelector
+                  label="Category"
                   value={editForm.categoryId}
-                  onChange={(e) => setEditForm((f) => ({ ...f, categoryId: e.target.value }))}
+                  onChange={(val) => setEditForm((f) => ({ ...f, categoryId: val || '' }))}
+                  categories={categories}
+                  apiClient={api}
                   required
-                >
-                  <option value="">Select category...</option>
-                  {(categories || []).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.icon ? `${c.icon} ` : ''}
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  variant="admin"
+                />
               </div>
               <div className="form-group">
                 <label className="form-label">Vendor Name *</label>

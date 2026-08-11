@@ -288,3 +288,9 @@ export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Om
 }
 
 export * from './tenantResolver';
+export * from './recentItems';
+
+// ── Smart Selector Configuration Constants ─────────────────────
+export const SIMPLE_LIST_THRESHOLD = 5;
+export const MIN_SEARCH_CHARACTERS = 2;
+export const DEBOUNCE_MS = 300;

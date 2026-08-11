@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
-    "test": "tsx --test src/modules/vendor/__tests__/vendor-quick-add.test.ts src/modules/purchase/__tests__/purchase-history.test.ts src/modules/purchase/__tests__/utility-bill-purchase.test.ts src/modules/ai/__tests__/ai.test.ts"
+    "test": "tsx --test src/modules/vendor/__tests__/vendor-quick-add.test.ts src/modules/purchase/__tests__/purchase-history.test.ts src/modules/purchase/__tests__/utility-bill-purchase.test.ts src/modules/product/__tests__/smart-selector-search.test.ts src/modules/ai/__tests__/ai.test.ts"
   },
   "dependencies": {
     "@kitchen-erp/config": "workspace:*",
