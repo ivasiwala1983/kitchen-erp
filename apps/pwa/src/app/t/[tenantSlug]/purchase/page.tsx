@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatCurrency, getCurrencySymbol } from '@kitchen-erp/utils';
-import { VendorSelector, ProductSelector } from '@kitchen-erp/ui';
+import { VendorSelector, ProductSelector, CategorySelector } from '@kitchen-erp/ui';
 import type { Category, Vendor, Product } from '@kitchen-erp/types';
 import { FeatureCode } from '@kitchen-erp/types';
 import { useTenant } from '../../../../contexts/TenantContext';
@@ -174,7 +174,6 @@ export default function TenantPurchaseMobilePage() {
 
   // Products filtered by selected Category
   const [products, setProducts] = useState<Product[]>([]);
-  const [_productSearch, setProductSearch] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
   const [weight, setWeight] = useState('');
   const [rate, setRate] = useState('');
@@ -263,6 +262,12 @@ export default function TenantPurchaseMobilePage() {
     }>
   >([]);
 
+  // Inline Item Editing State
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editQty, setEditQty] = useState('');
+  const [editRate, setEditRate] = useState('');
+  const [editUnit, setEditUnit] = useState('');
+
   // Invoice Receipt File & Input Refs
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -277,18 +282,14 @@ export default function TenantPurchaseMobilePage() {
 
   // AI Invoice Intelligence States
   const aiFileInputRef = useRef<HTMLInputElement>(null);
-  const [_isAiUploadMode, setIsAiUploadMode] = useState(false);
-  const [isAiCardExpanded, setIsAiCardExpanded] = useState(false);
   const [aiProcessingStep, setAiProcessingStep] = useState<
     'idle' | 'uploading' | 'reading' | 'finding_products' | 'review' | 'failed'
   >('idle');
   const [aiStatusMessage, setAiStatusMessage] = useState('');
-  const [_aiExtractedData, setAiExtractedData] = useState<any>(null);
   const [aiInvoiceNumber, setAiInvoiceNumber] = useState('');
   const [aiInvoiceDate, setAiInvoiceDate] = useState('');
   const [aiDiscrepancyMessage, setAiDiscrepancyMessage] = useState<string | null>(null);
   const [aiDuplicateWarning, setAiDuplicateWarning] = useState<string | null>(null);
-  const [_aiTempStoragePath, setAiTempStoragePath] = useState<string | null>(null);
   const [aiItems, setAiItems] = useState<
     Array<{
       extractedName: string;
@@ -309,9 +310,8 @@ export default function TenantPurchaseMobilePage() {
   const handleProcessAiInvoice = async (file: File) => {
     if (!file) return;
     setInvoiceFile(file);
-    setIsAiUploadMode(true);
     setAiProcessingStep('uploading');
-    setAiStatusMessage('Uploading invoice file...');
+    setAiStatusMessage('Uploading invoice to ArgusOne AI...');
     setError('');
     setSuccess('');
 
@@ -331,9 +331,8 @@ export default function TenantPurchaseMobilePage() {
       clearTimeout(t2);
 
       if (res?.data) {
-        const data = res.data;
-        setAiExtractedData(data);
-        setAiInvoiceNumber(data.header?.invoiceNumber || '');
+        const data = res.data?.data || res.data || {};
+        setAiInvoiceNumber(data.invoiceNumber || '');
         if (data.header?.invoiceDate) {
           setAiInvoiceDate(data.header.invoiceDate);
         }
@@ -351,34 +350,34 @@ export default function TenantPurchaseMobilePage() {
         }
 
         setAiItems(
-          (data.items || []).map((it: any) => ({
-            extractedName: it.extractedName,
-            description: it.description || null,
-            matchedProductId: it.matchedProductId || null,
-            matchedProductName: it.matchedProductName || null,
+          (data.items || []).map((it: Record<string, unknown>) => ({
+            extractedName: (it.extractedName as string) || '',
+            description: (it.description as string) || null,
+            matchedProductId: (it.matchedProductId as string) || null,
+            matchedProductName: (it.matchedProductName as string) || null,
             quantity: Number(it.quantity || 1),
-            unit: it.matchedUnit || it.unit || 'kg',
+            unit: (it.matchedUnit as string) || (it.unit as string) || 'kg',
             unitPrice: Number(it.unitPrice || 0),
             lineTotal: Number(it.lineTotal || Number(it.quantity || 1) * Number(it.unitPrice || 0)),
             confidence: Number(it.confidence || 0),
-            matchStatus: it.matchStatus || 'needs_review',
-            candidates: it.candidates || [],
+            matchStatus: (it.matchStatus as string) || 'needs_review',
+            candidates: (it.candidates as unknown[]) || [],
             isUserCorrected: false,
           }))
         );
 
         setAiDiscrepancyMessage(data.totalsValidation?.discrepancyMessage || null);
         setAiDuplicateWarning(data.duplicateCheck?.warningMessage || null);
-        setAiTempStoragePath(data.tempStoragePath || null);
         setAiProcessingStep('review');
         setSuccess('🤖 Invoice processed successfully! Please review the extracted data below.');
         setTimeout(() => setSuccess(''), 4000);
       }
-    } catch (e: any) {
+    } catch (e) {
       clearTimeout(t1);
       clearTimeout(t2);
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
       const errMsg =
-        e?.response?.data?.message || e?.message || 'Failed to read invoice automatically.';
+        err?.response?.data?.message || err?.message || 'Failed to read invoice automatically.';
       setAiProcessingStep('failed');
       setAiStatusMessage(
         `😅 ArgusOne is taking a little AI break right now. (${errMsg}) You can enter the purchase manually or try again.`
@@ -387,9 +386,7 @@ export default function TenantPurchaseMobilePage() {
   };
 
   const handleCancelAiUpload = () => {
-    setIsAiUploadMode(false);
     setAiProcessingStep('idle');
-    setAiExtractedData(null);
     setAiItems([]);
     setAiDiscrepancyMessage(null);
     setAiDuplicateWarning(null);
@@ -455,15 +452,15 @@ export default function TenantPurchaseMobilePage() {
       }
 
       setSuccess('🎉 Purchase created successfully from invoice!');
-      setIsAiUploadMode(false);
       setAiProcessingStep('idle');
       setAiItems([]);
       setInvoiceFile(null);
       setTimeout(() => {
         router.push(`/t/${tenantSlug}/purchase/history`);
       }, 1200);
-    } catch (e: any) {
-      const errMsg = e?.response?.data?.message || e?.message || 'Failed to save purchase.';
+    } catch (e) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to save purchase.';
       setError(`Your invoice was read successfully, but I couldn't save the purchase: ${errMsg}`);
     } finally {
       setSaving(false);
@@ -510,7 +507,6 @@ export default function TenantPurchaseMobilePage() {
   // Active Category Object
   const activeCategoryObj = categories.find((c) => c.id === activeCategoryId);
   const isUtilityBillCategory = activeCategoryObj?.type === 'UTILITY_BILL';
-  const displayGrandTotal = isUtilityBillCategory ? parseFloat(billAmount) || 0 : grandTotal;
 
   // Tenant Currency State
   const [tenantCurrency, setTenantCurrency] = useState<string>('INR');
@@ -584,7 +580,6 @@ export default function TenantPurchaseMobilePage() {
         setProducts(pList);
         setActiveVendor(vList.length > 0 ? vList[0] : null);
         setSelectedProductId('');
-        setProductSearch('');
       } catch (e) {
         setVendors([]);
         setProducts([]);
@@ -653,6 +648,60 @@ export default function TenantPurchaseMobilePage() {
     setSavedDraft(null);
   };
 
+  const handleSaveDraft = () => {
+    if (addedItems.length === 0 && !isUtilityBillCategory) {
+      setError('Add at least one item before saving a draft');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    const draftData = {
+      vendorId: activeVendor?.id,
+      vendorName: activeVendor?.name,
+      categoryId: activeCategoryId,
+      items: addedItems,
+      date: selectedDate.toISOString(),
+      updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+    }
+    setSuccess('\uD83D\uDCE5 Draft saved successfully!');
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const startEdit = (index: number) => {
+    const item = addedItems[index];
+    setEditingIndex(index);
+    setEditQty(String(item.qty));
+    setEditRate(String(item.rate));
+    setEditUnit(item.unit);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingIndex === null) return;
+    const qtyNum = parseFloat(editQty) || 0;
+    const rateNum = parseFloat(editRate) || 0;
+    if (qtyNum <= 0 || rateNum <= 0) {
+      setError('Please enter valid Qty and Rate');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    setAddedItems((prev) =>
+      prev.map((item, i) =>
+        i === editingIndex
+          ? {
+              ...item,
+              qty: qtyNum,
+              rate: rateNum,
+              unit: editUnit,
+              total: parseFloat((qtyNum * rateNum).toFixed(2)),
+            }
+          : item
+      )
+    );
+    setEditingIndex(null);
+  };
+
   // Selected Product details & unit auto-fill
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const currentUnit = selectedProduct?.unit || 'kg';
@@ -690,7 +739,6 @@ export default function TenantPurchaseMobilePage() {
 
     // Reset input fields
     setSelectedProductId('');
-    setProductSearch('');
     setWeight('');
     setRate('');
     setError('');
@@ -815,7 +863,7 @@ export default function TenantPurchaseMobilePage() {
   return (
     <div className="app-shell">
       {/* ── Scrollable Mobile Content ─────────────────────────────────── */}
-      <div className="pwa-content" style={{ paddingTop: '0.75rem' }}>
+      <div className="pwa-content" style={{ paddingTop: '0.75rem', paddingBottom: '11rem' }}>
         {/* 1. COMPACT Header */}
         <div className="mock-header" style={{ marginBottom: '0.5rem', alignItems: 'center' }}>
           <div>
@@ -1066,107 +1114,88 @@ export default function TenantPurchaseMobilePage() {
         {/* 4. COMPACT Invoice Intelligence (collapsible when idle) */}
         {isInvoiceUploadEnabled && (
           <div style={{ marginBottom: '0.5rem' }}>
-            {/* Idle: collapsed compact single-row card */}
+            {/* Idle: compact sleek AI card */}
             {aiProcessingStep === 'idle' && (
-              <div className="ai-card-compact">
-                <div className="ai-card-collapsed-row">
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      flex: 1,
-                      minWidth: 0,
-                    }}
-                  >
-                    <span style={{ fontSize: '1rem', flexShrink: 0 }}>🤖</span>
-                    <span
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: 10,
+                  padding: '0.5rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  boxShadow: '0 2px 6px rgba(22, 101, 52, 0.06)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
+                  <span style={{ fontSize: '1.125rem', flexShrink: 0 }}>🤖</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '0.75rem',
+                          color: '#166534',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        ArgusOne AI
+                      </span>
+                      <span
+                        style={{
+                          background: 'var(--forest-green)',
+                          color: '#ffffff',
+                          fontSize: '0.5rem',
+                          fontWeight: 800,
+                          padding: '0.05rem 0.3rem',
+                          borderRadius: 100,
+                          letterSpacing: '0.5px',
+                          flexShrink: 0,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        AI
+                      </span>
+                    </div>
+                    <div
                       style={{
-                        fontWeight: 800,
-                        fontSize: '0.75rem',
-                        color: '#3730a3',
+                        fontSize: '0.625rem',
+                        color: '#15803d',
+                        fontWeight: 600,
                         whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                       }}
                     >
-                      Invoice Intelligence
-                    </span>
-                    <span
-                      style={{
-                        background: '#e0e7ff',
-                        color: '#4338ca',
-                        fontSize: '0.5rem',
-                        fontWeight: 800,
-                        padding: '0.1rem 0.3rem',
-                        borderRadius: 100,
-                        letterSpacing: '0.5px',
-                        flexShrink: 0,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      AI
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.375rem',
-                      alignItems: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => aiFileInputRef.current?.click()}
-                      style={{
-                        background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '0.3rem 0.625rem',
-                        fontSize: '0.6875rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        boxShadow: '0 1px 4px rgba(67, 56, 202, 0.2)',
-                        fontFamily: 'inherit',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      📷 Scan Invoice
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsAiCardExpanded((v) => !v)}
-                      aria-label={
-                        isAiCardExpanded
-                          ? 'Collapse Invoice Intelligence'
-                          : 'Expand Invoice Intelligence'
-                      }
-                      style={{
-                        background: 'rgba(165, 180, 252, 0.25)',
-                        border: 'none',
-                        borderRadius: 6,
-                        padding: '0.25rem 0.375rem',
-                        cursor: 'pointer',
-                        fontSize: '0.5625rem',
-                        color: '#4338ca',
-                        fontFamily: 'inherit',
-                        fontWeight: 700,
-                        lineHeight: 1,
-                      }}
-                    >
-                      {isAiCardExpanded ? '▲' : '▼'}
-                    </button>
+                      Scan invoice to auto-fill cart
+                    </div>
                   </div>
                 </div>
-                {isAiCardExpanded && (
-                  <div className="ai-card-expanded-body">
-                    Upload a supplier invoice (PDF or Photo) and ArgusOne will automatically extract
-                    products, quantities and prices — then add them to your cart.
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => aiFileInputRef.current?.click()}
+                  style={{
+                    background: 'var(--forest-green)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '0.375rem 0.625rem',
+                    fontSize: '0.6875rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    boxShadow: '0 1px 4px rgba(22, 101, 52, 0.2)',
+                    fontFamily: 'inherit',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  📷 Scan Invoice
+                </button>
                 <input
                   ref={aiFileInputRef}
                   type="file"
@@ -1670,41 +1699,68 @@ export default function TenantPurchaseMobilePage() {
           </div>
         )}
 
-        {/* 5. COMPACT Purchase Context Card (Category + Vendor) */}
-        <div className="purchase-context-card">
-          {/* Category Chips */}
-          <div className="category-chips-row" style={{ marginBottom: '0.4375rem' }}>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                className={`chip-btn ${cat.id === activeCategoryId ? 'active' : 'inactive'}`}
-                style={{ padding: '0.35rem 0.875rem', fontSize: '0.8125rem' }}
-                onClick={(e) => {
-                  setActiveCategoryId(cat.id);
-                  e.currentTarget.scrollIntoView({
-                    behavior: 'smooth',
-                    inline: 'center',
-                    block: 'nearest',
-                  });
-                }}
-              >
-                {cat.icon ? `${cat.icon} ` : ''}
-                {cat.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Vendor + Add Vendor Row */}
+        {/* 5. Purchase Context Card (Vendor + Category) */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            padding: '0.75rem',
+            marginBottom: '0.5rem',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
           <div
             style={{
-              paddingTop: '0.4375rem',
-              borderTop: '1px dashed var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.625rem',
             }}
           >
-            <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Category — LEFT */}
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.6875rem',
+                  fontWeight: 800,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                  marginBottom: '0.25rem',
+                }}
+              >
+                Category
+              </label>
+              <CategorySelector
+                tenantId={tenantSlug}
+                value={activeCategoryId}
+                onChange={(val) => {
+                  if (val) setActiveCategoryId(val);
+                }}
+                categories={categories}
+                apiClient={api}
+                placeholder="Select category..."
+                label=""
+                variant="pwa"
+              />
+            </div>
+
+            {/* Vendor / Supplier — RIGHT */}
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.6875rem',
+                  fontWeight: 800,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                  marginBottom: '0.25rem',
+                }}
+              >
+                Vendor / Supplier
+              </label>
               <VendorSelector
                 tenantId={tenantSlug}
                 categoryId={activeCategoryObj?.id}
@@ -1715,49 +1771,40 @@ export default function TenantPurchaseMobilePage() {
                 }}
                 vendors={vendors}
                 apiClient={api}
-                placeholder="Select Vendor"
-                quickAddLabel="+ Add"
-                onQuickAdd={
-                  userRole !== 'STAFF'
-                    ? () => {
-                        setNewVendorName('');
-                        setQuickAddError('');
-                        setDuplicateVendor(null);
-                        setShowAddVendorModal(true);
-                      }
-                    : undefined
-                }
+                placeholder="Select vendor..."
+                onQuickAdd={undefined}
+                label=""
                 variant="pwa"
               />
+              {userRole !== 'STAFF' && (
+                <button
+                  type="button"
+                  id="quick-add-vendor-btn"
+                  onClick={() => {
+                    setNewVendorName('');
+                    setQuickAddError('');
+                    setDuplicateVendor(null);
+                    setShowAddVendorModal(true);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--forest-green)',
+                    fontSize: '0.6875rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    padding: '0.2rem 0',
+                    marginTop: '0.25rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.2rem',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  + Add New Vendor
+                </button>
+              )}
             </div>
-            <button
-              type="button"
-              id="quick-add-vendor-btn"
-              onClick={() => {
-                setNewVendorName('');
-                setQuickAddError('');
-                setDuplicateVendor(null);
-                setShowAddVendorModal(true);
-              }}
-              style={{
-                background: 'none',
-                border: '1px solid var(--border)',
-                color: 'var(--forest-green)',
-                fontSize: '0.6875rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.2rem',
-                padding: '0.25rem 0.5rem',
-                borderRadius: 8,
-                whiteSpace: 'nowrap',
-                fontFamily: 'inherit',
-                flexShrink: 0,
-              }}
-            >
-              + Add
-            </button>
           </div>
         </div>
 
@@ -1942,251 +1989,707 @@ export default function TenantPurchaseMobilePage() {
             </div>
           </div>
         ) : (
-          /* 7. CART HERO SECTION — Primary Focus (regular purchases) */
-          <div className="cart-hero-section">
-            {/* Cart Header Row */}
-            <div className="cart-hero-header">
-              <div className="cart-hero-title">
-                🛒 Cart Items
-                <span className="cart-hero-count">{addedItems.length}</span>
+          // Cart — Table Layout
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            {/* Cart Header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.625rem 0.75rem',
+                borderBottom: '1px solid var(--border)',
+                background: '#f8fafc',
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: '0.9375rem',
+                    color: 'var(--forest-green)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                  }}
+                >
+                  🛒 CART ITEMS
+                  <span
+                    style={{
+                      background: 'var(--forest-green)',
+                      color: '#fff',
+                      borderRadius: 999,
+                      padding: '0.05rem 0.4rem',
+                      fontSize: '0.6875rem',
+                      fontWeight: 800,
+                      minWidth: '1.25rem',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {addedItems.length}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 1 }}>
+                  Add products to build your purchase
+                </div>
               </div>
               {addedItems.length > 0 && (
                 <button
                   type="button"
-                  className="cart-clear-btn"
-                  onClick={() => setAddedItems([])}
-                  aria-label="Clear all cart items"
+                  onClick={() => {
+                    setAddedItems([]);
+                    setEditingIndex(null);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc2626',
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.2rem',
+                  }}
                 >
                   Clear All 🗑
                 </button>
               )}
             </div>
 
-            {/* Product Add Zone — always visible at top of cart */}
-            <div className="cart-add-zone">
-              <div className="cart-add-selector-row">
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <ProductSelector
-                    tenantId={tenantSlug}
-                    categoryId={activeCategoryObj?.id}
-                    value={selectedProductId}
-                    onChange={(val, prodObj) => {
-                      setSelectedProductId(val || '');
-                      if (prodObj && !products.some((p) => p.id === prodObj.id)) {
-                        setProducts((prev) => [...prev, prodObj]);
-                      }
-                      if (val) {
-                        setTimeout(() => quantityInputRef.current?.focus(), 50);
-                      }
-                    }}
-                    products={products}
-                    apiClient={api}
-                    onQuickAdd={() => {
-                      setNewProductName('');
-                      setNewProductUnit('kg');
-                      setQuickAddProductError('');
-                      setDuplicateProduct(null);
-                      setShowAddProductModal(true);
-                    }}
-                    variant="pwa"
-                    placeholder="Select Product"
-                    quickAddLabel="+ Add"
-                  />
-                </div>
+            {/* Product Search + Add Product button */}
+            <div
+              style={{
+                padding: '0.625rem 0.75rem',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                gap: '0.5rem',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <ProductSelector
+                  tenantId={tenantSlug}
+                  categoryId={activeCategoryObj?.id}
+                  value={selectedProductId}
+                  onChange={(val, prodObj) => {
+                    setSelectedProductId(val || '');
+                    if (prodObj && !products.some((p) => p.id === prodObj.id)) {
+                      setProducts((prev) => [...prev, prodObj]);
+                    }
+                    if (val) {
+                      setTimeout(() => quantityInputRef.current?.focus(), 50);
+                    }
+                  }}
+                  products={products}
+                  apiClient={api}
+                  onQuickAdd={undefined}
+                  variant="pwa"
+                  placeholder="Search product (type 2+ characters)..."
+                />
               </div>
-
-              {/* Qty + Rate inputs + Add (+) button — revealed when a product is selected */}
-              {selectedProductId && (
-                <div
-                  className="cart-add-inputs-row"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <div className="input-pill-box" style={{ flex: 1, padding: '0.375rem 0.625rem' }}>
-                    <span className="input-pill-label">{isWeightUnit ? 'Quantity' : 'Qty'}</span>
-                    <div className="input-pill-flex">
-                      <input
-                        ref={quantityInputRef}
-                        type="number"
-                        className="pill-input-field"
-                        placeholder="0"
-                        value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                        step="0.01"
-                      />
-                      <span className="pill-suffix">{currentUnit}</span>
-                    </div>
-                  </div>
-                  <div className="input-pill-box" style={{ flex: 1, padding: '0.375rem 0.625rem' }}>
-                    <span className="input-pill-label">Rate</span>
-                    <div className="input-pill-flex">
-                      <span
-                        style={{
-                          fontSize: '0.875rem',
-                          fontWeight: 700,
-                          color: 'var(--text-muted)',
-                        }}
-                      >
-                        {currencySymbol}
-                      </span>
-                      <input
-                        type="number"
-                        className="pill-input-field"
-                        placeholder="0"
-                        value={rate}
-                        onChange={(e) => setRate(e.target.value)}
-                        step="0.01"
-                      />
-                      <span className="pill-suffix">/{currentUnit}</span>
-                    </div>
-                  </div>
-                  <button
-                    className="btn-add-product"
-                    id="quick-add-product-btn"
-                    onClick={handleAddItem}
-                    aria-label="Add product to cart"
-                    title="Add product to cart"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-
-              {/* Instant subtotal preview */}
-              {weight && rate && (
-                <div className="cart-add-preview">
-                  Preview: {formatCurrency(parseFloat(weight) * parseFloat(rate), tenantCurrency)}
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setNewProductName('');
+                  setNewProductUnit('kg');
+                  setQuickAddProductError('');
+                  setDuplicateProduct(null);
+                  setShowAddProductModal(true);
+                }}
+                style={{
+                  background: 'var(--forest-green)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '0.45rem 0.75rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontFamily: 'inherit',
+                  flexShrink: 0,
+                }}
+              >
+                + Add Product
+              </button>
             </div>
 
-            {/* Cart Item Rows or Empty State */}
+            {/* Qty + Rate inputs — revealed when a product is selected */}
+            {selectedProductId && (
+              <div
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  background: '#f0fdf4',
+                  borderBottom: '1px solid #bbf7d0',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr auto',
+                  gap: '0.5rem',
+                  alignItems: 'flex-end',
+                }}
+              >
+                {/* Qty */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      color: '#166534',
+                      marginBottom: 3,
+                    }}
+                  >
+                    {isWeightUnit ? 'Qty' : 'Qty'} ({currentUnit})
+                  </div>
+                  <input
+                    ref={quantityInputRef}
+                    type="number"
+                    placeholder="0"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    step="0.01"
+                    style={{
+                      width: '100%',
+                      border: '1.5px solid #bbf7d0',
+                      borderRadius: 6,
+                      padding: '0.375rem 0.5rem',
+                      fontSize: '0.9375rem',
+                      fontWeight: 700,
+                      background: '#fff',
+                      fontFamily: 'inherit',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                {/* Rate */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      color: '#166534',
+                      marginBottom: 3,
+                    }}
+                  >
+                    Rate ({currencySymbol})
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: '#fff',
+                      border: '1.5px solid #bbf7d0',
+                      borderRadius: 6,
+                      padding: '0.375rem 0.5rem',
+                      gap: '0.2rem',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: '#94a3b8',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {currencySymbol}
+                    </span>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={rate}
+                      onChange={(e) => setRate(e.target.value)}
+                      step="0.01"
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        outline: 'none',
+                        fontSize: '0.9375rem',
+                        fontWeight: 700,
+                        background: 'transparent',
+                        fontFamily: 'inherit',
+                        minWidth: 0,
+                      }}
+                    />
+                  </div>
+                </div>
+                {/* Add button */}
+                <button
+                  id="quick-add-product-btn"
+                  onClick={handleAddItem}
+                  aria-label="Add product to cart"
+                  style={{
+                    background: 'var(--forest-green)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    alignSelf: 'flex-end',
+                    whiteSpace: 'nowrap',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  + Add
+                </button>
+              </div>
+            )}
+
+            {/* Table or Empty State */}
             {addedItems.length === 0 ? (
-              <div className="cart-empty-state">
-                <div className="cart-empty-icon">🛒</div>
-                <div className="cart-empty-text">
-                  No items yet. Search or tap <strong>+</strong> to add.
+              <div
+                style={{
+                  padding: '2rem 1rem',
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: '0.375rem' }}>🛒</div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                  No items yet. Search above to add.
                 </div>
               </div>
             ) : (
-              <div>
-                {addedItems.map((item, index) => (
-                  <div key={index} className="cart-item-compact">
-                    <div className="cart-item-top-row">
-                      <span className="cart-item-name">{item.name}</span>
-                      <button
-                        className="btn-remove-compact"
-                        onClick={() => handleRemoveItem(index)}
-                        aria-label={`Remove ${item.name}`}
-                        title={`Remove ${item.name}`}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="cart-item-bottom-row">
-                      <span className="cart-item-pill">
-                        {item.qty} {item.unit}
-                      </span>
-                      <span style={{ color: 'var(--text-light)', fontSize: '0.625rem' }}>×</span>
-                      <span className="cart-item-pill">
-                        {currencySymbol}
-                        {item.rate}/{item.unit}
-                      </span>
-                      <span className="cart-item-amount">
-                        {formatCurrency(item.total, tenantCurrency)}
-                      </span>
-                    </div>
+              <>
+                {/* Scrollable table wrapper */}
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  {/* Table header */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1.8fr 0.7fr 0.7fr 0.9fr 1fr 0.65fr',
+                      minWidth: 320,
+                      gap: '0.125rem',
+                      padding: '0.3rem 0.5rem',
+                      background: '#f1f5f9',
+                      fontSize: '0.5625rem',
+                      fontWeight: 800,
+                      color: '#64748b',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.4px',
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    <span>Product</span>
+                    <span style={{ textAlign: 'center' }}>Qty</span>
+                    <span style={{ textAlign: 'center' }}>Unit</span>
+                    <span style={{ textAlign: 'center' }}>Rate ({currencySymbol})</span>
+                    <span style={{ textAlign: 'right' }}>Amt ({currencySymbol})</span>
+                    <span style={{ textAlign: 'center' }}>Act.</span>
                   </div>
-                ))}
-              </div>
-            )}
 
-            {/* Cart Totals */}
-            {addedItems.length > 0 && (
-              <div className="cart-totals-section">
-                <div className="cart-totals-row">
-                  <span>
-                    {addedItems.length} {addedItems.length === 1 ? 'item' : 'items'}
-                  </span>
-                  <span style={{ fontWeight: 700 }}>
-                    {formatCurrency(grandTotal, tenantCurrency)}
-                  </span>
-                </div>
-                <div className="cart-totals-row">
-                  <span>Tax (0%)</span>
-                  <span>{formatCurrency(0, tenantCurrency)}</span>
-                </div>
-                <div className="cart-totals-grand">
-                  <span>TOTAL</span>
-                  <span>{formatCurrency(grandTotal, tenantCurrency)}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Attach Invoice — inside cart card, below totals */}
-            <div className="cart-attach-row">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className={`cart-attach-btn${invoiceFile ? ' attached' : ''}`}
-              >
-                📎{' '}
-                {invoiceFile ? (
-                  <>
-                    <span>
-                      ✓ {invoiceFile.name.slice(0, 20)}
-                      {invoiceFile.name.length > 20 ? '...' : ''}
-                    </span>
-                    <span
-                      style={{ color: '#dc2626', marginLeft: 4, fontWeight: 800 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setInvoiceFile(null);
+                  {/* Table rows */}
+                  {addedItems.map((item, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1.8fr 0.7fr 0.7fr 0.9fr 1fr 0.65fr',
+                        minWidth: 320,
+                        gap: '0.125rem',
+                        padding: '0.4rem 0.5rem',
+                        borderBottom: index < addedItems.length - 1 ? '1px solid #f1f5f9' : 'none',
+                        alignItems: 'center',
+                        background:
+                          editingIndex === index
+                            ? '#f0fdf4'
+                            : index % 2 === 0
+                              ? '#ffffff'
+                              : '#fafafa',
                       }}
                     >
-                      ×
+                      {/* Product Name */}
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          color: 'var(--text-main)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                        title={item.name}
+                      >
+                        {item.name}
+                      </span>
+
+                      {/* Qty */}
+                      {editingIndex === index ? (
+                        <input
+                          type="number"
+                          value={editQty}
+                          onChange={(e) => setEditQty(e.target.value)}
+                          step="0.01"
+                          style={{
+                            width: '100%',
+                            border: '1px solid var(--forest-green)',
+                            borderRadius: 4,
+                            padding: '0.15rem 0.2rem',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            textAlign: 'center',
+                            background: '#fff',
+                            fontFamily: 'inherit',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            textAlign: 'center',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: 'var(--text-main)',
+                          }}
+                        >
+                          {item.qty}
+                        </span>
+                      )}
+
+                      {/* Unit */}
+                      {editingIndex === index ? (
+                        <select
+                          value={editUnit}
+                          onChange={(e) => setEditUnit(e.target.value)}
+                          style={{
+                            width: '100%',
+                            border: '1px solid var(--forest-green)',
+                            borderRadius: 4,
+                            padding: '0.15rem 0.1rem',
+                            fontSize: '0.625rem',
+                            fontWeight: 700,
+                            background: '#fff',
+                            fontFamily: 'inherit',
+                            cursor: 'pointer',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          {[
+                            'kg',
+                            'g',
+                            'L',
+                            'ml',
+                            'pcs',
+                            'dozen',
+                            'box',
+                            'pack',
+                            'bottle',
+                            'bunch',
+                            'bag',
+                          ].map((u) => (
+                            <option key={u} value={u}>
+                              {u}
+                            </option>
+                          ))}
+                          {![
+                            'kg',
+                            'g',
+                            'L',
+                            'ml',
+                            'pcs',
+                            'dozen',
+                            'box',
+                            'pack',
+                            'bottle',
+                            'bunch',
+                            'bag',
+                          ].includes(item.unit) && <option value={item.unit}>{item.unit}</option>}
+                        </select>
+                      ) : (
+                        <span
+                          style={{
+                            textAlign: 'center',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          {item.unit}
+                        </span>
+                      )}
+
+                      {/* Rate */}
+                      {editingIndex === index ? (
+                        <input
+                          type="number"
+                          value={editRate}
+                          onChange={(e) => setEditRate(e.target.value)}
+                          step="0.01"
+                          style={{
+                            width: '100%',
+                            border: '1px solid var(--forest-green)',
+                            borderRadius: 4,
+                            padding: '0.15rem 0.2rem',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            textAlign: 'center',
+                            background: '#fff',
+                            fontFamily: 'inherit',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            textAlign: 'center',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: 'var(--text-main)',
+                          }}
+                        >
+                          {item.rate.toFixed(2)}
+                        </span>
+                      )}
+
+                      {/* Amount */}
+                      <span
+                        style={{
+                          textAlign: 'right',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          color: 'var(--forest-green)',
+                        }}
+                      >
+                        {editingIndex === index
+                          ? (parseFloat(editQty || '0') * parseFloat(editRate || '0')).toFixed(2)
+                          : item.total.toFixed(2)}
+                      </span>
+
+                      {/* Action */}
+                      {editingIndex === index ? (
+                        <div style={{ display: 'flex', gap: '0.125rem', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={handleSaveEdit}
+                            title="Save changes"
+                            style={{
+                              background: 'var(--forest-green)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: 4,
+                              width: 22,
+                              height: 22,
+                              fontSize: '0.625rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 800,
+                            }}
+                          >
+                            ✓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingIndex(null)}
+                            title="Cancel edit"
+                            style={{
+                              background: '#f1f5f9',
+                              color: '#64748b',
+                              border: '1px solid var(--border)',
+                              borderRadius: 4,
+                              width: 22,
+                              height: 22,
+                              fontSize: '0.625rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.125rem', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(index)}
+                            title={`Edit ${item.name}`}
+                            aria-label={`Edit ${item.name}`}
+                            style={{
+                              background: '#eff6ff',
+                              color: '#2563eb',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: 4,
+                              width: 22,
+                              height: 22,
+                              fontSize: '0.6875rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(index)}
+                            title={`Remove ${item.name}`}
+                            aria-label={`Remove ${item.name}`}
+                            style={{
+                              background: '#fff1f2',
+                              color: '#dc2626',
+                              border: '1px solid #fecdd3',
+                              borderRadius: 4,
+                              width: 22,
+                              height: 22,
+                              fontSize: '0.6875rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>{' '}
+                {/* end scroll wrapper */}
+                {/* Cart Totals */}
+                <div
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    borderTop: '2px solid var(--border)',
+                    background: '#f8fafc',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    <span style={{ fontWeight: 700 }}>Total Items: {addedItems.length}</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div>
+                        Subtotal{' '}
+                        <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
+                          {currencySymbol}
+                          {grandTotal.toFixed(2)}
+                        </span>
+                      </div>
+                      <div>
+                        Tax (0%){' '}
+                        <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
+                          {currencySymbol}0.00
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      borderTop: '1px solid var(--border)',
+                      paddingTop: '0.375rem',
+                      marginTop: '0.25rem',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 800,
+                        fontSize: '0.875rem',
+                        color: 'var(--text-main)',
+                      }}
+                    >
+                      Total
                     </span>
-                  </>
-                ) : (
-                  <span>Attach Invoice (Optional)</span>
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                style={{ display: 'none' }}
-                onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
-              />
-            </div>
+                    <span
+                      style={{
+                        fontWeight: 800,
+                        fontSize: '1rem',
+                        color: 'var(--forest-green)',
+                      }}
+                    >
+                      {currencySymbol}
+                      {grandTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* ── 9. Sticky Sawtooth Bottom Grand Total Bar ─────────────────────── */}
-      <div className="bottom-ticket-bar">
-        <div
-          className="ticket-container"
-          onClick={handleSavePurchase}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="ticket-flex">
-            <div>
-              <div className="ticket-label">
-                {activeVendor?.name ? activeVendor.name.toUpperCase() : '—'}
-              </div>
-              <div className="ticket-sub">
-                {saving
-                  ? 'Saving Purchase...'
-                  : isUtilityBillCategory
-                    ? `Bill Month: ${billMonth || 'Current'} (Tap to Save Bill)`
-                    : `${addedItems.length} item${addedItems.length === 1 ? '' : 's'} (Tap to Submit Purchase)`}
-              </div>
-            </div>
-            <div className="ticket-badge-total">
-              {formatCurrency(displayGrandTotal, tenantCurrency)}
-            </div>
-          </div>
+      {/* ── 9. Bottom Action Bar ─────────────────────── */}
+      <div className="purchase-action-bar">
+        {/* Row 1: Attach + Draft */}
+        <div className="action-row-1">
+          {/* Attach Invoice */}
+          <button
+            type="button"
+            className={`action-btn-secondary${invoiceFile ? ' attached' : ''}`}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <span>📎</span>
+            {invoiceFile ? (
+              <>
+                <span>✓ Attached</span>
+                <span
+                  style={{ color: '#dc2626', marginLeft: 4, fontWeight: 900, flexShrink: 0 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInvoiceFile(null);
+                  }}
+                >
+                  ✕
+                </span>
+              </>
+            ) : (
+              <span>Attach Invoice</span>
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            style={{ display: 'none' }}
+            onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+          />
+
+          {/* Save Draft */}
+          <button type="button" className="action-btn-secondary" onClick={handleSaveDraft}>
+            <span>💾</span>
+            <span>Save Draft</span>
+          </button>
         </div>
+
+        {/* Row 2: Submit — full width */}
+        <button
+          type="button"
+          className="action-btn-submit"
+          onClick={handleSavePurchase}
+          disabled={saving}
+        >
+          {saving ? '⏳ Saving...' : '✅ Submit Purchase'}
+        </button>
       </div>
 
       {/* ── 10. Bottom Navigation Bar ──────────────────────────────── */}
