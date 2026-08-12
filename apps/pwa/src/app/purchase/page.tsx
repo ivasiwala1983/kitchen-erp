@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { KitchenErpApi, clearTokens } from '@kitchen-erp/api-client';
 import { formatCurrency, getCurrencySymbol } from '@kitchen-erp/utils';
 import type { Category, Vendor, Product } from '@kitchen-erp/types';
+import { VendorSelector, ProductSelector } from '@kitchen-erp/ui';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const API_URL = rawApiUrl.replace(/\/+$/, '');
@@ -670,33 +671,20 @@ export default function PurchaseMobilePage() {
             }}
           >
             {vendors.length > 0 ? (
-              <select
-                style={{
-                  background: '#f8fafc',
-                  border: '1.5px solid var(--border)',
-                  borderRadius: 10,
-                  padding: '0.4rem 0.75rem',
-                  fontSize: '0.8125rem',
-                  fontWeight: 700,
-                  color: 'var(--forest-green)',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  maxWidth: '65%',
-                }}
-                value={activeVendor?.id || ''}
-                onChange={(e) => {
-                  const v = vendors.find((x) => x.id === e.target.value);
-                  if (v) setActiveVendor(v);
-                  else setActiveVendor(null);
-                }}
-              >
-                <option value="">Select Vendor</option>
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
+              <div style={{ flex: 1 }}>
+                <VendorSelector
+                  categoryId={activeCategoryObj?.id}
+                  value={activeVendor?.id || null}
+                  onChange={(val, vendorObj) => {
+                    if (vendorObj) setActiveVendor(vendorObj);
+                    else if (!val) setActiveVendor(null);
+                  }}
+                  vendors={vendors}
+                  apiClient={api}
+                  placeholder="Select vendor..."
+                  variant="pwa"
+                />
+              </div>
             ) : (
               <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>
                 None for this category
@@ -783,24 +771,20 @@ export default function PurchaseMobilePage() {
               />
             )}
 
-            <select
-              className="item-search-input"
+            <ProductSelector
+              categoryId={activeCategoryObj?.id}
               value={selectedProductId}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSelectedProductId(val);
+              onChange={(val) => {
+                setSelectedProductId(val || '');
                 if (val) {
                   setTimeout(() => quantityInputRef.current?.focus(), 50);
                 }
               }}
-            >
-              <option value="">{getCategoryPlaceholder(activeCategoryObj?.name)}</option>
-              {filteredProducts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.unit || 'unit'})
-                </option>
-              ))}
-            </select>
+              products={filteredProducts}
+              apiClient={api}
+              variant="pwa"
+              placeholder={getCategoryPlaceholder(activeCategoryObj?.name)}
+            />
           </div>
 
           <div className="inputs-row">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 
 export interface SmartSelectOption<T = string> {
   value: T;
@@ -76,11 +77,27 @@ export function SmartSelect<T = string>({
   const [internalLoading, setInternalLoading] = useState(false);
   const [internalError, setInternalError] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  const [popoverPos, setPopoverPos] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  }>({ left: 0, width: 0, maxHeight: 260 });
+
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentRequestRef = useRef<number>(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync internal options with props if no active search
   useEffect(() => {
@@ -99,6 +116,96 @@ export function SmartSelect<T = string>({
     (variant === 'auto' &&
       typeof window !== 'undefined' &&
       (window.innerWidth <= 768 || navigator.maxTouchPoints > 0));
+
+  // Calculate desktop popover position relative to viewport
+  const updatePopoverPos = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const viewportH = window.innerHeight;
+      const spaceBelow = viewportH - rect.bottom - 12;
+      const spaceAbove = rect.top - 12;
+      const placeAbove = spaceBelow < 220 && spaceAbove > spaceBelow;
+
+      if (placeAbove) {
+        setPopoverPos({
+          bottom: viewportH - rect.top + 4,
+          left: Math.max(8, rect.left),
+          width: Math.min(rect.width, window.innerWidth - 16),
+          maxHeight: Math.min(300, Math.max(160, spaceAbove)),
+        });
+      } else {
+        setPopoverPos({
+          top: rect.bottom + 4,
+          left: Math.max(8, rect.left),
+          width: Math.min(rect.width, window.innerWidth - 16),
+          maxHeight: Math.min(300, Math.max(160, spaceBelow)),
+        });
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !isPWA) {
+      updatePopoverPos();
+      window.addEventListener('resize', updatePopoverPos);
+      window.addEventListener('scroll', updatePopoverPos, true);
+      return () => {
+        window.removeEventListener('resize', updatePopoverPos);
+        window.removeEventListener('scroll', updatePopoverPos, true);
+      };
+    }
+  }, [isOpen, isPWA, updatePopoverPos]);
+
+  // Lock body scroll when modal or popover is open
+  useEffect(() => {
+    if (isOpen || showBrowseAll) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen, showBrowseAll]);
+
+  // Android Back Button handling for PWA modal
+  useEffect(() => {
+    if ((isOpen || showBrowseAll) && isPWA) {
+      const stateObj = { smartSelectOpen: true, id: id || label || 'selector' };
+      window.history.pushState(stateObj, '');
+
+      const handlePopState = () => {
+        setIsOpen(false);
+        setShowBrowseAll(false);
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen, showBrowseAll, isPWA, id, label]);
+
+  // Visual viewport height adaptation (virtual keyboard)
+  useEffect(() => {
+    if ((isOpen || showBrowseAll) && isPWA) {
+      const handleResize = () => {
+        if (window.visualViewport) {
+          setViewportHeight(window.visualViewport.height);
+        }
+      };
+      handleResize();
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', handleResize);
+        window.visualViewport.addEventListener('scroll', handleResize);
+        return () => {
+          window.visualViewport?.removeEventListener('resize', handleResize);
+          window.visualViewport?.removeEventListener('scroll', handleResize);
+        };
+      }
+    } else {
+      setViewportHeight(null);
+    }
+  }, [isOpen, showBrowseAll, isPWA]);
 
   // Filter client-side options when no server onSearch is provided
   const displayOptions = useCallback(() => {
@@ -176,7 +283,13 @@ export function SmartSelect<T = string>({
   // Close popover when clicking outside (Desktop)
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        popoverRef.current &&
+        !popoverRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -284,96 +397,27 @@ export function SmartSelect<T = string>({
   const isLoadingState = externalLoading || internalLoading;
   const isErrorState = externalError || internalError;
 
-  return (
-    <div
-      ref={containerRef}
-      className={`smart-select-container ${className}`}
-      onKeyDown={handleKeyDown}
-      style={{ position: 'relative', width: '100%' }}
-    >
-      {label && (
-        <label htmlFor={id} className="smart-select-label">
-          {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
-        </label>
-      )}
+  const renderPortalOverlay = () => {
+    if (!mounted || typeof document === 'undefined') return null;
 
-      {/* Main Trigger Input/Button */}
-      <div
-        id={id}
-        tabIndex={disabled ? -1 : 0}
-        role="combobox"
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        className={`smart-select-trigger ${disabled ? 'disabled' : ''} ${isOpen ? 'active' : ''}`}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.5rem 0.75rem',
-          background: disabled ? '#f1f5f9' : '#ffffff',
-          border: '1.5px solid #cbd5e1',
-          borderRadius: '10px',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          minHeight: '42px',
-          fontSize: '0.875rem',
-          color: selectedOption ? '#0f172a' : '#64748b',
-          userSelect: 'none',
-        }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
-          {selectedOption ? (
-            <>
-              {selectedOption.icon && <span>{selectedOption.icon}</span>}
-              <span style={{ fontWeight: 600, color: '#0f172a' }}>{selectedOption.label}</span>
-              {selectedOption.sublabel && (
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  ({selectedOption.sublabel})
-                </span>
-              )}
-            </>
-          ) : (
-            <span>{placeholder}</span>
-          )}
-        </span>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-          {clearable && selectedOption && !disabled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              title="Clear selection"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#94a3b8',
-                fontSize: '1rem',
-                cursor: 'pointer',
-                padding: '0 0.25rem',
-              }}
-            >
-              ✕
-            </button>
-          )}
-          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>▼</span>
-        </div>
-      </div>
-
-      {/* Admin Desktop Overlay Dropdown */}
-      {isOpen && !isPWA && (
+    // Desktop / Admin Popover via Portal
+    if (isOpen && !isPWA) {
+      return ReactDOM.createPortal(
         <div
+          ref={popoverRef}
           role="listbox"
           className="smart-select-popover"
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 4px)',
-            left: 0,
-            right: 0,
-            zIndex: 999,
+            position: 'fixed',
+            ...(popoverPos.top !== undefined ? { top: popoverPos.top } : {}),
+            ...(popoverPos.bottom !== undefined ? { bottom: popoverPos.bottom } : {}),
+            left: popoverPos.left,
+            width: popoverPos.width,
+            zIndex: 'var(--z-modal, 9999)' as any,
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
             overflow: 'hidden',
           }}
         >
@@ -441,7 +485,7 @@ export function SmartSelect<T = string>({
           )}
 
           {/* List Options */}
-          <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: `${popoverPos.maxHeight}px`, overflowY: 'auto' }}>
             {isLoadingState ? (
               <div
                 style={{
@@ -534,21 +578,26 @@ export function SmartSelect<T = string>({
               })
             )}
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      );
+    }
 
-      {/* PWA Mobile Bottom Sheet Modal */}
-      {(isOpen || showBrowseAll) && isPWA && (
+    // PWA Mobile Bottom Sheet Modal via Portal
+    if ((isOpen || showBrowseAll) && isPWA) {
+      return ReactDOM.createPortal(
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 9999,
+            zIndex: 'var(--z-modal, 9999)' as any,
             background: 'rgba(15, 23, 42, 0.6)',
             backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-end',
+            height: viewportHeight ? `${viewportHeight}px` : '100vh',
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -566,6 +615,7 @@ export function SmartSelect<T = string>({
               display: 'flex',
               flexDirection: 'column',
               padding: '1.25rem',
+              paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))',
               animation: 'slideUp 0.2s ease-out',
             }}
           >
@@ -804,8 +854,90 @@ export function SmartSelect<T = string>({
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={`smart-select-container ${className}`}
+      onKeyDown={handleKeyDown}
+      style={{ position: 'relative', width: '100%' }}
+    >
+      {label && (
+        <label htmlFor={id} className="smart-select-label">
+          {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
+        </label>
       )}
+
+      {/* Main Trigger Input/Button */}
+      <div
+        id={id}
+        tabIndex={disabled ? -1 : 0}
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        className={`smart-select-trigger ${disabled ? 'disabled' : ''} ${isOpen ? 'active' : ''}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.5rem 0.75rem',
+          background: disabled ? '#f1f5f9' : '#ffffff',
+          border: '1.5px solid #cbd5e1',
+          borderRadius: '10px',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          minHeight: '42px',
+          fontSize: '0.875rem',
+          color: selectedOption ? '#0f172a' : '#64748b',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+          {selectedOption ? (
+            <>
+              {selectedOption.icon && <span>{selectedOption.icon}</span>}
+              <span style={{ fontWeight: 600, color: '#0f172a' }}>{selectedOption.label}</span>
+              {selectedOption.sublabel && (
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  ({selectedOption.sublabel})
+                </span>
+              )}
+            </>
+          ) : (
+            <span>{placeholder}</span>
+          )}
+        </span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+          {clearable && selectedOption && !disabled && (
+            <button
+              type="button"
+              onClick={handleClear}
+              title="Clear selection"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                padding: '0 0.25rem',
+              }}
+            >
+              ✕
+            </button>
+          )}
+          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>▼</span>
+        </div>
+      </div>
+
+      {renderPortalOverlay()}
     </div>
   );
 }
